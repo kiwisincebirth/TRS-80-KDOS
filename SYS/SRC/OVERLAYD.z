@@ -1,0 +1,184 @@
+; ======================================================================
+;       	NATIVE (FREHD) DOS
+;	based on TRSDOS and NEWDOS/80 for Model 1
+;
+;     DIR COMMAND
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4600h)
+; ======================================================================
+;
+	ORG	OVERLY
+;
+ENTRY:
+	;
+	; test if enhance rom	; todo this should be conditional compile
+	call	enh_VER		; call the Enhanced Floppy80 check
+	jr	nz,NEWDIR	; Enhanced Fre Hd / Floppy 80 handling
+;
+; otherwise fall through to Standard FreHD handling
+; FreHD API to do a DIR listing
+;
+GETDIR:
+	call	SETROWS         ; Setup column and row count
+	;
+	ld      a,2             ; 2 bytes
+	out     (SIZE2),A
+	ld      a,OPENDIR
+	out     (COMMAND2),A
+	call    fhd_WAIT
+	;
+	ld      a,"/"		; Default to the "ROOT" directory
+	out     (DATA2),A
+	ld      a,0
+	out     (DATA2),A
+	;
+	call    fhd_WAIT
+	jp      nz,@ERROR	; Open DIR failed
+	;
+GETDIR2
+	ld      a,READDIR       ; Request directory entry
+	out     (COMMAND2),A
+	;
+	call    fhd_WAIT
+	jp      nz,@ERROR	; read dir entry failed. handle error
+	;
+	and     STATUS_DRQ	; mask DRQ status
+	jr      z,GETDIR3       ; No DRQ so done
+	;
+	call	PROCESSDIR
+	jr	GETDIR2
+	;
+GETDIR3
+	ld      hl,BUFFER       ; Force a new line at the end
+	ld      (hl),CR
+	call    @DSPLY
+	;
+	JP	@EXIT		; completed so exit
+;
+; Floppy 80 API to do a DIR listing
+;
+; todo need to provide simple filtering *XXX and XXX*
+;
+NEWDIR:
+	call	SETROWS         ; Setup column and row count
+	;
+	ld      a,2             ; 2 bytes
+	out     (SIZE2),A
+	ld      a,TRS_NEW_DIR
+	out     (COMMAND2),A
+	call    fhd_WAIT
+	;
+	ld      a,0			; Default to the "Current" DRIVE
+	out     (DATA2),A
+	ld      a,'*'			; all files
+	out     (DATA2),A
+	;
+NEWDIR2
+	call    fhd_WAIT
+	jp      nz,@ERROR	; Read Failed
+	;
+	and     STATUS_DRQ	; mask DRQ status
+	jr      z,NEWDIR3       ; No DRQ so done
+	;
+	call	PROCESSDIR
+	jr	NEWDIR2
+	;
+NEWDIR3
+	ld      hl,BUFFER       ; Force a new line at the end
+	ld      (hl),CR
+	call    @DSPLY
+	;
+	JP	@EXIT		; completed so exit
+;
+; ----------------------------------------------------------------------
+PROCESSDIR:
+	in      a,(SIZE2)       ; initiate read the FILINFO structure
+	ld      b,a
+	ld      c,DATA2		; BC is count, from data IO Port
+	ld      hl,BUFFER	; to buffer
+	inir			; transfer the data
+	;
+	ld	hl,BUFFER+8
+	ld      a,(hl)		; Check File attribute for Volume label/hidden
+	and     AM_HID+AM_SYS+AM_VOL ; if unsuitable
+	ret   	nz	 	; Ignore this file
+	;
+	ld      a,(hl)		; Check File attribute for DIRECTORY
+	and     AM_DIR		; if directory - todo for frehd exclude these
+	jr   	z,PROCESS2      ; No So skip down
+	;
+	ld	de,BUFFER+24	; Mark a DIR name with leading ">"
+	push	de		; move to
+	pop	hl
+	dec	hl		; move from HL
+	ld	bc,15		; 15 chars
+	lddr			; move right
+	ex	de,hl
+	ld	(hl),128+1+4	; and place leading character
+	;
+PROCESS2
+	ld      hl,BUFFER+25    ; ETX at the end to make printing easy
+	ld      (hl),ETX        ; 4 bytes after the 8.3 filename = 16 chars, 4 columns
+	;
+	ld      hl,BUFFER+8     ; Find first 00h and then make all characters SPC until ETX
+PROCES3
+	inc	hl		; starting at 9th byte
+	ld      a,(HL)
+	or	a
+	jr      nz,PROCES3	; not a 0, get next char
+PROCES4
+	ld      (hl),SPC        ; Replace 0 with SPC
+	inc     hl              ; and keep going to next char
+	ld      a,(HL)		; get next char
+	CP      ETX		; until we get to ETX
+	jr      nz,PROCES4	; not etx, loop back keep adding spaces
+	;
+PROCES6
+	ld      hl,BUFFER+9     ; Display the filename
+	call    @DSPLY
+	;
+	ld	hl,DIRROWS	; rows column counter
+	dec	(hl)		;
+	ret	nz		; not zero so finished
+	;
+	call	KBWAIT		; wait for user keypress
+	call    SETROWS         ; reset the column ro counter
+	;
+	ret         		; Check for more files
+	;
+; ----------------------------------------------------------------------
+
+BUFFER
+	DS      32		; 32 should be enough
+;;	DS      4*(6+12+1)      ; =76, 6+12+1=infodrive_size, was 64
+
+; ======================================================================
+
+SETROWS:
+	ld	HL,DIRROWS
+	ld	(hl),15	* 4	; 15 rows or 4 entries
+	ret
+DIRROWS
+	DB      0
+
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+$OVERLAYFREE	EQU	DOSEND - $
+;
+	; FILL to end of REGION
+	DC	DOSEND - $ -1 ,0
+	DB	$0D
+;
+	END

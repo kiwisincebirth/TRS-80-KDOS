@@ -1,0 +1,199 @@
+;;;
+;;; Floppy 80 - FreHD Like - SYS0.SYS - ROM LOADER
+;;;
+;;; These 256 bytes are the code which is initially loaded and starts
+;;; the load of the actual mini DOS.
+;;;
+;;; This code tries to open "/SYS/SYS0.SYS" on the SD-card.
+;;; and will execute this code once loaded
+;;;
+;;; This is loaded and executed from Level 2 ROM if either:
+;;;    * A Fre HD Auto boot Rom is installed, code will be loaded at $5000
+;;;    * Otherwise a Floppy Disk boot block load will occur at $4200
+;;;
+;;; This code is designed to work on Floppy80 hardware, in either mode
+;;; This code is not exepected to be stored on a real FreHD, a real
+;;; FreHD has is own build in loaded that look for FREHD.ROM
+;;;
+;;; If loaded from floppy disk boot the code will automatically
+;;; be relocated and executed from $5000
+;;;
+
+; ======================================================================
+import	constants.z
+; ======================================================================
+;
+	ORG	5000h
+	db	0feh		; first byte is used by FreHD (ROM) loader
+				; as signature byte (discarded)
+				; On FLOPPY DISK LOADER - replace with NOP
+	PHASE	5000h
+BEGIN:
+	cp	$FF		; trick to pass one parameter from ROM
+				; $FF is replaced with Model I/II by FreHD
+	jr	RELOCATE	; skip the jump table
+;
+; ----------------------------------------------------------------------
+; Entry points for external
+; ----------------------------------------------------------------------
+;
+	jr	file_loader	; 5004h : file loader Entry Point
+;
+; ----------------------------------------------------------------------
+; handle relation of code up to $5000 is was loaded by floppy
+; disk bootstrap at location $4200, noting very first byte must be a NOP
+; ----------------------------------------------------------------------
+RELOCATE:
+	call	_WHERE		; ($000B) - get PC into HL
+				; HL has address of this next instruction
+	ld	a,h		; MSB of address this code is running in.
+	cp	$50		; compare with correct Code Page $5000
+	jr	z,START		; code already correctly located, start as normal
+;
+	ld	bc,$100		; bytes to move
+	ld	de,BEGIN	; target address, where code should execute from
+	ld	hl,$4201	; source address, current location (exclude 1 byte)
+	ldir			; transfer 256 bytes
+;
+LOADED:
+	jp	START		; Start the code.
+;
+; ----------------------------------------------------------------------
+START:
+	ld	a, (3840h)	; check keyboard
+	and	80h		; <SPACE> pressed ?
+	ret	nz		; return if so
+	;
+START2:
+	ld	de,fname	; load FREHD.ROM
+	ld	b,$10		; length of 16 bytes
+	;
+	call	file_loader	; load the file
+	ret	nz		; not loaded
+	jp	(hl)		; jump to SYS0.SYS
+;
+; ======================================================================
+;;;
+;;; FreHD file loader
+;;;
+;;; Input:
+;;; - DE : pointer to filename
+;;; - B  : filename length
+;;;
+;;; Return:
+;;; - Z  : no error. HL contains transfer address
+;;; - NZ : error occurred, file not or partially loaded
+;;;
+file_loader:
+	ld	hl,0			; save SP in IX
+	add	hl,sp
+	push	hl
+	pop	ix
+
+	ex	de,hl
+	ld	a,OPENFILE		; open file command
+	out	(COMMAND2),a
+	call	loadwait
+	ld	a,b
+	inc	a			; +1 for options
+	inc	a			; +1 for null-terminator
+	out	(SIZE2),a
+	ld	c,DATA2
+	ld	a,FA_OPEN_EXIST|FA_READ
+	out	(c),a			; send option
+	otir				; send filename
+	xor	a			; send null-terminator
+	out	(c),a
+	call	loadwait
+	ret	nz			; error, return
+
+	ld	c,0FFh			; counter
+load:
+	call	getbyte			; get type code
+	dec	a
+	jr	nz,load3		; bypass if not type 1
+;
+	call	getaddr			; get address
+load2:	call	getbyte
+	ld	(hl),a			; save that byte
+	inc	hl
+	djnz	load2
+	jr	load
+;
+load3:	dec	a			; test if type 2 (TRADDR)
+	jr	z,load5			; yes
+;
+	call	getbyte			; assume comment
+	ld	b,a			; get comment length
+load4:	call	getbyte
+	djnz	load4			; read and ignore
+	jr	load
+;
+load5:
+	call	getaddr			; get transfer address
+	ld	a,CLOSEFILE		; close file
+	out	(COMMAND2),a
+	call	loadwait
+	xor	a			; set Z for success !
+	ret
+;
+getaddr
+	call	getbyte			; get block length
+	ld	b,a
+	call	getbyte			; get low-order load addr
+	ld	l,a
+	dec	b			; adjust length
+	call	getbyte			; get high-order load addr
+	ld	h,a
+	dec	b			; adjust length
+	ret
+;
+getbyte
+	inc	c			; i++
+	jr	nz,getbyte1		; every 256 bytes, need another chunk
+	call	getchunk
+getbyte1:
+	in	a,(DATA2)		; get a byte
+	ret
+
+getchunk
+	xor	a			; request 256 bytes
+	out	(SIZE2),a
+	ld	a,READFILE
+	out	(COMMAND2),a
+	call	loadwait
+	jr	nz,geterror
+	in	a,(STATUS)		; DRQ set means we got something
+	and	08h
+	ret	nz			; return if ok !
+geterror:
+	ld	a,CLOSEFILE		; close file
+	out	(COMMAND2),a
+	call	loadwait
+	ld	sp,ix
+	inc	a			; set NZ (wait returns A == 0 or 1)
+	ret				; return
+
+loadwait:
+	in 	a, (STATUS)
+	rlca
+	jr 	c, loadwait
+	in 	a, (STATUS)		; read status again
+	and 	01h			; nz = error
+	ret
+;
+; ----------------------------------------------------------------------
+	; The file name is located on a 16 byte page boundary,
+	; after all code to make it easy to change in C code
+	; FILL to end of REGION
+	DC	$50DF - $,$FF
+; ----------------------------------------------------------------------
+;
+fname	db	"/SYS/SYS0.SYS"		; file name with trailing ZERO's
+;
+	; FILL to end of REGION
+	DC	$50FF - $,$00
+
+	IF $ > 50ffh
+	ERROR "Code too big!"
+	ENDIF

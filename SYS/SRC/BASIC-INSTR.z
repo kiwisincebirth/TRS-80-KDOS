@@ -1,0 +1,154 @@
+
+; ------------------------------
+; BASIC INSTR extension
+; Original Source from TRSDOS 2.3
+; SEE
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+; ------------------------------
+;
+import	constants.z
+;
+; ------------------------------
+; CODE STARTS HERE
+; ------------------------------
+;
+pageCall instrfunc, INSTRFUNC_PAGE
+;
+; ------------------------------
+; Code Required Starts Here
+; Copied From TRS DOS 2.3
+; ------------------------------
+   rst	$0010        ; 588b:
+   call	$2335        ; 588c:
+   rst	$0020        ; 588f:
+   ld	a,$01        ; 5890:
+   push	af           ; 5892:
+   jr	z,_58a6      ; 5893:
+   pop	af           ; 5895:
+   call	$2b1f        ; 5896:
+   or	a            ; 5899:
+   jp	z,$1e4a      ; 589a:
+   push	af           ; 589d:
+   rst	$0008        ; 589e:
+   inc	l            ; 589f:
+   call	$2337        ; 58a0:
+   call	$0af4        ; 58a3:
+_58a6
+   rst	$0008        ; 58a6:
+   inc	l            ; 58a7:
+   push	hl           ; 58a8:
+   ld	hl,($4121)   ; 58a9:
+   ex	(sp),hl      ; 58ac:
+   call	$2337        ; 58ad:
+   rst	$0008        ; 58b0:
+   add	hl,hl        ; 58b1:
+   push	hl           ; 58b2:
+   call	$29d7        ; 58b3:
+   ex	de,hl        ; 58b6:
+   pop	bc           ; 58b7:
+   pop	hl           ; 58b8:
+   pop	af           ; 58b9:
+   push	bc           ; 58ba:
+   ld	bc,$26e7     ; 58bb:
+   push	bc           ; 58be:
+   ld	bc,$27f8     ; 58bf:
+   push	bc           ; 58c2:
+   push	af           ; 58c3:
+   push	de           ; 58c4:
+   call	$29dd        ; 58c5:
+   pop	de           ; 58c8:
+   pop	af           ; 58c9:
+   ld	b,a          ; 58ca:
+   dec	a            ; 58cb:
+   ld	c,a          ; 58cc:
+   cp	(hl)         ; 58cd:
+   ld	a,$00        ; 58ce:
+   ret	nc           ; 58d0:
+   ld	a,(hl)       ; 58d1:
+   or	a            ; 58d2:
+   ret	z            ; 58d3:
+   ld	a,(de)       ; 58d4:
+   or	a            ; 58d5:
+   ld	a,b          ; 58d6:
+   ret	z            ; 58d7:
+   ld	a,(hl)       ; 58d8:
+   inc	hl           ; 58d9:
+   ld	b,(hl)       ; 58da:
+   inc	hl           ; 58db:
+   ld	h,(hl)       ; 58dc:
+   ld	l,b          ; 58dd:
+   ld	b,$00        ; 58de:
+   add	hl,bc        ; 58e0:
+   sub	c            ; 58e1:
+   ld	b,a          ; 58e2:
+   push	bc           ; 58e3:
+   push	de           ; 58e4:
+   ex	(sp),hl      ; 58e5:
+   ld	c,(hl)       ; 58e6:
+   inc	hl           ; 58e7:
+   ld	e,(hl)       ; 58e8:
+   inc	hl           ; 58e9:
+   ld	d,(hl)       ; 58ea:
+   pop	hl           ; 58eb:
+_58ec
+   push	hl           ; 58ec:
+   push	de           ; 58ed:
+   push	bc           ; 58ee:
+_58ef
+   ld	a,(de)       ; 58ef:
+   cp	(hl)         ; 58f0:
+   jr	nz,_590a     ; 58f1:
+   inc	de           ; 58f3:
+   dec	c            ; 58f4:
+   jr	z,_5901      ; 58f5:
+   inc	hl           ; 58f7:
+   dec	b            ; 58f8:
+   jr	nz,_58ef     ; 58f9:
+   pop	de           ; 58fb:
+   pop	de           ; 58fc:
+   pop	bc           ; 58fd:
+_58fe
+   pop	de           ; 58fe:
+   xor	a            ; 58ff:
+   ret               ; 5900:
+_5901
+   pop	hl           ; 5901:
+   pop	de           ; 5902:
+   pop	de           ; 5903:
+   pop	bc           ; 5904:
+   ld	a,b          ; 5905:
+   sub	h            ; 5906:
+   add	a,c          ; 5907:
+   inc	a            ; 5908:
+   ret               ; 5909:
+_590a
+   pop	bc           ; 590a:
+   pop	de           ; 590b:
+   pop	hl           ; 590c:
+   inc	hl           ; 590d:
+   dec	b            ; 590e:
+   jr	z,_58fe      ; 590f:
+   jr	_58ec        ; 5911:
+
+
+
+;
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+pageEnd
+;
+; ------------------------------
+; DOS ENTRY VECTOR
+; ------------------------------
+;
+	ORG	$419D
+	jp	instrfunc
+;
+; ------------------------------
+; CODE ENDS HERE
+; ------------------------------
+	; After loading return to DOS
+	END	$402D
+;
+

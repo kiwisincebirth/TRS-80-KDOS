@@ -1,0 +1,212 @@
+; ======================================================================
+;       	NATIVE (FREHD) DOS
+;	based on TRSDOS and NEWDOS/80 for Model 1
+;
+;     ERROR HANDLING
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4600h)
+; ======================================================================
+;
+	ORG	OVERLY
+
+ENTRY:
+	; Error Code is in B - copied from A, A used by SuperV
+	; Bit 7 determines if the error is terminating or a CALL and return
+	; Bit 6 can be used to allow more information to be displayed (DOS dependant)
+
+	; TERMINATING CALL, display error, dead end routine
+	; JP to this routine, with bit 7 (A) = 0
+
+	; CALLABLE ERROR, display error and RETurn
+	; CALL to ths routine, with bit 7 (A) = 1
+	; All registers preserved, except F
+
+	; test the MS bit, flag 1=return
+	bit	7,b		; test the 7th bit
+	jr	nz,HANDERR	; =1 jp down, with RET out
+
+	; otherwise if bit 7=0 then
+	call	HANDERR		; display the error
+	jp	@EXIT		; JP back to DOS
+;
+; ----------------------------------------------------------------------
+;
+HANDERR:
+	ld	a,UNKNOWN$	; mask for error code to 0-63
+	and	b		; and with the passed in error code B
+	jr	nz,HAND1	; 1-63 so continue with Error
+	ld	a,UNKNOWN$	;  =0  use unknown Error
+HAND1
+	push	af
+	push	bc
+	push	de
+	push	hl
+	;
+;	ld	b,a		; save the error code
+	; test if enhance rom todo this should be conditional compile
+	call	enh_VER		; call the Enhanced Floppy80 check
+	jr	nz,ENHANCED	; enhanced handling
+;
+STANDARD
+	ld	hl,lookupt	; message lookup table
+STD1:
+	ld	a,(hl)
+	inc	hl
+	or	a		; compare table terminator $00
+	jr	z,STD4		; last entry so handle generic
+	cp	b		; compare with passed error
+	jr	z,STD3		; same so process it fully
+STD2
+	ld	a,(hl)
+	inc	hl
+	cp	ETX		; is it ETX table entry terminator
+	jr	nz, STD2	; not end of table entry
+	jr	STD1		; now check next table entr
+;
+STD3:
+;	call	CRDONZ		; print CR if needed
+	call	@DSPLY		; display the message from lookup table
+	jr	STD5
+;
+STD4:
+;	call	CRDONZ		; print CR if needed
+	ld	hl,error_m	; "Error " messaage
+	call	@DSPLY		; display it
+	ld	h,0
+	ld	l,b		; error into HL
+	call	LINPRT		; print integer HL
+STD5:
+	call	CRDO		; print a CR
+	jr	HANDX
+	;
+ENHANCED
+	; call the enhanced function passing the Error code
+	; get the response message / printing it.
+
+	jr	STANDARD	; todo FUTURE this could be done with Floppy 80 call
+
+HANDX
+	pop	hl		; restore the stack
+	pop	de
+	pop	bc
+	pop	af
+	ret			; return to invocation
+;
+; ----------------------------------------------------------------------
+
+lookupt:
+	; common errors (not all) are here
+	defb	ILLFILNAM$ , "Illegal Filename",ETX		; 19
+	defb	FILNOTFND$ , "File Not Found",ETX		; 24
+	defb	PRGNOTFND$ , "Program Not Found",ETX		; 31
+	defb	LOAFILFMT$ , "Load File Format Error",ETX	; 34
+	defb	UNKNOWN$   , "Unknown Error",ETX		; 63
+	defb	$0
+
+	; These can be uncommented as necessary
+;	defb	08 ,"Device Not Available",ETX
+;	defb	15 ,"Write Protected Disk",ETX
+;	defb	25 ,"Access Denied",ETX
+;	defb	26 ,"Full or Write Protected",ETX
+;	defb	32 ,"Illegal Drive Number",ETX
+;
+error_m:
+	defb 'Error ', ETX
+
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+$OVERLAYFREE	EQU	DOSEND - $
+;
+	; FILL to end of REGION
+	DC	DOSEND - $ - 1,0
+	DB	$0E
+;
+	END
+
+/*
+
+Numbers below are based on LDOS 5.1 reference Manual
+
+Errors 1-19 => $01 -> $13 - so anything above $13 is open for normal use.
+typedef enum {
+	FR_DISK_ERR,		1  01	/* (1) A hard error occurred in the low level disk I/O layer */
+	FR_INT_ERR,		4  04	/* (2) Assertion failed */
+	FR_NOT_READY,		8  08	/* (3) The physical drive cannot work */
+	FR_NO_FILE,		24 18*	/* (4) Could not find the file */
+	FR_NO_PATH,		24 18*	/* (5) Could not find the path */
+	FR_INVALID_NAME,	19 13	/* (6) The path name format is invalid */
+	FR_DENIED,		26 1A	/* (7) Access denied due to prohibited access or directory full */
+	FR_EXIST,		25 19	/* (8) Access denied due to prohibited access */
+	FR_INVALID_OBJECT,	16 10	/* (9) The file/directory object is invalid */
+	FR_WRITE_PROTECTED,	15 0F	/* (10) The physical drive is write protected */
+	FR_INVALID_DRIVE,	32 20	/* (11) The logical drive number is invalid */
+	FR_NOT_ENABLED,		18 12	/* (12) The volume has no work area */
+	FR_NO_FILESYSTEM,	5  05	/* (13) There is no valid FAT volume */
+	FR_MKFS_ABORTED,	11 0B	/* (14) The f_mkfs() aborted due to any problem */
+	FR_TIMEOUT,		3  03	/* (15) Could not get a grant to access the volume within defined period */
+	FR_LOCKED,		37 25	/* (16) The operation is rejected according to the file sharing policy */
+	FR_NOT_ENOUGH_CORE,	33 21	/* (17) LFN working buffer could not be allocated */
+	FR_TOO_MANY_OPEN_FILES,	3F(Unknown)	/* (18) Number of open files > FF_FS_LOCK */
+	FR_INVALID_PARAMETER	3F(Unknown)	/* (19) Given parameter is invalid */
+} FRESULT;
+
+BELO contains -> Mapping to possible error code to map to
+specifically for API calls where specific I's migt be meaininful.
+
+const char *FRESULT_str(FRESULT i) {
+    switch (i) {
+        case FR_DISK_ERR: -> 03h
+            return "Error disk I/O";
+        case FR_INT_ERR: -> 01h
+            return "Assertion failed";
+        case FR_NOT_READY:  ->
+            return "Drive not ready";
+        case FR_NO_FILE: -> 18h
+            return "File not found";
+        case FR_NO_PATH:
+            return "Path not found";
+        case FR_INVALID_NAME: -> 13h
+            return "Path name is invalid";
+        case FR_DENIED: -> 19h
+            return "Access denied or full";
+        case FR_EXIST: -> 19h
+            return "Access denied (exists)";
+        case FR_INVALID_OBJECT:
+            return "The file/directory is invalid";
+        case FR_WRITE_PROTECTED: -> 0Fh
+            return "Write protected";
+        case FR_INVALID_DRIVE:
+            return "Drive number invalid";
+        case FR_NOT_ENABLED: -> 23h -> 3Bh
+            return "The volume has no work area";
+        case FR_NO_FILESYSTEM:
+            return "There is no FAT volume";
+        case FR_MKFS_ABORTED:
+            return "The mkfs() aborted";
+        case FR_TIMEOUT:
+            return "Timeout";
+        case FR_LOCKED:
+            return "File is locked";
+        case FR_NOT_ENOUGH_CORE:
+            return "LFN buffer allocation";
+        case FR_TOO_MANY_OPEN_FILES:
+            return "Too many open files";
+        case FR_INVALID_PARAMETER:
+            return "Parameter is invalid";
+        default:
+            return "Unknown";
+    }
+}
+*/

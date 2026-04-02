@@ -1,0 +1,103 @@
+
+; ------------------------------
+; BASIC AMPersand & Dos extension
+; Original Source from TRSDOS 2.3
+; SEE
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+; ------------------------------
+;
+import	constants.z
+;
+; ------------------------------
+; CODE STARTS HERE
+; ------------------------------
+;
+pageCall ampersand, AMPERSAND_PAGE
+;
+; ------------------------------
+; Code Required Starts Here
+; Copied From TRS DOS 2.3
+; ------------------------------
+_5913
+   ld	de,$0000         ; 5913:
+   rst	$0010            ; 5916:
+   cp	$4f              ; 5917:
+   jr	z,_5947        ; 5919:
+   cp	$48              ; 591b:
+   jr	nz,_5946       ; 591d:
+   ld	b,$05            ; 591f:
+_5921
+   inc	hl               ; 5921:
+   ld	a,(hl)           ; 5922:
+   call	$1e3e            ; 5923:
+   ex	de,hl            ; 5926:
+   jr	nc,_5933         ; 5927:
+   cp	$3a              ; 5929:
+   jr	nc,_5964         ; 592b:
+   sub	$30              ; 592d:
+   jr	c,_5964          ; 592f:
+   jr	_5939            ; 5931:
+_5933
+   cp	$47              ; 5933:
+   jr	nc,_5964         ; 5935:
+   sub	$37              ; 5937:
+_5939
+   add	hl,hl            ; 5939:
+_593a
+   add	hl,hl            ; 593a:
+   add	hl,hl            ; 593b:
+   add	hl,hl            ; 593c:
+   or	l                ; 593d:
+   ld	l,a              ; 593e:
+   dec	b                ; 593f:
+   jp	z,$07b2          ; 5940:
+   ex	de,hl            ; 5943:
+   jr	_5921            ; 5944:
+_5946
+   dec	hl               ; 5946:
+_5947
+   rst	$0010            ; 5947:
+   ex	de,hl            ; 5948:
+   jr	nc,_5964         ; 5949:
+   cp	$38              ; 594b:
+   jp	nc,$1997         ; 594d:
+   ld	bc,$07b2         ; 5950:
+   push	bc               ; 5953:
+   add	hl,hl            ; 5954:
+   ret	c                ; 5955:
+   add	hl,hl            ; 5956:
+   ret	c                ; 5957:
+   add	hl,hl            ; 5958:
+   ret	c                ; 5959:
+   pop	bc               ; 595a:
+   ld	b,$00            ; 595b:
+   sub	$30              ; 595d:
+   ld	c,a              ; 595f:
+   add	hl,bc            ; 5960:
+   ex	de,hl            ; 5961:
+   jr	_5947          ; 5962:
+_5964
+   call	$0a9a            ; 5964:
+   ex	de,hl            ; 5967:
+   ret                   ; 5968:
+
+;
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+pageEnd
+;
+; ------------------------------
+; DOS ENTRY VECTOR
+; ------------------------------
+;
+	ORG	$4194
+	jp	ampersand
+;
+; ------------------------------
+; CODE ENDS HERE
+; ------------------------------
+	; After loading return to DOS
+	END	$402D
+;
+

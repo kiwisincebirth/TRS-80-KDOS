@@ -1,0 +1,206 @@
+
+; ------------------------------
+; BASIC MID$ Dos extension
+; Original Source from TRSDOS 2.3
+; SEE
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+; ------------------------------
+;
+import	constants.z
+;
+; ------------------------------
+; CODE STARTS HERE
+; ------------------------------
+;
+pageCall midollar, MIDOLLAR_PAGE
+;
+	; actual code entry point for MID$
+	jr	dlhsmd
+;
+; ------------------------------
+; Code Required Starts Here
+; Copied From TRS DOS 2.3
+; ------------------------------
+
+lophex
+_5921
+   inc	hl               ; 5921:
+   ld	a,(hl)           ; 5922:
+   call	$1e3e            ; 5923:
+   ex	de,hl            ; 5926:
+   jr	nc,_5933         ; 5927:
+   cp	$3a              ; 5929:
+   jr	nc,_5964         ; 592b:
+   sub	$30              ; 592d:
+   jr	c,_5964          ; 592f:
+   jr	_5939            ; 5931:
+_5933
+   cp	$47              ; 5933:
+   jr	nc,_5964         ; 5935:
+   sub	$37              ; 5937:
+_5939
+   add	hl,hl            ; 5939:
+_593a
+   add	hl,hl            ; 593a:
+   add	hl,hl            ; 593b:
+   add	hl,hl            ; 593c:
+   or	l                ; 593d:
+   ld	l,a              ; 593e:
+   dec	b                ; 593f:
+   jp	z,$07b2          ; 5940:
+   ex	de,hl            ; 5943:
+   jr	_5921            ; 5944:
+_5946
+   dec	hl               ; 5946:
+_5947
+   rst	$0010            ; 5947:
+   ex	de,hl            ; 5948:
+   jr	nc,_5964         ; 5949:
+   cp	$38              ; 594b:
+   jp	nc,$1997         ; 594d:
+   ld	bc,$07b2         ; 5950:
+   push	bc               ; 5953:
+   add	hl,hl            ; 5954:
+   ret	c                ; 5955:
+   add	hl,hl            ; 5956:
+   ret	c                ; 5957:
+   add	hl,hl            ; 5958:
+   ret	c                ; 5959:
+   pop	bc               ; 595a:
+   ld	b,$00            ; 595b:
+   sub	$30              ; 595d:
+   ld	c,a              ; 595f:
+   add	hl,bc            ; 5960:
+   ex	de,hl            ; 5961:
+   jr	_5947          ; 5962:
+_5964
+   call	$0a9a            ; 5964:
+   ex	de,hl            ; 5967:
+   ret                   ; 5968:
+; ------------------------------
+; actual entry point for MID$
+; ------------------------------
+dlhsmd
+_5969
+   inc	hl          ; 5969:
+   rst	$0008       ; 596a:
+   jr	z,_593a     ; 596b:
+   dec	c           ; 596d:
+   ld	h,$cd       ; 596e:
+   call	p,$e50a     ; 5970:
+   push	de          ; 5973:
+   ex	de,hl       ; 5974:
+   inc	hl          ; 5975:
+   ld	e,(hl)      ; 5976:
+   inc	hl          ; 5977:
+   ld	d,(hl)      ; 5978:
+   ld	hl,($40a0)  ; 5979:
+   rst	$0018       ; 597c:
+   jr	c,_5989   ; 597d:
+   pop	hl          ; 597f:
+   push	hl          ; 5980:
+   call	$2843       ; 5981:
+   pop	hl          ; 5984:
+   push	hl          ; 5985:
+   call	$09d3       ; 5986:
+_5989:
+   pop	hl          ; 5989:
+   ex	(sp),hl     ; 598a:
+   rst	$0008       ; 598b:
+   inc	l           ; 598c:
+   call	$2b1c       ; 598d:
+   or	a           ; 5990:
+   jp	z,$1e4a     ; 5991:
+   push	af          ; 5994:
+   ld	a,(hl)      ; 5995:
+   call	_59dc     ; 5996:
+   push	de          ; 5999:
+   rst	$0008       ; 599a:
+   push	de          ; 599b:
+   call	$2337       ; 599c:
+   push	hl          ; 599f:
+   call	$29d7       ; 59a0:
+   ex	de,hl       ; 59a3:
+   pop	hl          ; 59a4:
+   pop	bc          ; 59a5:
+   pop	af          ; 59a6:
+   ld	b,a         ; 59a7:
+   ex	(sp),hl     ; 59a8:
+   push	hl          ; 59a9:
+   ld	hl,$26e7    ; 59aa:
+   ex	(sp),hl     ; 59ad:
+   ld	a,c         ; 59ae:
+   or	a           ; 59af:
+   ret	z           ; 59b0:
+   ld	a,(hl)      ; 59b1:
+   sub	b           ; 59b2:
+   jp	c,$1e4a     ; 59b3:
+   inc	a           ; 59b6:
+   cp	c           ; 59b7:
+   jr	c,_59bb     ; 59b8:
+   ld	a,c         ; 59ba:
+_59bb
+   ld	c,b         ; 59bb:
+   dec	c           ; 59bc:
+   ld	b,$00       ; 59bd:
+   push	de          ; 59bf:
+   inc	hl          ; 59c0:
+   ld	e,(hl)      ; 59c1:
+   inc	hl          ; 59c2:
+   ld	h,(hl)      ; 59c3:
+   ld	l,e         ; 59c4:
+   add	hl,bc       ; 59c5:
+   ld	b,a         ; 59c6:
+   pop	de          ; 59c7:
+   ex	de,hl       ; 59c8:
+   ld	c,(hl)      ; 59c9:
+   inc	hl          ; 59ca:
+   ld	a,(hl)      ; 59cb:
+   inc	hl          ; 59cc:
+   ld	h,(hl)      ; 59cd:
+   ld	l,a         ; 59ce:
+   ex	de,hl       ; 59cf:
+   ld	a,c         ; 59d0:
+   or	a           ; 59d1:
+   ret	z           ; 59d2:
+_59d3
+   ld	a,(de)      ; 59d3:
+   ld	(hl),a      ; 59d4:
+   inc	de          ; 59d5:
+   inc	hl          ; 59d6:
+   dec	c           ; 59d7:
+   ret	z           ; 59d8:
+_59d9
+   djnz	_59d3     ; 59d9:
+   ret              ; 59db:
+_59dc
+   ld	e,$ff       ; 59dc:
+   cp	$29         ; 59de:
+   jr	z,_59e7     ; 59e0:
+   rst	$0008       ; 59e2:
+   inc	l           ; 59e3:
+   call	$2b1c       ; 59e4:
+_59e7
+   rst	$0008       ; 59e7:
+   add	hl,hl       ; 59e8:
+   ret		    ; 59e9
+;
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+pageEnd
+;
+; ------------------------------
+; DOS ENTRY VECTOR
+; ------------------------------
+;
+	ORG	$41D9
+	jp	midollar
+;
+; ------------------------------
+; CODE ENDS HERE
+; ------------------------------
+	; After loading return to DOS
+	END	$402D
+;
+

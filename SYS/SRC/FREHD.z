@@ -1,0 +1,708 @@
+; ======================================================================
+;       	NATIVE MINI DOS
+;	based on TRSDOS and NEWDOS/80 for Model 1
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; todo implement get time and set time wrappers
+;
+; ======================================================================
+; Level 2 Communication Region (4000h - 4200h)
+; ======================================================================
+;
+	ORG	$400C
+	jp	SUPER_EXEC	; (400C) RST 28H Supervisor Call Dispatcher
+;	ORG	$400F		; (400F) RST 30h (DOS DEBUG entry point) Vector.
+;	ORG	$4012		; (4012) RST 38h (Interrupt Service) Vector.
+				; todo interrupt handler
+	ORG	$402D
+	jp	WARMSTART	; (402D) No-Error Exit same as 4400
+	jp	WARMSTART	; (4030) Error-already-displayed DOS Error Exit.
+;	ORG	$4033
+;	jp	CIODOS		; (4033) DOS CIO Driver // todo
+
+	; ORG	$403E
+	; todo on TRSDOS $403E holds a version number
+	; LDOS - Contains the operating system version Number
+	; In ND/80 v1, 4Ø3EH contained either 8Ø (5ØH) or 128 (8ØH).
+	; FOR New Dos 80 v2 this contains FF or 00 -> SEE 4427 442B
+
+	ORG	$4040
+	DB	0	; (4040H) Timer Tick
+	DB	0	; (4041H) Seconds counter (binary, 0-59)
+	DB	0	; (4042H) Minutes counter (binary, 0-59)
+	DB	12	; (4043H) Hours counter (binary, 0-23)
+	DB	126	; (4044H) Year counter (binary, offset 1900)
+	DB	1	; (4045H) Month counter (binary, 1-12)
+	DB	1	; (4046H) Day counter (binary, 1-31)
+	DW	DOSEND	; (4047H) Utility load address (normally $5200)
+	DW	$FFFF	; (4049H) MEMEND - DOS highest RAM address
+
+	;  and the memory size is computed by the loop at 4E0F-4E1B.
+        ;  When the highest RAM address is found,
+        ;  the system's detected RAM top pointer.
+;
+; ----------------------------------------------------------------------
+; Below was copied here from Level 2 ROM -> 18F7-1904
+; Normally It is moved here during non-disk initial setup. (0075)
+; ----------------------------------------------------------------------
+	ORG	$4080
+;
+; Single Point Division Routine (4080 - 408D)
+	sub	0		;4080 (FDIVC) - Note Argument is set into working RAM
+	ld	l,a		;4082
+	ld	a,h		;4083
+	sbc	a,0		;4084 (FDIVB) - Note Argument is set into worikng RAM
+	ld	h,a		;4086
+	ld	a,b		;4087
+	sbc	a,0		;4088 (FDIVA) - Note Argument is set into working RAM
+	ld	b,a		;408A
+	ld	a,0		;408B (FDIVG) - Note Argument is set into working RAM
+	ret			;408D
+; Vector
+	DEFW	FCERR		;408E (USRTAB) - Vector for to USR(0) routine
+; Random Number
+	DEFB	$40, $E6, $4D	;4090 (MULTR) - Random number Multipliers 3x 1byte numbers
+; Input and Output Port Routines
+	in	a,($00)		;4093 (STAINP) - Input Port Routine. Arg Set in RAM
+	ret			;4095
+	out	($00),a		;4096 (OUTWRD) - Output port routine. Arg Set in RAM
+	ret			;4098
+	DEFB	0		;4099 (CHARC) - Inkey $ Storage
+	DEFB	0		;409A (ERRFLG) - current error flag
+	DEFB	0		;409B (LPTPOS) - current tab position
+	DEFB	0		;409C (PRTFLG) - device output flag
+	DEFB	64		;409D (LINLEN) - max chars on video disp line
+	DEFB	48		;409E (CLMLST) - Size of print line
+	DEFB	0		;409F (PARQTD) - Reserved for Model 3
+	DEFW	DOSEND+$14C	;40A0 (STKTOP) - String Storage Area (434C)
+	DEFW	$FFFE		;40A2 (CURLIN) - Current BASIC Line Number
+	DEFW	DOSEND+$E9	;40A4 (TXTTAB) - BASIC Program Statement Table Pointer
+;
+; ----------------------------------------------------------------------
+	ORG	$40A7
+; This loads 40A7H with the I/O buffer location address 41E8H.
+	DEFW	BUFINI + 3
+;
+; ----------------------------------------------------------------------
+	ORG	$4152
+; Fills the RAM locations pointing to all 28 DOS BASIC commands,
+; set them to point to ?L3 ERROR, (4152-41A5)
+	jp	L3ERR		; CVI - $4152
+	jp	L3ERR		; FN  - $4155
+	jp	L3ERR		; CVS - $4158
+	jp	L3ERR		; DEF - $415B
+	jp	L3ERR		; CVD - $415E
+	jp	L3ERR		; EOF - $4161
+	jp	L3ERR		; LOC - $4164
+	jp	L3ERR		; LOF - $4167
+	jp	L3ERR		; MKI - $416A
+	jp	L3ERR		; MKS - $417D
+	jp	L3ERR		; MKD - $4170
+	jp	L3ERR		; CMD . $4173
+	jp	L3ERR		; TIME$ $4176
+	jp	L3ERR		; OPEN  $4179
+	jp	L3ERR		; FIELD $417C
+	jp	L3ERR		; GET - $417F
+	jp	L3ERR		; PUT - $4182
+	jp	L3ERR		; CLOSE $4185
+	SUPERV	S_LOADCMD	; LOAD  $4188
+	jp	L3ERR		; MERGE $418B
+	jp	L3ERR		; NAME  $418E
+	jp	L3ERR		; KILL  $4191 - todo same as #DELETE
+	jp	L3ERR		; &   - $4194 - done in BASIC overlay
+	jp	L3ERR		; LSET  $4197
+	jp	L3ERR		; RSET  $419A
+	jp	L3ERR		; INSTR $419D - done in BASIC overlay
+	SUPERV	S_SAVECMD	; SAVE  $41A0
+	jp	L3ERR		; LINE  $41A3
+;
+; ----------------------------------------------------------------------
+	ORG	$41A6
+; Set DOS Exit links (21 exits) to RET instructions (41A6-41E2)
+	RET3		; 41A6 Disk Basic Error Handling - done in BASIC overlay
+	RET3		; 41A9
+	jp	READY1  ; 41AC Basic StartUp just before READY> used Once for INIT
+	RET3		; 41AF
+	RET3		; todo verify not needed ; jp	CMDPROC	; 41B2 Input scanner after tokenizing input, handle # commands
+	RET3		; 41B5
+	RET3		; 41B8
+	RET3		; 41BB
+	RET3		; 41BE
+	RET3		; 41C1
+	RET3		; 41C4
+	jp	RUNCMD	; 41C7 RUN NNN processing to handle RUN "x.BAS"
+	RET3		; 41CA
+	RET3		; 41CD
+	RET3		; 41D0
+	RET3		; 41D3
+	RET3		; 41D6
+	RET3		; 41D9 MID$() = - done in BASIC overlay
+	RET3
+	RET3
+	RET3		; 41E2 SYSTEM command (potentially use this)
+;
+; ----------------------------------------------------------------------
+	ORG	$41E5
+;  Initialises String Buffer Area in RAM (41E5H)
+;
+; TODO Need to confirm where the input buffer resides
+; In Level 2 the Program statement table starts much latter than $4200
+BUFINI:
+	DEFB	':'
+	DEFB	0
+	DEFB	','
+;
+; ======================================================================
+; ======================================================================
+; 4260 - Start of Main Routines
+; ======================================================================
+; ======================================================================
+	ORG	CORE1
+
+NEWREADY
+	; entry point is here for the DOS EDIT processing  -> PRGFIN
+	; first some required Tests to determine if not entering normal command processing
+	; we retun and let notmal basic handle these cases for us.
+	;
+	; SN Error
+	ld	a,(ERRFLG)	;1a2b - load A with the value of the current error code
+	sub	ERRSN		;1a2e - compare with SYNTAX ERROR
+	ret	z		;1a30 - If an SN ERR, enter EDIT mode on that line
+	;
+	; Auto Mode
+	ld	a,(AUTFLG)	;1a39 - Auto Flag NOT zero if in Auto Mode
+	or	a		;1a3c - set flags
+	ret	nz		;1a3d - NZ means we are in auto mode
+	;
+	; Wont use return from this point
+	pop	hl		; pop the (DOS EXIT) callers return address. Discard
+	;
+	; todo the following could be moved into the OVERLAY C CODE
+	;
+	; now we handle the user prompt
+	call	CRDONZ		;1a22 - display a carriage return if necessary
+	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
+	call	STROUT		;1a28 - Display the word “READY”
+	;
+MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
+	ld	(CURLIN),hl	;1a36 - Set up for direct command mode - set line number
+	;
+	ld	a,'>'		;1a76 - READY> _ prompt
+	call	OUTDO		;1a78 - Display the > Prompt
+	;
+	call	INLIN		;1a7b - Actually read a Line of input
+	;
+	jr	c,MAIN		;1a7e - loop back if BREAK pressed
+	;
+	GETCHR			;1a81 - rst 10h
+	inc	a		;1a82 - sets the status flags but saves the carry flag
+	dec	a		;1a83 - so we can test for an end of statement
+	jp	z,MAIN		;1a84 - if we have an end of (or blank) statement
+	push	af		;1a87 - save for latter -> 1A9D
+
+	; now we need to detect the "#" symbol, and if found process locally.
+	; noting first POP the Return address, the use the DOS code
+
+	cp	'#'		; is it the start of a DOS command
+	jr	z,CMDPROC1	; was a # command, so process it.
+
+	; Jumping Back INTO BASIC to continue
+	jp	$1A88		; jump back into DOS READY Handler processing the BASIC Command
+
+CMDPROC1:
+	pop	af		; pop AF fom above as not using it
+	; inc	hl		; advance pointer to char after #, L2 Basic
+	SUPERV	S_CMDPROC
+
+;
+; L2 Basic Command Processor DOS Exit extension (41B2)
+;
+
+;CMDPROC:
+;	push	af		; save the character and flags. C flag is required
+;	cp	'#'		; is it the start of a DOS command
+;	jr	z,CMDPROC1	; was a # command, so process it.
+;	pop	af		; not so restore Flags and return
+;	ret
+;CMDPROC1:
+;	pop	af		; clean up the stack
+;	inc	hl		; advance pointer to char after #, L2 Basic
+;	SUPERV	S_CMDPROC
+
+;
+; L2 Basic RUN command DOS Exit Extension (41C7)
+; Support for RUN "xxxx.BAS" command
+;
+RUNCMD:
+	ret	c		; If line number (C Flag) so RET and continue as normal.
+	SUPERV	S_RUNCMD	; otherwise load and process RUN command.
+;
+; ----------------------------------------------------------------------
+;
+; DOS Normal Entry Point (402D) and (4400)
+;
+WARMSTART:
+	jp	READY		; jump to Basic Ready
+;
+; DOS Error Entry Point (4409)
+;
+DOSERR:
+	ld	b,a		; put error into B, SUPERV uses A
+	SUPERV	S_ERRHAND	; handle displaying Disk Error Code
+;
+; DOS display string routine (4467)
+;
+DISPSTR:
+	push	DE		;Save DE onto stack.
+	LD	DE,401DH	;Load DE with 401DH (video output DCB).
+	JR	DISPSTR1	; JUMP to common print loop.
+;
+; DOS Print String Routine (446A)
+;
+PRINTSTR:
+	push	DE		; Save DE (alternate print entry).
+	LD	DE,4025H	; Load DE with 4025H (printer DCB).
+DISPSTR1:
+	push 	HL		; Save string pointer.
+DISPSTR2:
+	LD	A,(HL)		; Fetch character from string.
+	CP	03H		; Compare with ETX (03H end marker).
+	JR	Z,DISPSTR9	; finished
+	CALL	001BH		; display character
+	LD	A,(HL)		; re fetch character.
+	CP	0DH		; Compare with CR (carriage return).
+	INC 	HL		; string pointer.
+	JR	NZ,DISPSTR2	; not CR, LOOP for next character.
+DISPSTR9:
+	POP	HL
+	POP	DE
+	ret
+;
+; ----------------------------------------------------------------------
+;
+; CIO Routine for DOS Devices
+;CIODOS:
+;	ret
+;
+; ======================================================================
+;
+; Signal if we have an Enhanced Version of DOS
+; a  modified by this routine
+; Z  - if a standard FreHD with standard firmware
+; NZ - if an enhanced version with Floppy 80 firmware (A=1)
+; todo think this needs to moved nto loader code
+enhance_VER:
+	ld	a,0		; load the A register (SELF MODIFY CODE)
+	or	a		; 0 -> is set to 1 during INIT if enhanced firmware
+	ret			; set flags and return
+
+; Open A file
+; de pointer to the filename
+; b  the length of the filename
+; c  The open FA_* options - e.g. FA_OPEN_EXIST|FA_READ
+frehd_OPEN:
+	ex	de,hl		; file pointer into HL
+
+	ld	a,b		; filename length
+	inc	a		; +1 for options
+	inc	a		; +1 for terminator
+	out	(SIZE2),a	; write to FreHD size register
+	;
+	ld	a,OPENFILE	; open file command
+	out	(COMMAND2),a	; send command to frehd
+	;
+	ld	a,$FF		; Set as though we have just read last (255) byte
+	ld	(BYTEC),a	; so next readbyte will force a read of 256 bytes
+	;
+	call	frehd_WAIT	; ignore result
+	;
+	ld	a,c		; file open options
+	ld	c,DATA2		; Data 2 register address
+	out	(c),a		; send command options to DATA2
+	otir			; send filename, length in B, to DATA2
+	ld	a,0		; null terminator
+	out	(c),a		; send terminator
+	;
+	call	frehd_WAIT	; wait for status
+	;
+	ret
+;
+; Close the current File
+frehd_CLOSE:
+	ld	a,CLOSEFILE	; close file
+	out	(COMMAND2),a
+	call	frehd_WAIT	; ignoring result
+	ret
+;
+; Command to init the
+; Read a Block of 256 Bytes
+frehd_READ:
+	xor	a		; request 256 bytes from FreHD File
+	out	(SIZE2),a	; Set the FreHD Size register
+	ld	(BYTEC),a	; reset the byte counter, 0 bytes used
+	;
+	ld	a,READFILE	; command
+	out	(COMMAND2),a	; send command
+	;
+	call	frehd_WAIT	; wait for status
+	ret
+;
+; Read a Single Byte
+frehd_READBYTE:
+	push	hl
+	ld	hl,BYTEC
+	inc	(hl)		; we are reading next byte, byte counter++
+	pop	hl
+	jr	nz,read2	; skip over BLOCK read if not required
+	;
+	call	frehd_READ	; every 256 bytes, need another 256 bytes
+	ret	nz		; return if read error
+read2:
+	xor	a		; clear flags, Z = true indicates no error
+	in	a,(DATA2)	; get a byte from FreHD, leaving flags alone
+	ret
+;
+BYTEC	DEFB	0		; num bytes before need another READ
+				; used by Read Block handler
+;
+; init the write of bytes to a file
+; C the number of bytes 0=256
+frehd_WRITE:
+	ld	a,WRITEFILE	; command
+	out	(COMMAND2),a	; send command
+	call	frehd_WAIT	; wait for status
+	ret	nz
+	;
+	ld	a,c
+	out	(SIZE2),a	; Set the FreHD Size register
+	ret
+;
+; wait until the interface is ready
+; return Z is success
+; return NZ if there was an error
+; return Register A : Status code with all bits
+;
+frehd_WAIT:
+	ex 	(sp),hl		; small delay to
+	ex 	(sp),hl		; settle the controller
+	;
+wait1:	in 	a, (STATUS)	; read status from FreHD
+	rlca			; BUSY status bit into carry flag
+	jr 	c, wait1	; loop while busy, for correct status
+	;
+	in 	a, (STATUS)	; read status again
+	bit	0,a		; test the LSB bit (STATUS_ERR)
+	ret	z		; No error just return ZERO
+	;
+	in	a, (ERROR2)	; read the FF error code from frehd
+	push	hl		; save reg
+	ld	hl,transtable	; translation table
+	cp	19 + 1		; the highest error number
+	jr	nc,transl	; >= 20 out of range so just use default.	;
+	;
+	add	l		; add the error code to hl
+	ld	l,a		; to get address in lookup table
+	jr	nc,transl
+	inc	h
+transl:
+	ld	a,(hl)		; get the translated error code
+	or	a		; set flags
+	pop	hl		; restore stack and ret
+	ret
+;
+; ======================================================================
+;
+$CORE1FREE	EQU	SYSFCB - $
+;
+	; FILL to end of REGION
+	assert	$ <= SYSFCB
+	DC	SYSFCB - $,0
+;
+; ======================================================================
+;
+	ORG	SYSFCB
+	DC	$20,0		; 32 byte System FCB bock.
+;
+; ======================================================================
+; 4400 - DOS Entry Points
+; ======================================================================
+	;
+	ORG	DOSENTY
+	; Note * below denotes routines that are different in NewDOS 80 VS TRSDOS 2.3
+	;
+	jp	WARMSTART	; (4400) No-Error Exit same as 402D
+	NOP2			; and 44Ø3H - 44Ø4H contain the program's entry address. 4430
+	jp	WARMSTART	; (4405) todo Execute a DOS command and return to DOS ready.
+	nop
+	jp	DOSERR		; (4409) DOS Error Exit - Display Error Messages
+	nop
+	call	NONEXIST	; (440D) Enter Debug - Overlay call Vector for SYS5/SYS
+	RET3			; (4410) NOT Add an address to the Interrupt Task List Vector
+	RET3			; (4413) NOT Remove an address from the Interrupt Task List Vector
+	RET3			; (4416) NOT Replace Task (LDOS/ND80 different)
+	RET3			; (4419) NOT Kill Task (LDOS/ND80 different)
+	call	NONEXIST	; (441C) todo Extract a file spec - fetches a file specification
+	nop
+	SUPERV	S_INITFILE	; (4420) The @INIT (Create New or Open Existing File) Vector
+	nop
+	SUPERV	S_OPENFILE	; (4424) The @OPEN (Open Existing File) Vector
+	defb	$00		; (4427) todo NEWDOS/8Ø Version 2 $82 identifying ND(8)0v(2)
+	call	NONEXIST	; (4428) todo The CLOSE File Vector
+        defb	$01		; (442B) NEWDOS/8Ø Version 2 $Ø1 if Model I and $Ø3 if Model III.
+	call	NONEXIST	; (442C) todo The KILL Vector - Kill FCB's associated file .
+	nop
+	SUPERV	S_LOADFILE	; (4430) The LOAD CMD File Vector
+	SUPERV	S_RUNFILE	; (4433) The (Load and) RUN CMD File Vector
+	call	NONEXIST	; (4436) todo The READ Fie Vector
+	call	NONEXIST	; (4439) todo The WRITE (without verify) File Vector
+	call	NONEXIST	; (443C) todo The Write and VERIFY Vector
+	call	NONEXIST	; (443F) todo The REWIND Vector. Position DCB to start of file
+	call	NONEXIST	; (4442) todo The POSN Vector . Position FCB to a specified file record
+	call	NONEXIST	; (4445) todo The BACKSPACE One Record Vector
+	call	NONEXIST	; (4448) todo The SKIP TO EOF Vector
+
+	; todo there is a gap here which should be filled
+	assert	$ <= $444B
+	ORG	$4467
+
+	jp	DISPSTR		; (4467) display string routine.
+	jp	PRINTSTR	; (446A) print string routine.
+	call	NONEXIST	; (446D) todo The DISPLAY CLOCK ON VIDEO Vector - get time "23:59:59" into (HL)
+	call	NONEXIST	; (4470) todo The DISPLAY DATE ON VIDEO Vector- get date "12/12/99" into (HL)
+	RET3			; (4473) * Insert a default extension into filename in FCB
+	RET3			; (4476) * JUMPs to 507DH to parse a command list
+	nop			; (4479)
+	nop			; (447A)
+	nop			; (447B)
+	nop			; (447C)
+	nop			; (447D)
+FREHDVER:
+	nop			; (447E) FREHD Major Version, inited at startup
+	nop			; (447F) FREHD Minor Version
+;
+	assert	$ == CORE2
+;
+; ======================================================================
+; 4480 - Main Core Resident Code
+; ======================================================================
+	ORG	CORE2
+;
+; Internal USE only, not part of a public API, order may change
+; entry points into basic utility functions called from overlay files
+; if modifying below please edit constants.z ( referring to $4480 )
+;
+	JP	enhance_VER
+	JP	frehd_OPEN
+	JP	frehd_CLOSE
+	JP	frehd_READ
+	JP	frehd_READBYTE
+	JP	frehd_WRITE
+	JP	frehd_WAIT
+;
+; ----------------------------------------------------------------------
+; ----------------------------------------------------------------------
+;
+NONEXIST:
+	pop	hl		; remove the Call Site
+	dec	hl		; Debugging -> HL to be address Entry Point $44xx
+	dec	hl
+	dec	hl
+	; todo ideally print this error, or jump to error routine to report this.
+	ld	a,UNKNOWN$	; unknown error
+	or	a		; signal error
+	ret			; return to the program caller
+;
+; ----------------------------------------------------------------------
+;
+; Supervisor Execution based on RST Vector
+SUPER_EXEC:
+	inc	sp		; discard the RST 28 return address
+	inc	sp
+	;
+	push	hl		; Save all registers
+	push	de		; preserved into the dispatched code
+	push	bc
+	push	af
+	;
+	; check for existing overlay, and skip if loaded
+	and	$1F		; mask the sup call id - lower 5 bits
+	add	'@'		; make it ascii 'A-Z'
+	ld	hl,OVRCURR	; pointer to the overlay number in file name
+	cp	a,(hl)		; compare with current number
+	jr	z,SUPER_EXEC2	; if already loaded then skip load
+	ld	(hl),a		; update the current pointer
+	;
+	; open the overlay file
+	ld	de,OVRNAM	; pointer to filename
+	ld	b,OVRNAMLEN	; filename length
+	ld	c,FA_OPEN_EXIST|FA_READ	; Read existing
+	call	frehd_OPEN
+	ret	nz		; ERROR!!, then return - TODO Should be TRAPPED
+	;
+	call	frehd_READ	; send command to read 256 bytes
+	ld	bc,DATA2	; transfer 256 bytes (B). C=port to read data
+	ld	hl,OVERLY	; target binary address $4500
+	inir			; read 256 bytes into (HL)
+	;
+	call	frehd_READ	; send command to read 256 bytes
+	inir			; read 256 bytes into (HL)
+	;
+SUPER_EXEC2:
+	pop	af		; restore registers
+	pop	bc		; including the original Supervisor call ID
+	pop	de
+	pop	hl
+	;
+	jp	OVERLY		; jump into the overlay code at $4500
+;
+; ----------------------------------------------------------------------
+;
+OVRNAM: 	DEFB	'/SYS/OVERLAYz.SYS'
+OVRCURR:	EQU	$ - 5		; address of overlay ID in file name
+OVRNAMLEN	EQU	$ - OVRNAM	; length of the overlay file name
+;
+transtable:
+	; TRS 80 DOS Error Codes Translated from FF error codes
+	DB	UNKNOWN$ ;(0) NO ERROR
+	DB	$01	; (1) A hard error occurred in the low level disk I/O layer
+	DB	$04	; (2) Assertion failed
+	DB	$08	; (3) The physical drive cannot work
+	DB	$18	; (4) Could not find the file
+	DB	$18	; (5) Could not find the path
+	DB	$13	; (6) The path name format is invalid
+	DB	$1A	; (7) Access denied due to prohibited access or directory full
+	DB	$19	; (8) Access denied due to prohibited access
+	DB	$10	; (9) The file/directory object is invalid
+	DB	$0F	; (10) The physical drive is write protected
+	DB	$20	; (11) The logical drive number is invalid
+	DB	$12	; (12) The volume has no work area
+	DB	$05	; (13) There is no valid FAT volume
+	DB	$0B	; (14) The f_mkfs() aborted due to any problem
+	DB	$03	; (15) Could not get a grant to access the volume within defined period
+	DB	$25	; (16) The operation is rejected according to the file sharing policy
+	DB	$21	; (17) LFN working buffer could not be allocated
+	DB	UNKNOWN$ ;(18) Number of open files > FF_FS_LOCK
+	DB	UNKNOWN$ ;(19) Given parameter is invalid
+;
+$CORE2FREE	EQU	OVERLY - $
+;
+	; FILL to end of REGION
+	assert	$ <= OVERLY
+	DC	OVERLY - $,0
+;
+; ======================================================================
+; 4600 - Overlay Code Area
+; Code here is used
+; ======================================================================
+	ORG	OVERLY
+;
+; Called by the Fre HD loader once load complete
+; resumes the Level 2 rom startup after Most of 4000-4200 coms region
+; has been established (loaded) as part of loading this file.
+; so we pick up after this has occured, when memory and stack is inited
+STARTUP:
+	;
+	ld	hl,DOSEND+$E8	; starting address of user RAM (now $46E8)
+	ld	(hl),0
+	;
+	jp	$00AC		; Continue Init in Level 2 with Stack Pointer
+				; and Asking for upper HI MEMORY
+;
+; Continuation of DOS Initialisation After basic has completed
+; Called Just Before the Ready> Prompt is displayed, first time ONLY
+READY1:
+	;
+	di			; initially disable interrupts
+	im	1		; interrupts vectored through $0038->$4012
+	;
+	ld	hl,(MEMSIZ)	; Get the Basic MEMORY SIZE? amount
+	ld	(MEMEND),hl	; Save in DOS High Memory pointer
+	;
+	ld	a,GETVER	; version information from FreHD
+	out	(COMMAND2),a
+	call	frehd_WAIT	; ignoring result
+	;
+	ld	hl,FREHDVER 	; major and minor versions $447E
+	ld	bc, $200+DATA2	; 2 bytes from version
+	inir			; store the version
+	;
+	in	d,(c)		; first half of version stamp - byte 3
+	in	a,(c)		; second half of version stamp - byte 4
+	xor	d		; xor them together -> zero if Floppy80
+	jr	nz,READYX	; not 1 means not Floppy 80, skip update
+	;
+	ld	a,1		; indicates running on Floppy 80
+        ld	(enhance_VER+1),a ; Modify Code to flag Floppy 80
+	;
+READYX:
+	ld	hl,WELCOMSG	; Free Bytes Message
+	call	STROUT		; print the message
+	;
+	; update the DOS exit to the normal command processor
+	ld	hl,PRGFIN + 1		; Address of DOS Exit for READY Prompt
+	ld	(hl),NEWREADY & $FF	; store LSB of NEW READY into DOS vecor
+	inc	hl
+ 	ld	(hl),NEWREADY / $100	; store MSB of NEW READY into DOS vecor
+	;
+	jp	NEWREADY	; jump to the normal ready processor
+
+	; old code that updates DOS Exit to RET
+;	ld	a,OPRET		; A RET Statement
+;	ld	(PRGFIN),a	; reset Ready so wont call here again
+;	ret
+
+WELCOMSG	DEFB	'DOS Enabled',CR,0
+
+; TRSDOS 2.3
+
+; The code from 4E20-4E55 initializes the device address table (43B8-43BF) and the device mnemonic table (43C0-43CC).
+;   These tables are used by the DEVICE command to report the device configuration and the driver addresses for all devices listed in the table.
+; Starting at 4E20, the address of the replacement keyboard driver (43D8 - 43FB) replaces the address of the ROM driver in the keyboard DCB,
+;   as well as being stored in both device tables. Next, the keyboard RAM buffer address is saved in the device driver table.
+; Continuing at 4E2F, the video driver address and the video RAM buffer are both copied to the device tables.
+;   Next, the printer driver address and its buffer address are copied to the device tables.
+;   Finally, the list of driver and buffer addresses is terminated with a zero byte.
+; Beginning at 4E57, the keyboard DCB is copied to 4358 - 435F, then a loop is executed which zeros the 8 bytes after the DCB.
+; Starting at 4E79, 4015 (the first byte of the keyboard DCB) is set to zero, and the interrupt mask control byte is zeroed.
+;   Zeroing the interrupt mask byte will cause any interrupts which might slip in (very unlikely since interrupts are inhibited) to be discarded.
+; Continuing at 4E81, a JP 4518 instruction is synthesized and stored into 4012.
+;   This replaces a DI/RET sequence placed there by the LEVEL II ROM code prior to the loading of the nucleus.
+;   This causes control to pass to 4518 when an interrupt is recieved.
+;   Next, the address of the clock interrupt routine (4560), and the disk interrupt routine 45F7 are stored in the interrupt scan list at 405B and 4059, respectively.
+; Following that, the interrupt mask control byte at 404C is updated to indicate interrupt routines exist for both clock and disk interrupts.
+; At 4E9F, the DEBUG control byte is initialized to a positive value (DEBUG not active),
+;   and 45AF (address of the clock maintenance code) is stored in the interrupt task list by calling a system service routine at 4410.
+;   The maintenance routine will be executed evey 200 milliseconds under the control of the interrupt processor.
+;   It updates the binary clock values maintained in 4041 - 4043; however, the clock value will only be displayed if the CLOCK ON command is executed.
+; Upon return, the message 'TRSDOS 2.3 .... 'is displayed by the loop from 4EAF - 4EB8.
+; This code is followed by a call to scan the keyboard. If the carriage return key is active, the AUTO procedure test is skipped,
+;   and control passes immediately to 4400, where a call to load and execute SYSl is performed.
+;   If the carriage return key is not active, the code at 4EC2 -4ECB is executed to read sector 1 of track 11 into the buffer at 4200.
+;   If an error occurs during the read, control goes to 4409, where SYS4 is called to display an error message.
+; Assuming no read error, the buffer is examined to determine if an AUTO procedure has been defined.
+; A carriage return at 42EO (the EO'th byte of the sector) means no AUTO procedure file exists.
+;   In this case also, control passes to 4400, which causes SYSl (the command line processor) to be loaded and executed.
+; If 42E0 does not contain a carriage return, it is assumed to hold a 20-character command to be executed.
+;   This command is copied to the commmand line buffer by the code at 4ED9 - 4EE2, displayed on the video, and then SYSl is called to process the command.
+;
+	; FILL to end of REGION
+	assert	$ <= DOSEND
+	DC	DOSEND - $,$FF
+;
+$TOTALFREE	EQU	$CORE1FREE + $CORE2FREE
+;
+; ======================================================================
+; 4700 - End Of MDOS
+; ======================================================================
+;
+	END	STARTUP
+;
+; ======================================================================

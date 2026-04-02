@@ -1,0 +1,210 @@
+; ======================================================================
+;       	NATIVE (FREHD) DOS
+;	based on TRSDOS and NEWDOS/80 for Model 1
+;
+;     COMMAND PROCESSOR
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+
+;
+; ======================================================================
+; Overlay Region (4500h - 4600h)
+; ======================================================================
+;
+	ORG	OVERLY
+;
+ENTRY:
+	; hl is passed with pointer to the command buffer
+	; noting this is a l2 BASIC (-1) pointer.
+	;
+	; and we have already checked for a '#' character (level 2 basic)
+	; before calling this routine.
+	;
+	ld	(SAVBUFF),hl	; save this address for reuse
+	ld	de,LOOKUPTAB	; table lookup address
+
+	; start command lookup
+LOOK1
+	; check the command with the table entry
+	ld	a,(de)		; next char in lookup table
+	inc	de		; bump next lookup char to check
+	or	a		; flags
+	jr	z,FOUND1	; found terminator in table, i.e. Found Cmd
+	ld	b,a		; save lookup char for compare
+	;
+	RST	10h		; consume the next command char (A)
+	cp	b		; see if same as table char
+	jr	z,LOOK1		; yes. keep trying attempt next char
+LOOK2:
+	; table entry mismatch with command
+	ld	a,(de)		; examine next table char
+	inc	de
+	or	a		; checking the byte for 0 terminator
+	jr	nz,LOOK2	; not zero, keep skipping
+	; skipped to 0 terminator
+	inc	de		; then skip past the 2 nbyte address
+	inc	de		;
+	inc	de		;
+	ld	a,(de)		; examine table Char after the address
+	or	a
+	jr	z,NOTFND	; If Zero - then end of table process CMD
+	; setup to check next table entry
+	ld	hl,(SAVBUFF)	; restore command buffer for next attempt
+	jr	LOOK1		; check the command against next tbale entry
+	;
+; ----------------------------------------------------------------------
+FOUND1:
+	;; todo need to check for a trailing 0 or space in buffer
+	;; rather than ust matching "xxx" when string contains "xxxxxx"
+
+	push	de
+	ret
+
+	; command found in table
+;	ex	de,hl		; DE -> curr cmd buff; hl -> table address
+;	ld	c,(hl)		; low order command address
+;	inc	hl		; high order command address
+;	ld	b,(hl)		; BC -> full address of command
+;	ex	de,hl		; HL -> curr cmd buff
+;	;
+;	push	bc		; setup BC as address return address
+;	ret			; Jump to address in BC
+;	;
+; ----------------------------------------------------------------------
+NOTFND:
+	; parse the command line string as a file name
+	ld	hl,(SAVBUFF)	; get original address of command buffer
+	inc	hl		; buffer pointer so actual char (not prior)
+	ld	de,SYSFCB	; system FCB
+	push	de		; save for latter
+	ld	b,16		; max bytes in command name (could be 31?)
+	call	CHPARSE		; parse chars
+	jr	nz,ERROUT	; error out if NZ
+	;
+	; todo the following needs to be MUCH improved
+	; todo TrsDOS (4FC0H) and ND80 (4F2AH) SYS1 both have good implementations
+	; ensure it has cmd attached to it.
+	ld	hl,DOTCMD	; copy the ".CMD" suffex
+	ld	bc,5		; five bytes incl terminator
+	ldir			; append to end of the filespec
+	;
+	pop	de		; system FCB, containg name of file to run
+	jp	@RUN		; $4433 - load a program file, and execute it
+	;
+ERROUT
+	ld	a,ILLFILNAM$	; typed an ilegal file name
+	JP	@ERROR		; report error
+;
+; ----------------------------------------------------------------------
+;
+DOTCMD
+	DEFB	'.CMD',0	; program command name terminator
+;
+SAVBUFF
+	DW	0		; address of buffer containing command
+	;
+LOOKUPTAB
+	; internal command lookup table,
+	; with three byte instruction
+	DB	'CD',0
+	JP	@EXIT
+	;
+	DB	'COPY',0
+	JP	@EXIT
+	;
+	DB	'DEL',0
+	JP	@EXIT
+	;
+	DB	'DIR',0
+	SUPERV	S_DIRCMD
+	;
+	DB	'LOAD',0
+	JP	@EXIT
+	;
+	DB	'MKDIR',0
+	JP	@EXIT
+	;
+	DB	'REN',0
+	JP	@EXIT
+	; table terminator
+	DB	0
+;
+; ----------------------------------------------------------------------
+;
+; below is copied from newdos 80 SYS 01 command parser
+; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm#513DH
+; HL command line Input buffer
+; DE Filespec target buffer
+;
+; Z Success - NZ Failure
+;
+CHPARSE:
+	push	hl		; save source pointer
+CHLOOP:
+	call	ALPHCHECK	; check if the character is alphabetic (if not a digit). Returns CARRY if valid .
+
+	jr	c,WASVALID	; if valid then all good
+
+	; check for valid terminator
+	ld	a,(hl)		; get character (again)
+	cp	' '		; look for space
+	jr	z,CHEND		; then end it
+	CP	CR		; or carriage return. This marks the end of the command line input.
+	JR	Z,CHEND
+	cp	ETX		; ETX
+	jr	z,CHEND		; then end it
+	;
+	or	a		; check for 0 terminator
+	jr	nz,INVALID	; not a valid character a-Z ; a-z ; 0-9 or a space ternminator
+
+CHEND:
+	pop	af		; discard saved HL
+	xor	a		; Z flag indicates success, and NULL terminator
+	ld	(de),a		; put into dest buffer
+	ret			; Z flag Set
+WASVALID:
+	ld	a,(hl)
+	ld	(de),a
+	inc	de
+	inc	hl
+	djnz	CHLOOP
+				; fall thru if nmore than N chars
+INVALID:
+	pop	hl		; restore saved HL pointer
+	ld	a,(hl)		; get original char
+	ret			; With NZ flag set
+;
+; Based on Character at HL
+; C Char is Valid Alphabetic character (a-z) (A-Z) (0-9)
+; NC was invalid
+;
+ALPHCHECK:
+	ld	a,(hl)		; get character (again)
+	sub	$30		; '0' converts ASCII digits '0'-'9' to values 0-9.
+	cp	10		; If carry the original char was '0'-'9'.
+	ret	c		; if 0-9 then valid
+	sub	$11		; 'A' convert to upper A
+	cp	26		; compare with upper case Z
+	ret	c		; if was a-Z then C so is valid
+	sub	$20		; 'a' make it lower case check
+	cp	26		; compare with lower case Z
+	ret			; returning the C result
+;
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+$OVERLAYFREE	EQU	DOSEND - $
+;
+	; FILL to end of REGION
+	DC	DOSEND - $ - 1,0
+	DB	$0C
+;
+	END

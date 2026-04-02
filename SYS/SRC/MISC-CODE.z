@@ -1,0 +1,128 @@
+
+
+Partially existing code found in OVERLAY C
+
+; below is copied from newdos 80 SYS 01 command parser
+; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm#513DH
+; HL command line Input buffer
+; DE Filespec target buffer
+;
+FILEPARSE:
+   	push	de
+	ld	b,32		; max bytes
+	call	CHPARSE		; parse chars
+	pop	de
+	ld	b,$00		; success
+	ret
+;
+; Z Success - NZ Faliure
+;
+CHPARSE:
+	ld	a,(hl)		; First Character
+	cp	'*'		; compare with wildcard * as first character
+	jr	nz,CHNORM	; not wildcard process normal
+	ld	(de),a		; copy "*" it to target,
+	inc	de		; next char in both buffers
+	inc	hl		; next char in both buffers
+	dec	b		; reduce count; fall through next char
+CHNORM:
+	push	hl		; save source pointer
+	ld	a,(hl)		; get character (again)
+	sub	'0'		; converts ASCII digits '0'-'9' to values 0-9.
+	cp	10		; If carry the original char was '0'-'9'.
+	call	ALPHCHECK	; check if the character is alphabetic (if not a digit). Returns CARRY if valid .
+	jr	nc,INVALID	; not a valid character a-Z ; a-z ; 0-9
+CHLOOP:
+	ld	a,(hl)		; get character (again)
+	sub	'.'		; check starting at "."
+	cp	$0d		; Char between '.' and ':', incldes 0-9 and '/'
+	call	ALPHCHECK
+	jr	c,WASVALID	; if valid then all good
+CHEND:
+	ld	a,0		; end of text marker
+	ld	(de),a		; put into dest buffer
+	pop	af		; discard saved HL
+	xor	a		; Z flag indicates success
+	ret
+WASVALID:
+	ld	a,(hl)
+	ld	(de),a
+	inc	de
+	inc	hl
+	djnz	CHLOOP
+INVALID:
+	or	1		; ensure NZ flag
+	pop	hl		; restore
+	ld	a,(hl)		; get original char
+	ret
+;
+; Based on Character at HL
+; C Char is Valid Alphabetic character (a-z) (A-Z)
+; NC was invalid
+;
+ALPHCHECK:
+	ret	c		; if already valid then nothing to do
+	ld	a,(hl)		; get char again
+	sub	'A'		;
+	cp	26		; compare with upper case Z
+	ret	c		; if was a-Z then C so is valid
+	sub	$20		; make it lower case check
+	cp	26		; compare with lower case Z
+	ret			; returning the C result
+
+; Originally from TRS DOS 2.3 SYS1
+; 4FF4H - Character Extraction Subroutine📋
+; Reads up to B characters from the command line at (HL)
+; Storing valid filename characters (digits 0-9 and uppercase letters A-Z)
+; into the output buffer at (DE).
+; Skips over excess characters when the maximum count is reached.
+; Terminates when it encounters a 03H end-of-buffer marker,
+; 0DH carriage return, or any character outside the valid range
+; (below 30H or between 3AH-40H or above 5AH).
+; On return: A = the character that caused termination,
+; Z flag set = no valid characters were stored (first-character flag still set),
+; NZ = at least one character was stored.
+; Self-modifies the byte at 5026H to track whether a character has been stored in the current field.
+
+CHREXT:				;4FF4
+	LD	A,B		;Maximum character count
+	LD	(MXCHAR+1),A	; Store the maximum character count into the self-modifying operand at 5026H. Self-Modifying Code
+				;This writes the initial count (from B) into the operand byte of the LD A,00H instruction at 5025H. When the first valid character is stored, this value is reset to 00H at 5018H. The instruction at 5025H then reads back this byte: if non-zero, no characters have been stored yet (first-character flag); if zero, at least one character was stored.
+	INC	B		; pre-increments the counter so that the DJNZ loop at 5014H will correctly count down the maximum number of characters. The actual count loop uses DEC B at 5013H followed by JR Z at 5014H.
+
+LOOP	LD	A,(HL)		; Loop Start Fetch the next character from the command line at (HL) into Register A.
+	CP	ETX		; Compare Register A against 03H (end-of-buffer terminator). If the command line buffer has been exhausted, the Z FLAG is set.
+	JR	Z,TERMCH	; If the Z FLAG (Zero) has been set because the end-of-buffer terminator (03H) was reached, JUMP to 5021H to terminate character extraction and prepare the return status.
+	CP	CR		; Compare Register A against 0DH (ASCII carriage return). This marks the end of the command line input.
+	JR	Z,TERMCH	; If the Z FLAG (Zero) has been set because a carriage return (0DH) was reached, JUMP to 5021H to terminate character extraction.
+	INC 	HL		; next character in the command line. The current character has been read into A and will be validated below. HL is advanced now so that if the character is invalid, HL already points past it.
+	CP 	30H		; Compare Register A against 30H (ASCII: 0). Characters below 30H are not valid filename characters (this range includes spaces 20H, separators like "/" 2FH, and control characters).
+	JR	C,TERMCH	; If the CARRY FLAG has been set because the character is less than 30H (below digit "0"), JUMP to 5021H to terminate extraction. This catches spaces, separators, and control characters.
+	CP	3AH		; Compare Register A against 3AH (ASCII: :). Characters in the range 30H-39H are digits 0-9 (valid). Characters 3AH and above need further checking.
+	JR	C,VALCHR	; If the CARRY FLAG has been set because the character is less than 3AH (i.e., it is a digit 0-9 in the range 30H-39H), JUMP to 5013H to store this valid character in the output buffer.
+	CP 	41H		; Compare Register A against 41H (ASCII: A). Characters between 3AH-40H (colon through at-sign) are not valid filename characters.
+	JR	C,TERMCH	; If the CARRY FLAG has been set because the character is between 3AH and 40H (not a digit and not a letter), JUMP to 5021H to terminate extraction. This catches the ":" drive separator (3AH) and other punctuation.
+	CP	5BH		; Compare Register A against 5BH (one past ASCII: Z). Characters 41H-5AH are uppercase letters A-Z (valid). Characters 5BH and above (brackets, backslash, etc.) are not valid.
+	JR	NC,TERMCH	; If the NO CARRY FLAG has been set because the character is 5BH or above (beyond 'Z'), JUMP to 5021H to terminate extraction.
+;
+VALCHR:
+	; If we reach here, the character is a valid filename character: a digit (30H-39H) or an uppercase letter (41H-5AH).
+	DEC 	B		; the remaining character counter). If B reaches zero, the maximum field length has been filled.
+	JR	Z,SKIPST 	; If the Z FLAG (Zero) has been set because B reached zero (maximum characters already stored), JUMP to 501EH to skip storing this character and continue scanning past any remaining characters in the field.
+	LD 	(DE),A		; Store the valid filename character from Register A into the output buffer at (DE).
+	XOR	A		; Set Register A to zero. This value will be stored at 5026H to clear the "first character" flag.
+	LD	(MXCHAR+1),A	; Store 00H into the self-modifying operand at 5026H. Self-Modifying Code
+				; This clears the first-character flag that was set at 4FF5H. When the routine terminates, the value at 5026H is read back: 00H means at least one character was stored (success), non-zero means no characters were stored.
+	INC 	DE		; Advance the output buffer pointer to the next position.
+	JR	LOOP		; LOOP BACK to 4FF9H to continue reading characters from the command line. Loop End
+SKIPST:	INC	B		; INCrement Register B back to 1. B was decremented to zero (field full), but the loop at 4FF9H needs B to be non-zero so DJNZ-style logic can continue scanning past excess characters without storing them.
+	JR 	LOOP	; LOOP BACK to 4FF9H to continue scanning the command line. Excess characters beyond the maximum field width are consumed but not stored.
+TERMCH:
+	LD	C,A	; Save the terminating character from Register A into Register C. This preserves the stopping character (03H, 0DH, or a separator/invalid character) for the caller to examine.
+	LD	A,EXT	; Load Register A with 03H, the buffer terminator byte.
+	LD 	(DE),A	; Store the 03H terminator into the output buffer at (DE), marking the end of the extracted characters.
+MXCHAR:	LD	A,0	; Self-Modifying Code The operand byte (00H shown here) is the target of the self-modifying writes at 4FF5H and 5018H. At runtime, this byte contains either the initial count (non-zero, meaning no characters were stored) or 00H (meaning at least one character was stored). The LD A instruction loads this flag value into Register A.
+	OR	A	; OR Register A with itself to set the flags based on A's value. If A is 00H (characters were stored), the Z FLAG is set. If A is non-zero (no characters were stored), the NZ FLAG is set. This provides the return status to the caller.
+	LD	A,C	; Restore the terminating character from Register C back into Register A. The caller can examine A to determine what character caused the extraction to stop (separator, terminator, or invalid character).
+	RET		; RETURN to the caller. Z flag indicates the result: Z set = no valid characters were stored (first call yielded nothing), NZ = at least one character was stored. Register A holds the terminating character.
+

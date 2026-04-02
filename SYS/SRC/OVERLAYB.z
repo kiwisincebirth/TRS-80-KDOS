@@ -1,0 +1,186 @@
+; ======================================================================
+;       	NATIVE (FREHD) DOS
+;	based on TRSDOS and NEWDOS/80 for Model 1
+;
+;     BASIC - LOAD, SAVE and RUN
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4600h)
+; ======================================================================
+;
+	ORG	OVERLY
+	;
+ENTRY:
+	cp	S_SAVECMD
+	jr	z,BASIC_SAVE	; SAVE
+	;
+	cp	S_RUNCMD
+	jr	z,BASIC_RUN	; RUN
+	;
+	cp	S_LOADCMD
+	jr	z,BASIC_LOAD	; LOAD
+	;
+	ret
+;
+; ----------------------------------------------------------------------
+; SAVE "XXXXX.BAS" - Save a Basic program to FreHD
+; ----------------------------------------------------------------------
+BASIC_SAVE:
+	call	GET_STRING	; de points to string, B is the lenght non-zero
+;
+	ld	c,FA_CREATE_ALWAYS|FA_WRITE	; create with over-write
+	call	fhd_OPEN	; open file command
+	jp	nz,@ERROR	; file not opened.
+;
+	ld	c,1		; write 1 byte
+	call	fhd_WRITE	; setup the write command for 1 byte
+	jp	nz,@ERROR	; file not opened.
+;
+	ld	a,$FF
+	out	(DATA2),a	; write $FF byte
+	call	fhd_WAIT
+	jp	nz,@ERROR	; file not opened.
+;
+	ld	hl,(TXTTAB)	; get the start basic pointer
+	ld	de,(VARTAB)	; get the  end  basic pointer
+save2:
+	ld	c,0		; write 256 bytes
+	call	fhd_WRITE	; setup the write command for 1 byte
+	jp	nz,@ERROR	; file not opened.
+;
+; this is a bit of a simple approach, will always write
+; 256 byte blocks (even on last block), more bytes than is needed.
+; consider truncating to just the number of bytes on the last block
+;
+	ld	bc, DATA2	; b=0 "256" bytes, c=DATA2 output port
+	ld	b, a		; the count to transfer
+	otir			; send data from (hl) to port (C)
+	call	fhd_WAIT
+	jp	nz,@ERROR	; file not opened.
+save3:
+	RST	18H		; CARRY SET=HL<DE; NO CARRY=HL>DE; NZ=Unequal; Z=Equal).
+	jr	c,save2		; more bytes so loop back.
+;
+save9:
+	call	fhd_CLOSE
+	jp	READY		; exit to Basic
+;
+; ----------------------------------------------------------------------
+; RUN "XXXXX.BAS" - LOAD and RUN a Basic program from FreHD
+; or if no parameter then simply return
+; ----------------------------------------------------------------------
+BASIC_RUN:
+	pop 	af		; get rid of the return address that we no longer need
+	ld	a,1		; flag for LOAD and RUN
+	ld	(RUNFLAG),a
+	jr	LOADER		; skip to LOAD
+;
+; ----------------------------------------------------------------------
+; LOAD "XXXXX.BAS" - Load a Basic program from FreHD
+; ----------------------------------------------------------------------
+;
+BASIC_LOAD:
+	ld	a,0		; flag for LOAD Only
+	ld	(RUNFLAG),a
+LOADER:
+	call	GET_STRING	; de points to string, B is the length non-zero
+
+	ld	c,FA_OPEN_EXIST|FA_READ
+	call	fhd_OPEN	; open file command
+	jp	nz,@ERROR	; file not opened.
+
+	call	fhd_READBYTE
+	jp	nz,@ERROR	; error if dont find another byte
+	;
+	cp	$FF		; check first byte is $FF - meaning basic program.
+	jp	z,LOADER2	; Got $FF basic program - so skip down
+	;
+	ld	a,LOAFILFMT$	; load file format error
+	jp	@ERROR		; goto the erro handler
+	;
+LOADER2:
+	call	SCRTCH		; basic NEW, initialize system vars
+	ld	de,(TXTTAB)	; starting address of PST to load data to
+DLLOP3:
+	; start of loop - resetting zero counter
+	ld	b,3		; looking for 3 zeros for termination
+DLLOP4:
+	; start of loop
+	call	fhd_READBYTE; transfer a byte from source
+	jp	nz,@ERROR	; error if dont find another byte
+	;
+	ld	(de),a		; transfer to the destination
+	inc	de		; inc the memory pointers
+	;
+	or	a		; was the byte a transferred a ZERO
+	jr	nz,DLLOP3	; if received a != 0, continue loop
+	;
+	dec	b		; the zero counter 3->0
+	jr	nz,DLLOP4	; main loop not resetting zero counter
+	;
+LD_FIN:
+	call	fhd_CLOSE	; received 3 $00 so finish here
+;
+; ORIGINAL FROM CLOAD
+;	ld	(VARTAB),de	; After three 000 - Save the new end of the BASIC program pointer.
+;	;
+;	ld	hl,m_REDDY	; READY>
+;	call	STROUT		; Print Ready Message
+;	;
+;	ld	de,(TXTTAB)	; pointer to Prog Statement Table
+;	jp	FINIDE		; Finish Up, same as CLOAD (this code based on)
+;
+; FOLLOWING Code from TRSDOS 2.3 Disk BASIC
+	CALL 	LINKER		; fix the line pointers in a BASIC program. A, HL and DE are used
+	INC 	HL		; Advance past 2 x 00H's at end of Basic program (from Linker)
+	INC 	HL
+	LD 	(VARTAB),HL	; Set the end of program location in RAM by storing HL into 40F9H.
+	CALL 	RUNC		; set up ARYTAB and STREND
+	;
+	ld	a,(RUNFLAG)	; Run or Load Only Flag
+	OR 	A		; non-zero if want to run
+	JP	Z,READY		; If the Z FLAG (Zero) has been set, Return to the READY prompt
+	JP 	NEWSTT		; Otherwise Level II BASIC - RUN
+;
+; ----------------------------------------------------------------------
+RUNFLAG	DEFB	0	; non-zero if want to run
+; ----------------------------------------------------------------------
+;
+; ======================================================================
+;
+; todo also need the logic to insert the .BAS extension if not provided
+;
+GET_STRING:
+	call	FRMEVL		; evaluates an expression based on BASIC pointer
+	call	FRESTR		; gets pointer to string in HL if string. TM Error if not string
+	LD	A,(HL)		; string length
+;	or	a		; set flags
+;	JP	Z,FCERR		; FC error if zero length
+	ld	b,a		; length into B
+	inc	hl		; advance to LSB address
+	ld	e,(hl)		; get the LSB of string address
+	inc	hl		; advance to MSB address
+	ld	d,(hl)		; string pointer in DE
+	ret
+;
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+$OVERLAYFREE	EQU	DOSEND - $
+;
+	; FILL to end of REGION
+	DC	DOSEND - $ - 1,0
+	DB	$0B
+;
+	END
+

@@ -1,0 +1,242 @@
+; ======================================================================
+;       	NATIVE (FREHD) DOS
+;	based on TRSDOS and NEWDOS/80 for Model 1
+;
+;     GENERAL FILE HANDLING - OPEN CLOSE etc.
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4600h)
+; ======================================================================
+;
+	ORG	OVERLY
+	;
+ENTRY:
+
+
+
+
+
+; Open a New or Existing File ($4420)
+; B - Logical Record Length (0=256)
+; DE - Pointer to FCB 32 byte Buffer, containing filename
+; HL - Pointer to 256 byte IO Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; Registers Intact
+INITFILE:
+
+	push	de	; save the FCB
+	push	bc	; save the LRL
+	push	hl	; save the buffer pointer
+
+	; Parse and extract the 12 character filename
+	; convert the / character into .
+	; only copy first 8 and 3 extension chars
+	; strip out any :0 and .password
+loop_start:
+	ld	b,12		; max character count
+	ld	hl, $20 - 12	; number of chars into FCB to copy filename
+	add	hl,de		; add the starting DE pointer to HL, now has target
+	push	hl		; pointer to start of target filename
+loop:
+	ld 	a,(de)		; get char from source filename FCB
+	call	aplha_check	; check for alphanumeric
+	ld 	a,(de)		; reload
+	jr	c, good		; if valid the proceed
+	cp	'/'		; test a / -> only other valid char
+	jr	nz,not_good	; not a / then we need to finish
+	ld	a,'.'		; / needs to be converted to .
+good:
+	LD 	(hl),A
+	inc 	de
+	inc 	hl
+	djnz 	loop		; [LOOP] Decrement B and if not zero, LOOP BACK to 516EH to process the next character.
+	jr	exit
+not_good
+	ld	a,0		; string terminator
+padd:
+	ld	(de),a
+	inc	de
+	djnz	padd
+exit:
+	pop	de		; pointer to target filename
+
+	; call the open, getting some metrics into FCB
+	; then call Close
+
+	; Open A file
+	; de pointer to the filename
+	; b  the length of the filename
+	; c  The open FA_* options - e.g. FA_OPEN_EXIST|FA_READ
+	ld	b, 12		; length of filename
+	ld	c, FA_RW | FA_OPEN_ALWAYS
+	call	fhd_OPEN	; open
+
+	pop	hl
+	pop	bc
+	pop	de
+
+	ret	nz
+
+; 48 49 53 43  4F 52 45 53  2F 4D 45 54  3A 30 0D 4D |HISCORES/MET:0.M|
+; 45 54 45 4F  52 20 4D 49  53 53 49 4F  4E 20 49 49 |ETEOR MISSION II|
+
+; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
+; FF FF FF FF  48 49 53 43  4F 52 45 53  2F 4D 45 54 |....HISCORES.MET|
+
+	xor	a
+	ret
+
+DEF_FCB_BLK:
+	DEFB	$80		; 0 Flags - $80 Open
+	DEFB	$28		; 1 Flags
+	DEFB	$20		; 2 Flags
+	DEFW	$00		; 3,4 FCB Buffer address (Reg HL)
+	DEFB	$00		; 5 NEXT Low Order Byte
+	DEFB	$00		; 6 Drive Number
+	DEFB	$00		; 7 Pointer to the Files Directory Entry
+	DEFB	$00		; 8 EOF Low Order Byte
+	DEFB	$00		; 9 LRECL Logical Record Len (0=256) (Reg B)
+	DEFB	$00		; 10 NEXT Middle Order Byte
+	DEFB	$00		; 11 NEXT High Order Byte
+	DEFB	$00		; 12 EOF Middle Order Byte
+	DEFB	$00		; 13 EOF High Order Byte
+	DEFB	$FF,$FF,$FF,$FF,$FF,$FF,0,0,0,0,0,0,0,0,0,0,0,0
+;
+; This subroutine checks if the character in A is an alphabetic letter (A-Z or a-z) or 0-9
+; Returns with CARRY set if the character is alphabetic. If called after a digit test fails,
+; it determines if the character is a valid filename character.
+; Destroys A in the process
+aplha_check:
+	SUB 	30H	; This converts ASCII digits '0'-'9' to values 0-9.
+	CP 	0AH	; If is less than 10, the original character was a digit '0'-'9'.
+	RET 	C	; If CARRY is set return immediately - character is valid.
+	SUB 	11H	;Subtract 41H (ASCII 'A') from the character. This normalizes uppercase letters to 0-25.
+	CP	1AH	;Compare against 1AH (26 decimal). If result is less than 26, the character was 'A'-'Z'.
+	RET	C	;If CARRY is set (character is uppercase letter 'A'-'Z'), return with CARRY indicating valid.
+; Not an uppercase letter - check for lowercase.
+	SUB	20H	;Subtract 20H more (the difference between lowercase and uppercase in ASCII). Now checking for 'a'-'z'.
+	CP	1AH	;Compare against 1AH (26). If result is less than 26, the character was 'a'-'z'.
+	RET		;Return. CARRY set if lowercase letter, CARRY clear if not alphabetic.
+
+
+
+
+
+;
+; ----------------------------------------------------------------------
+
+
+
+;
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+$OVERLAYFREE	EQU	DOSEND - $
+;
+	; FILL to end of REGION
+	DC	DOSEND - $ - 1,0
+	DB	$0F
+;
+	END
+
+
+
+
+; Below is From NewDos 80 v2 SYS 1
+; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm
+' supports extracting a filename from a string.
+
+5163
+PUSH HL
+Save the current source pointer onto the stack.
+5164
+LD A,(HL)
+Load Register A with the current character.
+5165
+SUB 30H
+Subtract 30H (ASCII '0') from the character. This converts ASCII digits '0'-'9' to values 0-9.
+5167
+CP 0AH
+Compare against 0AH (10 decimal). If the result is less than 10, the original character was a digit '0'-'9'.
+5169
+CALL 5189H
+GOSUB to 5189H to check if the character is alphabetic (if not a digit). Returns CARRY if valid alphanumeric.
+516C
+JR NC,5184H
+If NO CARRY (character is not alphanumeric), JUMP to 5184H to finish with an error/end condition.
+Character passed the digit test or was confirmed alphabetic. Now check for special delimiters.
+
+516E
+LD A,(HL)
+Reload the original character from the source.
+516F
+SUB 2EH
+Subtract 2EH (ASCII '.') from the character. Testing for period (filename/extension separator).
+5171
+CP 0DH
+Compare against 0DH. If the original character was between 2EH ('.') and 3AH (':'), this checks range.
+5173
+CALL 5189H
+GOSUB to 5189H for additional character validation.
+5176
+JR C,517EH
+If CARRY is set (character is a valid part of filename), JUMP to 517EH to copy it.
+Character is a delimiter (like period) - mark end of filename portion.
+
+5178
+LD A,03H
+Load Register A with 03H (end-of-text marker).
+517A
+LD (DE),A
+Store the end-of-text marker into the destination buffer.
+517B
+POP AF
+Discard the saved HL (stored at 5163H) by popping into AF.
+517C
+XOR A
+Set Register A to zero and clear flags (Z FLAG set, indicating success).
+517D
+RET
+Return to the caller with Z FLAG set indicating successful parse.
+Character is valid - copy it to destination and continue loop.
+
+517E
+LD A,(HL)
+Load the valid character from the source.
+517F
+LD (DE),A
+Store the character into the destination buffer.
+5180
+INC DE
+Advance the destination pointer.
+5181
+INC HL
+Advance the source pointer.
+5182
+DJNZ 516EH
+[LOOP] Decrement B and if not zero, LOOP BACK to 516EH to process the next character.
+Reached end of loop (maximum characters processed) or hit invalid character.
+
+5184
+OR 01H
+OR Register A with 01H to ensure NZ FLAG is set (indicating we didn't end cleanly on a delimiter).
+5186
+POP HL
+Restore the source pointer from the stack.
+5187
+LD A,(HL)
+Load the current character into Register A (the character that caused loop exit).
+5188
+RET
+Return with NZ FLAG set and the terminating character in A.
+
