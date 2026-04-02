@@ -36,6 +36,7 @@ CRDO	EQU	$20FE
 FRMEVL	EQU	$2337
 STROUT	EQU	$28A7
 FRESTR	EQU	$29D7
+LISPRT	EQU	$2b75
 ;
 GETCHR	macro
 	rst	10h
@@ -140,13 +141,6 @@ SPC         EQU     20H
 ; ----------------------------------------------------------------------
 ; FREHD
 ; ----------------------------------------------------------------------
-;
-; where the extra FREHD rom is loaded
-;ROM_LOAD	EQU	5000h
-;
-; TRS model : passed by the patched rom
-;ROM_MODEL_1	EQU	1
-;ROM_MODEL_3	EQU	3
 ;
 ; FreHD PORT Interface defines
 DATA2	  	EQU	0c2h

@@ -1,78 +1,93 @@
 ;;;
-;;; Floppy 80 - FreHD Like - SYS0.SYS - ROM LOADER
+;;; BOOT.SYS - Like Boot Block on Floppy Disk
+;;; (The main loader for MDOS)
+;;;
+;;; FreHD Like - SYS0.SYS - ROM LOADER
 ;;;
 ;;; These 256 bytes are the code which is initially loaded and starts
 ;;; the load of the actual mini DOS.
 ;;;
-;;; This code tries to open "/SYS/SYS0.SYS" on the SD-card.
+;;; This code tries to open "/SYS/SYS0x.SYS" on the SD-card.
 ;;; and will execute this code once loaded
 ;;;
 ;;; This is loaded and executed from Level 2 ROM if either:
-;;;    * A Fre HD Auto boot Rom is installed, code will be loaded at $5000
-;;;    * Otherwise a Floppy Disk boot block load will occur at $4200
-;;;
-;;; This code is designed to work on Floppy80 hardware, in either mode
-;;; This code is not exepected to be stored on a real FreHD, a real
-;;; FreHD has is own build in loaded that look for FREHD.ROM
+;;;	* A Floppy Disk boot block will load this at $4200
+;;;	    - In which case the code relocates itself to $6000
+;;;    	* Fre HD Autoboot Rom will Load FREHD.ROM
+;;;	    - FREHD.ROM will load this directly to $6000
 ;;;
 ;;; If loaded from floppy disk boot the code will automatically
-;;; be relocated and executed from $5000
+;;; be relocated and executed from $6000
 ;;;
 
 ; ======================================================================
 import	constants.z
 ; ======================================================================
 ;
-	ORG	5000h
-	db	0feh		; first byte is used by FreHD (ROM) loader
-				; as signature byte (discarded)
-				; On FLOPPY DISK LOADER - replace with NOP
-	PHASE	5000h
+	ORG	6000h
 BEGIN:
-	cp	$FF		; trick to pass one parameter from ROM
-				; $FF is replaced with Model I/II by FreHD
-	jr	RELOCATE	; skip the jump table
 ;
 ; ----------------------------------------------------------------------
-; Entry points for external
-; ----------------------------------------------------------------------
-;
-	jr	file_loader	; 5004h : file loader Entry Point
-;
-; ----------------------------------------------------------------------
-; handle relation of code up to $5000 is was loaded by floppy
+; handle relation of code up to $6000 is was loaded by floppy
 ; disk bootstrap at location $4200, noting very first byte must be a NOP
 ; ----------------------------------------------------------------------
-RELOCATE:
 	call	_WHERE		; ($000B) - get PC into HL
-				; HL has address of this next instruction
+	;			; HL has address of this next instruction
 	ld	a,h		; MSB of address this code is running in.
-	cp	$50		; compare with correct Code Page $5000
-	jr	z,START		; code already correctly located, start as normal
-;
-	ld	bc,$100		; bytes to move
+	cp	$ / $100	; compare with correct Code Page $6000
+	jr	z,START		; code already located, at $6000 start as normal
+	;
+RELOCATE
+	ld	l,0		; HL now has running (where loaded) page address
 	ld	de,BEGIN	; target address, where code should execute from
-	ld	hl,$4201	; source address, current location (exclude 1 byte)
+	ld	bc,$100		; bytes to move
 	ldir			; transfer 256 bytes
-;
-LOADED:
+	;
+RELOADED:
 	jp	START		; Start the code.
 ;
 ; ----------------------------------------------------------------------
+; Now we need to
+; ----------------------------------------------------------------------
 START:
-	ld	a, (3840h)	; check keyboard
-	and	80h		; <SPACE> pressed ?
-	ret	nz		; return if so
+	; Detection of Advancded PICO hardware
 	;
-START2:
-	ld	de,fname	; load FREHD.ROM
+	ld	a,GETVER	; version information from FreHD
+	out	(COMMAND2),a
+	call	fhdwait		; ignoring result
+	;
+	ld	c, DATA2	; data port
+	in	a,(c)		; read / skip over first byte
+	in	a,(c)		; read / skip over second byte
+	;
+	in	d,(c)		; first half of version stamp - byte 3
+	in	a,(c)		; second half of version stamp - byte 4
+	xor	d		; xor them together -> zero if Enhanced Pico
+	;
+	ld	de,fnamef	; Default to FreHD Minimal SYS0F.SYS
 	ld	b,$10		; length of 16 bytes
 	;
+	jr	nz,START1	; NZ NOT Advanced Pico, skip over
+	ld	de,fnamep	; Set advanced Pico SYS0P.SYS
+
+START1:
 	call	file_loader	; load the file
-	ret	nz		; not loaded
+
+	; if nz then need to display an error
+	jr	nz,SERROR
+
 	jp	(hl)		; jump to SYS0.SYS
-;
-; ======================================================================
+
+SERROR:
+	ld	HL,errMESG
+	call	LISPRT
+SERROR2:
+	jr	SERROR2		; halt at this point
+				; consider jumping back to INIT2:
+
+errMESG:
+	DB	"Load ERR",0
+
 ;;;
 ;;; FreHD file loader
 ;;;
@@ -93,7 +108,7 @@ file_loader:
 	ex	de,hl
 	ld	a,OPENFILE		; open file command
 	out	(COMMAND2),a
-	call	loadwait
+	call	fhdwait
 	ld	a,b
 	inc	a			; +1 for options
 	inc	a			; +1 for null-terminator
@@ -104,7 +119,7 @@ file_loader:
 	otir				; send filename
 	xor	a			; send null-terminator
 	out	(c),a
-	call	loadwait
+	call	fhdwait
 	ret	nz			; error, return
 
 	ld	c,0FFh			; counter
@@ -133,7 +148,7 @@ load5:
 	call	getaddr			; get transfer address
 	ld	a,CLOSEFILE		; close file
 	out	(COMMAND2),a
-	call	loadwait
+	call	fhdwait
 	xor	a			; set Z for success !
 	ret
 ;
@@ -161,7 +176,7 @@ getchunk
 	out	(SIZE2),a
 	ld	a,READFILE
 	out	(COMMAND2),a
-	call	loadwait
+	call	fhdwait
 	jr	nz,geterror
 	in	a,(STATUS)		; DRQ set means we got something
 	and	08h
@@ -169,15 +184,18 @@ getchunk
 geterror:
 	ld	a,CLOSEFILE		; close file
 	out	(COMMAND2),a
-	call	loadwait
+	call	fhdwait
 	ld	sp,ix
 	inc	a			; set NZ (wait returns A == 0 or 1)
 	ret				; return
 
-loadwait:
+fhdwait:
+	ex 	(sp),hl		; small delay to
+	ex 	(sp),hl		; settle the controller
+fhdwait1:
 	in 	a, (STATUS)
 	rlca
-	jr 	c, loadwait
+	jr 	c, fhdwait1
 	in 	a, (STATUS)		; read status again
 	and 	01h			; nz = error
 	ret
@@ -186,14 +204,15 @@ loadwait:
 	; The file name is located on a 16 byte page boundary,
 	; after all code to make it easy to change in C code
 	; FILL to end of REGION
-	DC	$50DF - $,$FF
+	DC	$60E0 - $,0
 ; ----------------------------------------------------------------------
 ;
-fname	db	"/SYS/SYS0.SYS"		; file name with trailing ZERO's
+	assert $ = $60E0
+fnamep	db	"/SYS/SYS0P.SYS",0,0		; PICO file name
+	;
+	assert $ = $60F0
+fnamef	db	"/SYS/SYS0F.SYS",0,0		; FRED file name
 ;
-	; FILL to end of REGION
-	DC	$50FF - $,$00
+	assert $ = $6100
 
-	IF $ > 50ffh
-	ERROR "Code too big!"
-	ENDIF
+	END	BEGIN

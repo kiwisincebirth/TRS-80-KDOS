@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	NATIVE (FREHD) DOS
+;       	MINI DOS
 ;	based on TRSDOS and NEWDOS/80 for Model 1
 ;
 ;     ERROR HANDLING
@@ -54,7 +54,7 @@ HAND1
 	;
 ;	ld	b,a		; save the error code
 	; test if enhance rom todo this should be conditional compile
-	call	enh_VER		; call the Enhanced Floppy80 check
+	call	enh_VER		; call the Enhanced Pico check
 	jr	nz,ENHANCED	; enhanced handling
 ;
 STANDARD
@@ -93,7 +93,7 @@ ENHANCED
 	; call the enhanced function passing the Error code
 	; get the response message / printing it.
 
-	jr	STANDARD	; todo FUTURE this could be done with Floppy 80 call
+	jr	STANDARD	; todo FUTURE this could be done with Advanced Pico call
 
 HANDX
 	pop	hl		; restore the stack

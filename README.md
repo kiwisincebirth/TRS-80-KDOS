@@ -53,19 +53,22 @@ The FreHD solution
 
 ### Boot Process
 
-|            | Floppy 80               | FreHD                       |
-|------------|-------------------------|-----------------------------|
-| ROM        | Requires a Standard ROM | Requires FreHD autoboot ROM |
-| ROM        | Load Floppy Boot $4200  | Loads Boot Block to $5600   |
-| Boot Block |                         | Loads custom /FreHd.ROM     |
-| Boot Block | Loads /SYS/BOOT.CMD     | Loads /SYS/BOOT.CMD         |
-| Boot.CMD   | Detects Hardware        | Detects Hardware            |
-| Boot.CMD   | Loads /SYS/SYS0FLOP.SYS | Loads /SYS/SYS0FRED.SYS     |
-| Overlays   | -included in SYS0-      | Loads /SYS/SYS(A-Z).SYS     |
+|            | Floppy 80                  | FreHD                       |
+|------------|----------------------------|-----------------------------|
+| ROM        | Requires a Standard L2 ROM | Requires FreHD Autoboot ROM |
+| ROM        | Loads Floppy Boot Block    | Loads FreHD Boot Block      |
+| ROM        | (BOOT.SYS loaded to $4200) | (Firmware loaded to $5000)  |
+| Boot Block |                            | Loads FREHD.ROM             |
+| Boot Block |                            | -aka- BOOT/CMD to $6000     |
+| Boot.SYS   | Relocates to $6000         |                             |
+| Boot.SYS   | Detects Hardware           | Detects Hardware            |
+| Boot.SYS   | Loads /SYS/SYS0P.SYS       | Loads /SYS/SYS0F.SYS        |
+| Overlays   | -included in SYS0P-        | Loads /SYS/SYS(A-Z).SYS     |
 
-* FreHD.ROM - is a simple loader just chains to BOOT.CMD 
-* Boot.CMD has detection for the underlying hardware
-* SYS0xxxx.SYS - is based off same source code but has different features
+* BOOT.SYS - 256 byte binary image, with ORG = $6000 
+* FreHD.ROM - is a direct copy of BOOT.SYS in CMD format 
+* SYS0P.SYS - Enhanced PICO full DOS Version 
+* SYS0F.SYS - FreHD Limited version (same source code)
 * Overlays are pre-loaded into Pages RAM, not dynamically
   * Are preloaded into Paged RAM as part of SYS0 on Floppy80
   * Are loaded (on demand) into normal RAM, like a normal DOS
@@ -85,12 +88,14 @@ See the seperate Compatibility document for what is and isnt supported.
 * Improve the addition of .CMD to a filename when execuing from CMD processor.
 * Command Processor (initial code) needs to me moved more into the overlay
 * FreHD DIR should not display directories
+* #DIR command on the PICO should support filtering
 
 ### High Priority
 * Sort out the FreHD and Pico Loaders, as per the design
   * Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
   * Conditional Build directives #IFDEF FREHD_BUILD
-  * Move the Overlays (Super Calls) into Pico RAM
+  * Remove the ENHANCED compiler directive
+* Move the Overlays (Super Calls) into Pico RAM
 * Implement a #LOAD <command.cmd> DOS command
 
 ### Medium

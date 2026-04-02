@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	NATIVE (FREHD) DOS
+;       	MINI DOS
 ;	based on TRSDOS and NEWDOS/80 for Model 1
 ;
 ;     DIR COMMAND
@@ -22,8 +22,8 @@ import	constants.z
 ENTRY:
 	;
 	; test if enhance rom	; todo this should be conditional compile
-	call	enh_VER		; call the Enhanced Floppy80 check
-	jr	nz,NEWDIR	; Enhanced Fre Hd / Floppy 80 handling
+	call	enh_VER		; call the Enhanced Pico check
+	jr	nz,NEWDIR	; Enhanced Fre Hd / Advanced Pico handling
 ;
 ; otherwise fall through to Standard FreHD handling
 ; FreHD API to do a DIR listing
@@ -65,7 +65,7 @@ GETDIR3
 	;
 	JP	@EXIT		; completed so exit
 ;
-; Floppy 80 API to do a DIR listing
+; Advanced Pico API to do a DIR listing
 ;
 ; todo need to provide simple filtering *XXX and XXX*
 ;

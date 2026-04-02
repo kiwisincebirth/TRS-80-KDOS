@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	NATIVE (FREHD) DOS
+;       	MINI DOS
 ;	based on TRSDOS and NEWDOS/80 for Model 1
 ;
 ;     BASIC - LOAD, SAVE and RUN
@@ -32,7 +32,7 @@ ENTRY:
 	ret
 ;
 ; ----------------------------------------------------------------------
-; SAVE "XXXXX.BAS" - Save a Basic program to FreHD
+; SAVE "XXXXX.BAS" - Save a Basic program to Disk
 ; ----------------------------------------------------------------------
 BASIC_SAVE:
 	call	GET_STRING	; de points to string, B is the lenght non-zero
@@ -75,7 +75,7 @@ save9:
 	jp	READY		; exit to Basic
 ;
 ; ----------------------------------------------------------------------
-; RUN "XXXXX.BAS" - LOAD and RUN a Basic program from FreHD
+; RUN "XXXXX.BAS" - LOAD and RUN a Basic program from Disk
 ; or if no parameter then simply return
 ; ----------------------------------------------------------------------
 BASIC_RUN:
@@ -85,7 +85,7 @@ BASIC_RUN:
 	jr	LOADER		; skip to LOAD
 ;
 ; ----------------------------------------------------------------------
-; LOAD "XXXXX.BAS" - Load a Basic program from FreHD
+; LOAD "XXXXX.BAS" - Load a Basic program from Disk
 ; ----------------------------------------------------------------------
 ;
 BASIC_LOAD:
