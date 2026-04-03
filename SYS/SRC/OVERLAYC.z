@@ -20,12 +20,49 @@ import	constants.z
 ;
 	ORG	OVERLY
 ;
-ENTRY:
-	; hl is passed with pointer to the command buffer
-	; noting this is a l2 BASIC (-1) pointer.
+	; Continuaton of Code in SYS 0 to Prompt the User and
+	; Process rthe Command. follows same structure as L2 Basic
+	; not the comments below indicate the original source code
+	; this is done because we need to trap before tokenisation.
+
+	; **** Print the READY message
+	call	CRDONZ		;1a22 - display a carriage return if necessary
+	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
+	call	STROUT		;1a28 - Display the word “READY”
+
+	; **** Prompt the User
+MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
+	ld	(CURLIN),hl	;1a36 - Set up for direct command mode - set line number
 	;
-	; and we have already checked for a '#' character (level 2 basic)
-	; before calling this routine.
+	ld	a,'>'		;1a76 - READY> _ prompt
+	call	OUTDO		;1a78 - Display the > Prompt
+	;
+	; **** Get User Command
+	call	INLIN		;1a7b - Actually read a Line of input
+	;
+	jr	c,MAIN		;1a7e - loop back if BREAK pressed
+	;
+	GETCHR			;1a81 - rst 10h
+	inc	a		;1a82 - sets the status flags but saves the carry flag
+	dec	a		;1a83 - so we can test for an end of statement
+	jp	z,MAIN		;1a84 - if we have an end of (or blank) statement
+	push	af		;1a87 - save for latter -> 1A9D if jumping back to ROM code
+
+	; now we need to detect the "#" symbol, and if found process locally.
+	; noting first POP the Return address, the use the DOS code
+	cp	'#'		; is it the start of a DOS command
+
+	; Jumping Back INTO BASIC to continue
+	jp	nz,$1A88	; jump back into DOS READY Handler processing the BASIC Command
+
+; ----------------------------------------------------------------------
+; Processing of DOS SSpecific # COMMANDS starts here
+; ----------------------------------------------------------------------
+
+	pop	af		; pop AF fom above as not using it
+
+	; hl has pointer to the command buffer noting this is a l2 BASIC (-1) pointer.
+	; which is currently the '#' character
 	;
 	ld	(SAVBUFF),hl	; save this address for reuse
 	ld	de,LOOKUPTAB	; table lookup address

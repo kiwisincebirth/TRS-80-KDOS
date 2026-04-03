@@ -185,43 +185,8 @@ NEWREADY
 	; Wont use return from this point
 	pop	hl		; pop the (DOS EXIT) callers return address. Discard
 	;
-	; todo the following could be moved into the OVERLAY C CODE
-	;
-	; now we handle the user prompt
-	call	CRDONZ		;1a22 - display a carriage return if necessary
-	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
-	call	STROUT		;1a28 - Display the word “READY”
-	;
-MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
-	ld	(CURLIN),hl	;1a36 - Set up for direct command mode - set line number
-	;
-	ld	a,'>'		;1a76 - READY> _ prompt
-	call	OUTDO		;1a78 - Display the > Prompt
-	;
-	call	INLIN		;1a7b - Actually read a Line of input
-	;
-	jr	c,MAIN		;1a7e - loop back if BREAK pressed
-	;
-	GETCHR			;1a81 - rst 10h
-	inc	a		;1a82 - sets the status flags but saves the carry flag
-	dec	a		;1a83 - so we can test for an end of statement
-	jp	z,MAIN		;1a84 - if we have an end of (or blank) statement
-	push	af		;1a87 - save for latter -> 1A9D
-
-	; now we need to detect the "#" symbol, and if found process locally.
-	; noting first POP the Return address, the use the DOS code
-
-	cp	'#'		; is it the start of a DOS command
-	jr	z,CMDPROC1	; was a # command, so process it.
-
-	; Jumping Back INTO BASIC to continue
-	jp	$1A88		; jump back into DOS READY Handler processing the BASIC Command
-
-CMDPROC1:
-	pop	af		; pop AF fom above as not using it
-	; inc	hl		; advance pointer to char after #, L2 Basic
 	SUPERV	S_CMDPROC
-
+;
 ;
 ; L2 Basic Command Processor DOS Exit extension (41B2)
 ;
