@@ -81,10 +81,11 @@ See the seperate Compatibility document for what is and isnt supported.
 ## Todo
 
 ### Issues
-* DIR command on PicoRAM only displaying a single item
+* the Main Input Buffer < 255 chars so breaks our $4200 starting code
+* The start of basic program storage is too high
 
 ### Improvment
-* #DIR and other internal commands should be case-insensitive.
+* #xxxXXX (command name itself) internal commands should be case-insensitive.
 * Improve the addition of .CMD to a filename when execuing from CMD processor.
 * Command Processor (initial code) needs to me moved more into the overlay
 * FreHD DIR should not display directories
@@ -92,9 +93,10 @@ See the seperate Compatibility document for what is and isnt supported.
 
 ### High Priority
 * Sort out the FreHD and Pico Loaders, as per the design
+  * SYS0 for the PICO should support Overaly residing in PicoRAM 
   * Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
   * Conditional Build directives #IFDEF FREHD_BUILD
-  * Remove the ENHANCED compiler directive
+  * Remove the ENHANCED runtime variable directive
 * Move the Overlays (Super Calls) into Pico RAM
 * Implement a #LOAD <command.cmd> DOS command
 

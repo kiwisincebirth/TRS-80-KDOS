@@ -80,7 +80,7 @@ NEWDIR:
 	;
 	ld      a,0			; Default to the "Current" DRIVE
 	out     (DATA2),A
-	ld      a,'*'			; all files
+	ld      a,'*'			; all files todo should be parameter driven
 	out     (DATA2),A
 	;
 NEWDIR2

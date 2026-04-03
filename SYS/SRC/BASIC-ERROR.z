@@ -13,7 +13,7 @@ import	constants.z
 ; ------------------------------
 ;
 ; Non Returning Routine.
-pageJump doserror, DOSERROR_PAGE1
+pageJump L2ERRORHAND, DOSERROR_PAGE1
 ;
 ; ------------------------------
 ; Code Required Starts Here
@@ -21,43 +21,32 @@ pageJump doserror, DOSERROR_PAGE1
 ; ------------------------------
 ;
    pop	hl                   ; 57e6:
-   ld	hl,_5203             ; 57e7: error table 5203 - 54c3 ($2c0 bytes)
+   ld	hl,L2ERRTAB          ; 57e7: error table 5203 - 54c3 ($2c0 bytes)
    ld	a,e                  ; 57ea:
-;  cp	$8b                  ; 57eb: 8BH (139) which is the highest error number.
-   cp	$2C                  ; ACTUALLY $2c is largest handled by L2 Basic
-   jr	nc,_57f7             ; 57ed: an error code too big to display
-;  cp	$63                  ; 57ef: 63H (99) the disk error list.
-;  jr	nc,_57f9             ; 57f1: we have a disk error, so JUMP to NTDER2 to handle that
-;  cp	$2f                  ; 57f3: to see if the error code is between the last ROM error message and the first DISK error message
-;  jr	c,_57fb              ; 57f5: it's not, its a basic error
-   jr	_57fb                ; 57f5: its a basic error
-_57f7
-   ld	a,$5a                ; 57f7: "UNPRINTABLE ERROR" $52-$34 -> $1E (unprinable) Confirmed
-_57f9
-   sub	$34                  ; 57f9: process the error into an offset
-_57fb
+   cp	$2C                  ; $2C is largest handled by L2 Basic
+   jp	nc,L2ERRORHAND2      ; 57ed: *PAGE JUMP* an error code too big to display
+   ;
    rrca                      ; 57fb: divide by 2
    inc	a                    ; 57fc:
    ld	e,a                  ; 57fd:
-_57fe
+_errloop
    call	$1f07                ; 57fe:
    dec	e                    ; 5801:
    inc	hl                   ; 5802:
-   jr	nz,_57fe             ; 5803:
+   jr	nz,_errloop        ; 5803:
    call	$28a7                ; 5805: Here is where we display the message
    ld	hl,($40a2)           ; 5808: current line number
-
+;
    jp	$1A0A		     ; entry point back into error handler.
-   				; slightly earlier than TRSDOS
-
+   			     ; slightly earlier than TRSDOS does it.
+;   PREVIOUSLY
 ;   ld	de,$fffe             ; 580b: ???
 ;   rst	$0018                ; 580e: compare
 ;   jp	z,5c06		     ; 580f: Start of the BASIC program (Jumped to at the ORG)
 ;   call 64f2                ; 5812: IGNORE RETurn or CLEAR MEMORY if the error is such that protection must clear RAM
 ;   jp	$1a11                ; 5815: continue with error message " in line number"
 
-_5203
-
+L2ERRTAB
     ; The error table in range $00 to $2C (44)
     DEFB $00
     DEFB "NEXT without FOR", $00
@@ -83,35 +72,89 @@ _5203
     DEFB "Missing operand", $00
     DEFB "BAD FILE DATA", $00
     DEFB "DISK BASIC FEATURE", $00
+;
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+pageEnd
+;
+; ------------------------------
+;
+; Non Returning Routine.
+pageJump L2ERRORHAND2, DOSERROR_PAGE2
+;
+; ------------------------------
 
-    ; in future we could move these another page
-    ; and call to that routine. to display thise
+	; TODO NOTE THIS CODE IS NOT COMPLETE
+	; TODO We HAVE NOT DIS BASIC CODE THAT GENERATES ERRORS
 
-;   DEFB "Undefined user function", $00
+	ld 	hl,UNPRINTABLE
+	call	$28a7                ; 5805: Here is where we display the message
+	ld	hl,($40a2)           ; 5808: current line number
+	jp	$1A0A		     ; entry point back into error handler.
 
-    ; Disk Errors Start Here
-    ; Error 51 starts here
-;   DEFB "FIELD overflow", $00
-;   DEFB "Internal error", $00
-;   DEFB "Bad file number", $00
-;   DEFB "File not found", $00
-;   DEFB "Bad file mode", $00
-;   DEFB "File already open", $00
-;   DEFB "?", $00
-;   DEFB "Disk I/O error", $00
-;   DEFB "File already exists", $00
-;   DEFB "?", $00
-;   DEFB "?", $00
-;   DEFB "Disk full", $00
-;   DEFB "Input past end", $00
-;   DEFB "Bad record number", $00
-;   DEFB "Bad file name", $00
-;   DEFB "Mode-mismatch", $00
-;   DEFB "Direct statement in file", $00
-;   DEFB "Too many files", $00
-;   DEFB "Disk write protected", $00
-;   DEFB "File access DENIED", $00
+UNPRINTABLE
+    DEFB "Unprintable error", $00
 
+    ; in future we can enable the dos errors
+    ; called from the prior routine to handle
+    ; the disk basic errors
+
+
+   ld	hl,L3ERRTAB          ;
+;  cp	$8b                  ; 57eb: 8BH (139) which is the highest error number.
+   cp	$2C                  ; ACTUALLY $2C is largest handled by L2 Basic
+   jp	nc,_57f7             ; 57ed: an error code too big to display
+;  cp	$63                  ; 57ef: 63H (99) the disk error list.
+;  jr	nc,_57f9             ; 57f1: we have a disk error, so JUMP to NTDER2 to handle that
+;  cp	$2f                  ; 57f3: error code is between last ROM error and first DISK error message
+;  jr	c,_57fb              ; 57f5: it's not, its a basic error
+   jr	_57fb                ; 57f5: its a basic error
+_57f7
+   ld	a,$5a                ; 57f7: "UNPRINTABLE ERROR" $52-$34 -> $1E (unprinable)
+_57f9
+   sub	$34                  ; 57f9: process the error into an offset
+_57fb
+   rrca                      ; 57fb: divide by 2
+   inc	a                    ; 57fc:
+   ld	e,a                  ; 57fd:
+_57fe
+   call	$1f07                ; 57fe:
+   dec	e                    ; 5801:
+   inc	hl                   ; 5802:
+   jr	nz,_57fe             ; 5803:
+   call	$28a7                ; 5805: Here is where we display the message
+   ld	hl,($40a2)           ; 5808: current line number
+   jp	$1A0A		     ; entry point back into error handler.
+
+
+
+L3ERRTAB
+	; Disk Errors Start Here (TRSDOS)
+	; Error 51 starts here - ending in 70
+	DEFB $00
+	DEFB "FIELD overflow", $00
+	DEFB "Internal error", $00
+	DEFB "Bad file number", $00
+	DEFB "File not found", $00
+	DEFB "Bad file mode", $00
+	DEFB "File already open", $00
+	DEFB "?", $00
+	DEFB "Disk I/O error", $00
+	DEFB "File already exists", $00
+	DEFB "?", $00
+	DEFB "?", $00
+	DEFB "Disk full", $00
+	DEFB "Input past end", $00
+	DEFB "Bad record number", $00
+	DEFB "Bad file name", $00
+	DEFB "Mode-mismatch", $00
+	DEFB "Direct statement in file", $00
+	DEFB "Too many files", $00
+	DEFB "Disk write protected", $00
+	DEFB "File access DENIED", $00
+	; And ending in Error 70
+	; Note NEWDOES 80 DEFINES up to 84 errors
 ;
 ; ------------------------------
 ; End of Paged Routine
@@ -123,7 +166,7 @@ pageEnd
 ; ------------------------------
 ;
 	ORG	$41a6
-	jp	doserror
+	jp	L2ERRORHAND
 ;
 ; ------------------------------
 ; CODE ENDS HERE

@@ -245,7 +245,17 @@ endm
 ; Bank Pages
 ; ------------------------------
 
-; Basic Extensions
+; DOS Overlays (32)
+; Propose E0 (224) to FF (255)
+; Mask is 111xxxxx and can be applied easily
+; to Super call id since it has same structure
+; then we can shift left < 2 -> xxxxxx11 1xxxxx00
+; then or with $3000  -> 00110011 1xxxxx00
+; to get the JUMP address
+
+; Basic Extensions (32)
+; Propose C0 (192) to DF (223)
+;
 AMPERSAND_PAGE	EQU	250
 DOSERROR_PAGE1	EQU	249
 DOSERROR_PAGE2	EQU	248
