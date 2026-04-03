@@ -42,8 +42,8 @@ import	constants.z
 	DB	126	; (4044H) Year counter (binary, offset 1900)
 	DB	1	; (4045H) Month counter (binary, 1-12)
 	DB	1	; (4046H) Day counter (binary, 1-31)
-	DW	DOSEND	; (4047H) Utility load address (normally $5200)
-	DW	$FFFF	; (4049H) MEMEND - DOS highest RAM address
+	DW	DOSEND	; (4047H) Utility load address (normally $5200).
+	DW	$FFFF	; (4049H) DOS highest RAM address (MEMEND)
 
 	;  and the memory size is computed by the loop at 4E0F-4E1B.
         ;  When the highest RAM address is found,
@@ -82,14 +82,14 @@ import	constants.z
 	DEFB	64		;409D (LINLEN) - max chars on video disp line
 	DEFB	48		;409E (CLMLST) - Size of print line
 	DEFB	0		;409F (PARQTD) - Reserved for Model 3
-	DEFW	DOSEND+$14C	;40A0 (STKTOP) - String Storage Area (434C)
+	DEFW	L2START+$64	;40A0 (STKTOP) - BASIC String Storage Area (was $434C)
 	DEFW	$FFFE		;40A2 (CURLIN) - Current BASIC Line Number
-	DEFW	DOSEND+$E9	;40A4 (TXTTAB) - BASIC Program Statement Table Pointer
+	DEFW	L2START+1	;40A4 (TXTTAB) - BASIC Program Statement Table (was $41E9)
 ;
 ; ----------------------------------------------------------------------
 	ORG	$40A7
 ; This loads 40A7H with the I/O buffer location address 41E8H.
-	DEFW	BUFINI + 3
+	DEFW	STRBUFF + 3
 ;
 ; ----------------------------------------------------------------------
 	ORG	$4152
@@ -150,12 +150,11 @@ import	constants.z
 	RET3		; 41E2 SYSTEM command (potentially use this)
 ;
 ; ----------------------------------------------------------------------
-	ORG	$41E5
-;  Initialises String Buffer Area in RAM (41E5H)
+; L2 Basic String Buffer
+; ----------------------------------------------------------------------
+	ORG	STRBUFF
 ;
-; TODO Need to confirm where the input buffer resides
-; In Level 2 the Program statement table starts much latter than $4200
-BUFINI:
+; Initialises String Buffer Area in RAM (Historically 41E5H)
 	DEFB	':'
 	DEFB	0
 	DEFB	','
@@ -575,7 +574,7 @@ $CORE2FREE	EQU	OVERLY - $
 ; so we pick up after this has occured, when memory and stack is inited
 STARTUP:
 	;
-	ld	hl,DOSEND+$E8	; starting address of user RAM (now $46E8)
+	ld	hl,L2START	; starting address of user RAM (now $47E8)
 	ld	(hl),0
 	;
 	jp	$00AC		; Continue Init in Level 2 with Stack Pointer

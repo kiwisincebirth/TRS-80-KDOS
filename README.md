@@ -75,14 +75,12 @@ The FreHD solution
 
 ## Caveats
 
-This is a work in progress not all featurs are implemented at this time.
-See the seperate Compatibility document for what is and isnt supported.
+This is a work in progress not all features are implemented at this time.
+See the separate Compatibility document for what is and isn't supported.
 
 ## Todo
 
 ### Issues
-* the Main Input Buffer < 255 chars so breaks our $4200 starting code
-* The start of basic program storage is too high
 
 ### Improvment
 * #xxxXXX (command name itself) internal commands should be case-insensitive.

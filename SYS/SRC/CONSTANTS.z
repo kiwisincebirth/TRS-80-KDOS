@@ -86,12 +86,21 @@ fhd_WAIT	equ	(6*3) + $4480
 ; Memory Locations for Regions
 ; ----------------------------------------------------------------------
 ;
-CORE1	EQU	$4260		; DOS Core Resident Code Block
+STRBUFF	EQU	$41E8		; L2 Basic String Buffer (L2.Basic 41E5H)
+				; L2 Basic Assigns $103 bytes to this buffer
+CORE1	EQU	$42E0		; DOS Core Resident Code Block
 SYSFCB  EQU	$43E0		; DOS System FCB BUFFER
 DOSENTY EQU	$4400		; TRS-DOS Entry Points
 CORE2	EQU	$4480		; Second Core Resident Code Block
 OVERLY	EQU	$4500		; Dynamic Overlays (512 bytes)
 DOSEND	EQU	$4700		; In TRSDOS $5200, In BASIC $4200
+L2START EQU	$4704		; Start of L2 Basic PROGRAM Storage
+
+;ld	hl,MEMEND-$1B	;0080 - String Buffer Area in RAM (41E5H)
+;starting address of user RAM (which is 42E8H)
+;DEFW	DOSEND+$E9	;40A4 (TXTTAB) - BASIC Program Statement Table Pointer
+;DEFW	DOSEND+$14C	;40A0 (STKTOP) - String Storage Area (434C)
+
 ;
 ; ----------------------------------------------------------------------
 ; Supervisor Call ID's
