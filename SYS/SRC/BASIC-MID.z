@@ -12,7 +12,7 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-pageCall midollar, MIDOLLAR_PAGE
+pageCall midollar, PAGE_MIDOLLAR
 ;
 	; actual code entry point for MID$
 	jr	dlhsmd

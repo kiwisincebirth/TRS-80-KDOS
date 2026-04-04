@@ -13,7 +13,7 @@ import	constants.z
 ; ------------------------------
 ;
 ; Non Returning Routine.
-pageJump L2ERRORHAND, DOSERROR_PAGE1
+pageJump L2ERRORHAND, PAGE_DOSERROR2
 ;
 ; ------------------------------
 ; Code Required Starts Here
@@ -23,11 +23,11 @@ pageJump L2ERRORHAND, DOSERROR_PAGE1
    pop	hl                   ; 57e6:
    ld	hl,L2ERRTAB          ; 57e7: error table 5203 - 54c3 ($2c0 bytes)
    ld	a,e                  ; 57ea:
-   cp	$2C                  ; $2C is largest handled by L2 Basic
+   cp	$2C + 1              ; $2C is largest handled by L2 Basic
    jp	nc,L2ERRORHAND2      ; 57ed: *PAGE JUMP* an error code too big to display
    ;
    rrca                      ; 57fb: divide by 2
-   inc	a                    ; 57fc:
+   inc	a                    ; 57fc: 0,2,4 -> 1,3,5
    ld	e,a                  ; 57fd:
 _errloop
    call	$1f07                ; 57fe:
@@ -49,29 +49,29 @@ _errloop
 L2ERRTAB
     ; The error table in range $00 to $2C (44)
     DEFB $00
-    DEFB "NEXT without FOR", $00
-    DEFB "Syntax error", $00
-    DEFB "RETURN without GOSUB", $00
-    DEFB "Out of DATA", $00
-    DEFB "Illegal function call", $00
-    DEFB "Overflow", $00
-    DEFB "Out of memory", $00
-    DEFB "Undefined line number", $00
-    DEFB "Subscript out of range", $00
-    DEFB "Redimensioned array", $00
-    DEFB "Division by zero", $00
-    DEFB "Illegal direct", $00
-    DEFB "Type mismatch", $00
-    DEFB "Out of string space", $00
-    DEFB "String too long", $00
-    DEFB "String formula too complex", $00
-    DEFB "Can't continue", $00
-    DEFB "No RESUME", $00
-    DEFB "RESUME without error", $00
-    DEFB "Unprintable error", $00
-    DEFB "Missing operand", $00
-    DEFB "BAD FILE DATA", $00
-    DEFB "DISK BASIC FEATURE", $00
+    DEFB "NEXT without FOR", $00	; 00
+    DEFB "Syntax error", $00		; 02
+    DEFB "RETURN without GOSUB", $00	; 04
+    DEFB "Out of DATA", $00		; 06
+    DEFB "Illegal function call", $00	; 08
+    DEFB "Overflow", $00		; 0A
+    DEFB "Out of memory", $00		; 0C
+    DEFB "Undefined line number", $00	; 0E
+    DEFB "Subscript out of range", $00	; 10
+    DEFB "Redimensioned array", $00	; 12
+    DEFB "Division by zero", $00	; 14
+    DEFB "Illegal direct", $00		; 16
+    DEFB "Type mismatch", $00		; 18
+    DEFB "Out of string space", $00	; 1A
+    DEFB "String too long", $00		; 1C
+    DEFB "String formula too complex",0 ; 1E
+    DEFB "Can't continue", $00		; 20
+    DEFB "No RESUME", $00		; 22
+    DEFB "RESUME without error", $00	; 24
+    DEFB "Unprintable error", $00	; 26
+    DEFB "Missing operand", $00		; 28
+    DEFB "BAD FILE DATA", $00		; 2A
+    DEFB "DISK BASIC FEATURE", $00	; 2C
 ;
 ; ------------------------------
 ; End of Paged Routine
@@ -81,7 +81,7 @@ pageEnd
 ; ------------------------------
 ;
 ; Non Returning Routine.
-pageJump L2ERRORHAND2, DOSERROR_PAGE2
+pageJump L2ERRORHAND2, PAGE_DOSERROR2
 ;
 ; ------------------------------
 

@@ -173,8 +173,17 @@ NEWREADY
 	;
 	; SN Error
 	ld	a,(ERRFLG)	;1a2b - load A with the value of the current error code
-	sub	ERRSN		;1a2e - compare with SYNTAX ERROR
-	ret	z		;1a30 - If an SN ERR, enter EDIT mode on that line
+	cp	ERRSN		;1a2e - compare with SYNTAX ERROR
+	jr	nz,_newready1	;1a30 - If NOT an SN ERR, Skip forward
+	;
+	; AND Line number Involved
+	ld	hl,(ERRLIN)	;2e56 - what line number. $FFFF if a direct command
+	ld	a,h		;2e59 - Loads A with H, since A already Zero
+	and	l		;2e5a - AND with L, So FF if a Direct command
+	inc	a		;2e5b - FF -> bump to 00 -> meaning Direct command
+	ret	nz		;2e5d - Found Line Num So Back so can EDIT <line>
+	;
+_newready1
 	;
 	; Auto Mode
 	ld	a,(AUTFLG)	;1a39 - Auto Flag NOT zero if in Auto Mode
@@ -384,7 +393,7 @@ transl:
 ;
 ; ======================================================================
 ;
-$CORE1FREE	EQU	SYSFCB - $
+$FREE_CORE1	EQU	SYSFCB - $
 ;
 	; FILL to end of REGION
 	assert	$ <= SYSFCB
@@ -491,6 +500,27 @@ SUPER_EXEC:
 	inc	sp		; discard the RST 28 return address
 	inc	sp
 	;
+ifdef	@D_PICOENHANCED
+;
+	push	af
+	;
+; Overlay in range E0 (224) to FF (255) -> $3380 to $33FC
+; then we can shift left < 2 -> 1xxxxx00
+	OR	$E0		; Mask is 111xxxxx (top 3 bits as 0)
+	SLA	a		; then rotate to be 1xxxxx00
+	SLA	a		; LSB is $xx80 -> $xxFC
+	ld	(SUPER_EXEC2+1),a
+	;
+	ld	a,$33		; MSB is $33xx
+	ld	(SUPER_EXEC2+2),a
+	;
+	pop	af		; restore registers
+SUPER_EXEC2:
+	jp	$3380		; instruction is modified above
+	;
+;
+else
+;
 	push	hl		; Save all registers
 	push	de		; preserved into the dispatched code
 	push	bc
@@ -526,6 +556,7 @@ SUPER_EXEC2:
 	pop	hl
 	;
 	jp	OVERLY		; jump into the overlay code at $4500
+endif
 ;
 ; ----------------------------------------------------------------------
 ;
@@ -556,23 +587,32 @@ transtable:
 	DB	UNKNOWN$ ;(18) Number of open files > FF_FS_LOCK
 	DB	UNKNOWN$ ;(19) Given parameter is invalid
 ;
-$CORE2FREE	EQU	OVERLY - $
+$FREE_CORE2	EQU	CORE2END - $
 ;
 	; FILL to end of REGION
-	assert	$ <= OVERLY
-	DC	OVERLY - $,0
+	assert	$ <= CORE2END
+	DC	$FREE_CORE2 , 0
 ;
 ; ======================================================================
 ; 4600 - Overlay Code Area
-; Code here is used
+; Empty until loaded
 ; ======================================================================
-	ORG	OVERLY
 ;
-; Called by the Fre HD loader once load complete
+; ======================================================================
+; 4700 - End Of MDOS
+; ======================================================================
+;
+$FREE_TOTAL	EQU	$FREE_CORE1 + $FREE_CORE2
+
+; ======================================================================
+; 5200 - Startup Code is Located Here
+;
+; Called by the loader once load complete
 ; resumes the Level 2 rom startup after Most of 4000-4200 coms region
 ; has been established (loaded) as part of loading this file.
 ; so we pick up after this has occured, when memory and stack is inited
-STARTUP:
+; ======================================================================
+	ORG	STARTUP
 	;
 	ld	hl,L2START	; starting address of user RAM (now $47E8)
 	ld	(hl),0
@@ -658,17 +698,5 @@ WELCOMSG	DEFB	'MDOS Loaded',CR,0
 ;   In this case also, control passes to 4400, which causes SYSl (the command line processor) to be loaded and executed.
 ; If 42E0 does not contain a carriage return, it is assumed to hold a 20-character command to be executed.
 ;   This command is copied to the commmand line buffer by the code at 4ED9 - 4EE2, displayed on the video, and then SYSl is called to process the command.
-;
-	; FILL to end of REGION
-	assert	$ <= DOSEND
-	DC	DOSEND - $,$FF
-;
-$TOTALFREE	EQU	$CORE1FREE + $CORE2FREE
-;
-; ======================================================================
-; 4700 - End Of MDOS
-; ======================================================================
-;
-	END	STARTUP
 ;
 ; ======================================================================

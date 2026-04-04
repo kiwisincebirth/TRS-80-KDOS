@@ -12,7 +12,7 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-pageCall ampersand, AMPERSAND_PAGE
+pageCall ampersand, PAGE_AMPERSAND
 ;
 ; ------------------------------
 ; Code Required Starts Here

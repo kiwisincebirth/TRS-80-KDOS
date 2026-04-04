@@ -27,7 +27,8 @@ Core Features
   * Files are stored natively on the FAT filesystem.
   * File directories are supported, (currently 1 directory at a time)
 * DOS has a Low memory overhead than a traditional DOS
-  * Between 0.75 and 1.25 Kb main memory space used.
+  * Requires Between 0.5 kb and 1.25 Kb main memory space.
+  * 48338 on Level 2 -> - 47798 on Pico (540 bytes) -> FreHD 512 bytes less  
 
 ## Floppy 80
 
@@ -53,17 +54,18 @@ The FreHD solution
 
 ### Boot Process
 
-|            | Floppy 80                  | FreHD                       |
-|------------|----------------------------|-----------------------------|
-| ROM        | Requires a Standard L2 ROM | Requires FreHD Autoboot ROM |
-| ROM        | Loads Floppy Boot Block    | Loads FreHD Boot Block      |
-| ROM        | (BOOT.SYS loaded to $4200) | (Firmware loaded to $5000)  |
-| Boot Block |                            | Loads FREHD.ROM             |
-| Boot Block |                            | -aka- BOOT/CMD to $6000     |
-| Boot.SYS   | Relocates to $6000         |                             |
-| Boot.SYS   | Detects Hardware           | Detects Hardware            |
-| Boot.SYS   | Loads /SYS/SYS0P.SYS       | Loads /SYS/SYS0F.SYS        |
-| Overlays   | -included in SYS0P-        | Loads /SYS/SYS(A-Z).SYS     |
+|            | Floppy 80                   | F80 & FHD ROM  | FreHD                        |
+|------------|-----------------------------|----------------|------------------------------|
+| ROM        | Requires a Standard L2 ROM  | ->             | Requires FreHD Autoboot ROM  |
+| ROM        | Loads Floppy Boot Block     | <-             | Loads FreHD Boot Block       |
+| ROM        | (BOOT.SYS loaded to $4200)  | BOOT.SYS $5000 | (Firmware loaded to $5000)   |
+| Boot Block |                             |                | Loads FREHD.ROM              |
+| Boot Block |                             |                | -aka- BOOT/CMD to $5200      |
+| Boot.SYS   | Relocates to $5200          | <-             |                              |
+| Boot.SYS   | Detects Hardware            |                | Detects Hardware             |
+| Boot.SYS   | Loads /SYS/SYS0P.SYS        |                | Loads /SYS/SYS0F.SYS         |
+| SYS0.SYS   | Starts at $5400             |                | Starts at $5400              |
+| Overlays   | -included in SYS0P-         |                | Loads /SYS/SYS(A-Z).SYS      |
 
 * BOOT.SYS - 256 byte binary image, with ORG = $6000 
 * FreHD.ROM - is a direct copy of BOOT.SYS in CMD format 
@@ -79,28 +81,40 @@ This is a work in progress not all features are implemented at this time.
 See the separate Compatibility document for what is and isn't supported.
 
 ## Todo
+* FIRMWARE - STAatus command display Paging Info 
+* FIRMWARE - Create a loader for the Boot.SYS startup block into FDC boot
+* FIRMWARE - create a floppy FDC loader for Boot.SYS at $4200
 
 ### Issues
+* Basic Error messages don't appear to be displaying correctly.
+* Booting on Pico Version detection flips from Non to PICO
 
 ### Improvment
 * #xxxXXX (command name itself) internal commands should be case-insensitive.
 * Improve the addition of .CMD to a filename when execuing from CMD processor.
+* Overlay B for basic save load etc, should error out if can locate the command
 * Command Processor (initial code) needs to me moved more into the overlay
 * FreHD DIR should not display directories
 * #DIR command on the PICO should support filtering
 
+### PicoRAM
+* Need to Sort out loader Issues 
+* Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
+* Conditional Build directives #IFDEF FREHD_BUILD
+* Remove the ENHANCED runtime variable directive
+
 ### High Priority
-* Sort out the FreHD and Pico Loaders, as per the design
-  * SYS0 for the PICO should support Overaly residing in PicoRAM 
-  * Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
-  * Conditional Build directives #IFDEF FREHD_BUILD
-  * Remove the ENHANCED runtime variable directive
-* Move the Overlays (Super Calls) into Pico RAM
-* Implement a #LOAD <command.cmd> DOS command
+* DIR command should support parameters (PICO)
+* Add a #CD command (PICO)
+* Add a #LOAD (but not run) command
+
+### DOS Entry Points
+* InitFile / OpenFile
+* CloseFile
+* ReadFile / WriteFile
+* Rewind / BackSpace / Skip / EOF
 
 ### Medium
-* Add a #LOAD (but not run) command
-* Add a #CD command
 * Add a #COPY command
 * Add a #DEL KILL (basic) command
 * Add a #MKDIR command

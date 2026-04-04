@@ -56,6 +56,8 @@ MEMSIZ	EQU	$40B1	; Basic - MEMORY SIZE ?
 AUTFLG	EQU	$40E1	; AUTO on or off flag. 0=AUTO is off.
 VARTAB	EQU	$40F9
 PRGFIN	EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
+ERRLIN	EQU	$40EA	; Line no. In which error occurred
+
 
 ;
 ; DOS Entry Points Routines
@@ -86,25 +88,41 @@ fhd_WAIT	equ	(6*3) + $4480
 ; Memory Locations for Regions
 ; ----------------------------------------------------------------------
 ;
-STRBUFF	EQU	$41E8		; L2 Basic String Buffer (L2.Basic 41E5H)
+PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
+PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
+;
+STRBUFF		EQU	$41E8		; L2 Basic String Buffer (L2.Basic 41E5H)
 				; L2 Basic Assigns $103 bytes to this buffer
-CORE1	EQU	$42E0		; DOS Core Resident Code Block
-SYSFCB  EQU	$43E0		; DOS System FCB BUFFER
-DOSENTY EQU	$4400		; TRS-DOS Entry Points
-CORE2	EQU	$4480		; Second Core Resident Code Block
-OVERLY	EQU	$4500		; Dynamic Overlays (512 bytes)
-DOSEND	EQU	$4700		; In TRSDOS $5200, In BASIC $4200
-L2START EQU	$4704		; Start of L2 Basic PROGRAM Storage
+CORE1		EQU	$42E0		; DOS Core Resident Code Block
+SYSFCB  	EQU	$43E0		; DOS System FCB BUFFER
+DOSENTY 	EQU	$4400		; TRS-DOS Entry Points
+CORE2		EQU	$4480		; Second Core Resident Code Block
+CORE2END	EQU	$4500		; End of Core 2 Block
+
+ifdef @D_PICOENHANCED
+    OVERLY	EQU	$3400		; Overlays in PICO go into Paged RAM
+    DOSEND	EQU	$4500		; In TRSDOS $5200, In BASIC $4200
+    L2START 	EQU	$4504		; Start of L2 Basic PROGRAM Storage
+else
+    OVERLY	EQU	$4500		; Dynamic Overlays (512 bytes)
+    DOSEND	EQU	$4700		; In TRSDOS $5200, In BASIC $4200
+    L2START 	EQU	$4704		; Start of L2 Basic PROGRAM Storage
+endif
+
+; 		EQU	$5000		; The initial FreHD loader is here
+BOOTSYSLOC	EQU	$5200		; The BOOT.SYS loader location
+STARTUP		EQU	$5400		; Startup Code Block is loaded here
 
 ;ld	hl,MEMEND-$1B	;0080 - String Buffer Area in RAM (41E5H)
 ;starting address of user RAM (which is 42E8H)
 ;DEFW	DOSEND+$E9	;40A4 (TXTTAB) - BASIC Program Statement Table Pointer
 ;DEFW	DOSEND+$14C	;40A0 (STKTOP) - String Storage Area (434C)
-
+;
 ;
 ; ----------------------------------------------------------------------
 ; Supervisor Call ID's
 ; LSB 4 bits are the overlay file name ending with A-Z
+; Noting the A translates to an ID of $xxx00001
 ; ----------------------------------------------------------------------
 ;
 S_LOADCMD	EQU	'B' - '@' + $20	; LOAD basic command
@@ -261,13 +279,21 @@ endm
 ; then we can shift left < 2 -> xxxxxx11 1xxxxx00
 ; then or with $3000  -> 00110011 1xxxxx00
 ; to get the JUMP address
+;
+PAGE_OVERLAYA	EQU	$E1
+PAGE_OVERLAYB	EQU	$E2
+PAGE_OVERLAYC	EQU	$E3
+PAGE_OVERLAYD	EQU	$E4
+PAGE_OVERLAYE	EQU	$E5
+PAGE_OVERLAYF	EQU	$E6
+PAGE_OVERLAYL	EQU	$EC
 
 ; Basic Extensions (32)
 ; Propose C0 (192) to DF (223)
 ;
-AMPERSAND_PAGE	EQU	215
-DOSERROR_PAGE1	EQU	216
-DOSERROR_PAGE2	EQU	217
-INSTRFUNC_PAGE	EQU	218
-MIDOLLAR_PAGE	EQU	219
+PAGE_AMPERSAND	EQU	215
+PAGE_DOSERROR1	EQU	216
+PAGE_DOSERROR2	EQU	217
+PAGE_INSTRFUNC	EQU	218
+PAGE_MIDOLLAR	EQU	219
 

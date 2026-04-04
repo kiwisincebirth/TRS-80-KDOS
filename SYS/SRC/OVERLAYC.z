@@ -238,10 +238,10 @@ ALPHCHECK:
 ; 4700 - End Of Overlay
 ; ======================================================================
 ;
-$OVERLAYFREE	EQU	DOSEND - $
+FREE_OVERLAYC	EQU	OVERLY + $200 - $
 ;
 	; FILL to end of REGION
-	DC	DOSEND - $ - 1,0
+	DC	FREE_OVERLAYC - 1,0
 	DB	$0C
 ;
-	END
+

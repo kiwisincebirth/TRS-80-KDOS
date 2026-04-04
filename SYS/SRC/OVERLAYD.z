@@ -18,8 +18,6 @@ import	constants.z
 ; ======================================================================
 ;
 	ORG	OVERLY
-;
-ENTRY:
 	;
 	; test if enhance rom	; todo this should be conditional compile
 	call	enh_VER		; call the Enhanced Pico check
@@ -175,10 +173,9 @@ DIRROWS
 ; 4700 - End Of Overlay
 ; ======================================================================
 ;
-$OVERLAYFREE	EQU	DOSEND - $
+FREE_OVERLAYD	EQU	OVERLY + $200 - $
 ;
 	; FILL to end of REGION
-	DC	DOSEND - $ -1 ,0
+	DC	FREE_OVERLAYD - 1 ,0
 	DB	$0D
 ;
-	END

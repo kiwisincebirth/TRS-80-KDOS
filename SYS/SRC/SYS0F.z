@@ -1,0 +1,14 @@
+; ======================================================================
+;       	MINI DOS
+;	based on TRSDOS and NEWDOS/80 for Model 1
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+
+include sys0.z
+
+	END	STARTUP

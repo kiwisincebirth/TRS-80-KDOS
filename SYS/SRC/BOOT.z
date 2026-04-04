@@ -12,34 +12,33 @@
 ;;;
 ;;; This is loaded and executed from Level 2 ROM if either:
 ;;;	* A Floppy Disk boot block will load this at $4200
-;;;	    - In which case the code relocates itself to $6000
+;;;	    - In which case the code relocates itself to $5200
 ;;;    	* Fre HD Autoboot Rom will Load FREHD.ROM
-;;;	    - FREHD.ROM will load this directly to $6000
+;;;	    - FREHD.ROM will load this directly to $5200
 ;;;
 ;;; If loaded from floppy disk boot the code will automatically
-;;; be relocated and executed from $6000
+;;; be relocated and executed from $5200
 ;;;
 
 ; ======================================================================
 import	constants.z
 ; ======================================================================
 ;
-	ORG	6000h
-BEGIN:
+	ORG	BOOTSYSLOC
 ;
 ; ----------------------------------------------------------------------
-; handle relation of code up to $6000 is was loaded by floppy
-; disk bootstrap at location $4200, noting very first byte must be a NOP
+; handle relation of code up to $5200 is was loaded by floppy
+; disk bootstrap at location $4200
 ; ----------------------------------------------------------------------
 	call	_WHERE		; ($000B) - get PC into HL
 	;			; HL has address of this next instruction
 	ld	a,h		; MSB of address this code is running in.
-	cp	$ / $100	; compare with correct Code Page $6000
-	jr	z,START		; code already located, at $6000 start as normal
+	cp	$ / $100	; compare MSB with correct Code Page
+	jr	z,START		; code already located, start as normal
 	;
 RELOCATE
-	ld	l,0		; HL now has running (where loaded) page address
-	ld	de,BEGIN	; target address, where code should execute from
+	ld	l,0		; HL -> now has (where loaded) page address
+	ld	de,BOOTSYSLOC	; target address, where code should execute from
 	ld	bc,$100		; bytes to move
 	ldir			; transfer 256 bytes
 	;
@@ -204,15 +203,16 @@ fhdwait1:
 	; The file name is located on a 16 byte page boundary,
 	; after all code to make it easy to change in C code
 	; FILL to end of REGION
-	DC	$60E0 - $,0
+	DC	BOOTSYSLOC + $E0 - $,0
 ; ----------------------------------------------------------------------
 ;
-	assert $ = $60E0
-fnamep	db	"/SYS/SYS0P.SYS",0,0		; PICO file name
+	assert $ = BOOTSYSLOC + $E0
+fnamef	db	"/SYS/F/SYS0.SYS",0		; FRED file name
 	;
-	assert $ = $60F0
-fnamef	db	"/SYS/SYS0F.SYS",0,0		; FRED file name
+	assert $ = BOOTSYSLOC + $F0
+fnamep	db	"/SYS/SYS0.SYS",0,0,0		; PICO file name
 ;
-	assert $ = $6100
-
-	END	BEGIN
+	assert $ = BOOTSYSLOC + $100
+;
+	END	START		; START is the normal entry location
+				; If loaded as FDC boot block, then first byte

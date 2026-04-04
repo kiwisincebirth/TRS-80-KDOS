@@ -42,7 +42,7 @@ import	constants.z
 ; Error 36 ( 24H ) - Attempt to load read only memory
 ;
 	ORG	OVERLY
-ENTRY:
+	;
 	cp	S_RUNFILE	; WAS it a RUN command
  	jr	z,RUN_FIL
 	;
@@ -90,6 +90,12 @@ FILE_LEN1
 	pop	de		; restore the FCB
 	ret			; and return the lenght
 ;
+ifdef	@D_PICOENHANCED
+;
+; ON a PICo this code has to be in the SCRATCH RAM
+file_loader	EQU	PICOSCRATCH + 0
+;
+else
 ;;;
 ;;; FreHD file loader
 ;;;
@@ -101,46 +107,46 @@ FILE_LEN1
 ;;; - Z  : no error. HL contains transfer address
 ;;; - NZ : error occurred, file not or partially loaded
 ;;;
-file_loader::
+file_loader:
 	ld	c,FA_OPEN_EXIST|FA_READ
 	call	fhd_OPEN	; open file command
 	ret	nz		; error, then return
 	;
-load:	call	fhd_READBYTE	; get type code
-	jr	nz,load9	; no byte so assume finished and return
+_load:	call	fhd_READBYTE	; get type code
+	jr	nz,_load9	; no byte so assume finished and return
 	;
 	dec	a
-	jr	nz,load2	; bypass if not type 1
+	jr	nz,_load2	; bypass if not type 1
 	;
-load1:	call	getaddr		; Type 1 get address; HL Addr and B Size
+_load1:	call	_getadr		; Type 1 get address; HL Addr and B Size
 	ret	nz
 	;
-load1a:	call	fhd_READBYTE
+_load1a:	call	fhd_READBYTE
 	ret	nz
 	ld	(hl),a		; save that byte
 	inc	hl
-	djnz	load1a
-	jr	load
+	djnz	_load1a
+	jr	_load
 	;
-load2:	dec	a		; test if type 2 (TRADDR)
-	jr	z,load8		; yes consume transfer address
+_load2:	dec	a		; test if type 2 (TRADDR)
+	jr	z,_load8		; yes consume transfer address
 	;
 	call	fhd_READBYTE	; Type 3 and above: assume comment
 	ld	b,a		; get comment length
-load2a:
+_load2a:
 	call	fhd_READBYTE	; read comment character
 	ret	nz
-	djnz	load2a		; read and ignore
-	jr	load
+	djnz	_load2a		; read and ignore
+	jr	_load
 	;
-load8:	call	getaddr		; get transfer address
+_load8:	call	_getadr		; get transfer address
 	ret	nz
 	;
-load9:	call	fhd_CLOSE
+_load9:	call	fhd_CLOSE
 	xor	a		; set Z for success !
 	ret
 	;
-getaddr:
+_getadr:
 	call	fhd_READBYTE	; get block length
 	ret	nz
 	ld	b,a		; get length and
@@ -154,15 +160,15 @@ getaddr:
 	ld	h,a		; address into HL
 	xor	a		; success
 	ret
-
-
+;
+endif
+;
 ; ======================================================================
 ; 4700 - End Of Overlay
 ; ======================================================================
 ;
-$OVERLAYFREE	EQU	DOSEND - $
+FREE_OVERLAYL	EQU	OVERLY + $200 - $
 ;
 	; FILL to end of REGION
-	DC	DOSEND - $,0
+	DC	FREE_OVERLAYL,0
 ;
-	END

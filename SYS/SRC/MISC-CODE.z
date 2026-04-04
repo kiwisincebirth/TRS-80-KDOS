@@ -1,5 +1,173 @@
 
 
+; Below is From NewDos 80 v2 SYS 1
+; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm
+' supports extracting a filename from a string.
+
+5163
+PUSH HL
+Save the current source pointer onto the stack.
+5164
+LD A,(HL)
+Load Register A with the current character.
+5165
+SUB 30H
+Subtract 30H (ASCII '0') from the character. This converts ASCII digits '0'-'9' to values 0-9.
+5167
+CP 0AH
+Compare against 0AH (10 decimal). If the result is less than 10, the original character was a digit '0'-'9'.
+5169
+CALL 5189H
+GOSUB to 5189H to check if the character is alphabetic (if not a digit). Returns CARRY if valid alphanumeric.
+516C
+JR NC,5184H
+If NO CARRY (character is not alphanumeric), JUMP to 5184H to finish with an error/end condition.
+Character passed the digit test or was confirmed alphabetic. Now check for special delimiters.
+
+516E
+LD A,(HL)
+Reload the original character from the source.
+516F
+SUB 2EH
+Subtract 2EH (ASCII '.') from the character. Testing for period (filename/extension separator).
+5171
+CP 0DH
+Compare against 0DH. If the original character was between 2EH ('.') and 3AH (':'), this checks range.
+5173
+CALL 5189H
+GOSUB to 5189H for additional character validation.
+5176
+JR C,517EH
+If CARRY is set (character is a valid part of filename), JUMP to 517EH to copy it.
+Character is a delimiter (like period) - mark end of filename portion.
+
+5178
+LD A,03H
+Load Register A with 03H (end-of-text marker).
+517A
+LD (DE),A
+Store the end-of-text marker into the destination buffer.
+517B
+POP AF
+Discard the saved HL (stored at 5163H) by popping into AF.
+517C
+XOR A
+Set Register A to zero and clear flags (Z FLAG set, indicating success).
+517D
+RET
+Return to the caller with Z FLAG set indicating successful parse.
+Character is valid - copy it to destination and continue loop.
+
+517E
+LD A,(HL)
+Load the valid character from the source.
+517F
+LD (DE),A
+Store the character into the destination buffer.
+5180
+INC DE
+Advance the destination pointer.
+5181
+INC HL
+Advance the source pointer.
+5182
+DJNZ 516EH
+[LOOP] Decrement B and if not zero, LOOP BACK to 516EH to process the next character.
+Reached end of loop (maximum characters processed) or hit invalid character.
+
+5184
+OR 01H
+OR Register A with 01H to ensure NZ FLAG is set (indicating we didn't end cleanly on a delimiter).
+5186
+POP HL
+Restore the source pointer from the stack.
+5187
+LD A,(HL)
+Load the current character into Register A (the character that caused loop exit).
+5188
+RET
+Return with NZ FLAG set and the terminating character in A.
+
+
+
+
+
+Numbers below are based on LDOS 5.1 reference Manual
+
+Errors 1-19 => $01 -> $13 - so anything above $13 is open for normal use.
+typedef enum {
+	FR_DISK_ERR,		1  01	/* (1) A hard error occurred in the low level disk I/O layer */
+	FR_INT_ERR,		4  04	/* (2) Assertion failed */
+	FR_NOT_READY,		8  08	/* (3) The physical drive cannot work */
+	FR_NO_FILE,		24 18*	/* (4) Could not find the file */
+	FR_NO_PATH,		24 18*	/* (5) Could not find the path */
+	FR_INVALID_NAME,	19 13	/* (6) The path name format is invalid */
+	FR_DENIED,		26 1A	/* (7) Access denied due to prohibited access or directory full */
+	FR_EXIST,		25 19	/* (8) Access denied due to prohibited access */
+	FR_INVALID_OBJECT,	16 10	/* (9) The file/directory object is invalid */
+	FR_WRITE_PROTECTED,	15 0F	/* (10) The physical drive is write protected */
+	FR_INVALID_DRIVE,	32 20	/* (11) The logical drive number is invalid */
+	FR_NOT_ENABLED,		18 12	/* (12) The volume has no work area */
+	FR_NO_FILESYSTEM,	5  05	/* (13) There is no valid FAT volume */
+	FR_MKFS_ABORTED,	11 0B	/* (14) The f_mkfs() aborted due to any problem */
+	FR_TIMEOUT,		3  03	/* (15) Could not get a grant to access the volume within defined period */
+	FR_LOCKED,		37 25	/* (16) The operation is rejected according to the file sharing policy */
+	FR_NOT_ENOUGH_CORE,	33 21	/* (17) LFN working buffer could not be allocated */
+	FR_TOO_MANY_OPEN_FILES,	3F(Unknown)	/* (18) Number of open files > FF_FS_LOCK */
+	FR_INVALID_PARAMETER	3F(Unknown)	/* (19) Given parameter is invalid */
+} FRESULT;
+
+BELO contains -> Mapping to possible error code to map to
+specifically for API calls where specific I's migt be meaininful.
+
+const char *FRESULT_str(FRESULT i) {
+    switch (i) {
+        case FR_DISK_ERR: -> 03h
+            return "Error disk I/O";
+        case FR_INT_ERR: -> 01h
+            return "Assertion failed";
+        case FR_NOT_READY:  ->
+            return "Drive not ready";
+        case FR_NO_FILE: -> 18h
+            return "File not found";
+        case FR_NO_PATH:
+            return "Path not found";
+        case FR_INVALID_NAME: -> 13h
+            return "Path name is invalid";
+        case FR_DENIED: -> 19h
+            return "Access denied or full";
+        case FR_EXIST: -> 19h
+            return "Access denied (exists)";
+        case FR_INVALID_OBJECT:
+            return "The file/directory is invalid";
+        case FR_WRITE_PROTECTED: -> 0Fh
+            return "Write protected";
+        case FR_INVALID_DRIVE:
+            return "Drive number invalid";
+        case FR_NOT_ENABLED: -> 23h -> 3Bh
+            return "The volume has no work area";
+        case FR_NO_FILESYSTEM:
+            return "There is no FAT volume";
+        case FR_MKFS_ABORTED:
+            return "The mkfs() aborted";
+        case FR_TIMEOUT:
+            return "Timeout";
+        case FR_LOCKED:
+            return "File is locked";
+        case FR_NOT_ENOUGH_CORE:
+            return "LFN buffer allocation";
+        case FR_TOO_MANY_OPEN_FILES:
+            return "Too many open files";
+        case FR_INVALID_PARAMETER:
+            return "Parameter is invalid";
+        default:
+            return "Unknown";
+    }
+}
+
+
+
+
 Partially existing code found in OVERLAY C
 
 ; below is copied from newdos 80 SYS 01 command parser

@@ -12,7 +12,7 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-pageCall instrfunc, INSTRFUNC_PAGE
+pageCall instrfunc, PAGE_INSTRFUNC
 ;
 ; ------------------------------
 ; Code Required Starts Here

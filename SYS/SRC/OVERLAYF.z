@@ -19,11 +19,6 @@ import	constants.z
 ;
 	ORG	OVERLY
 	;
-ENTRY:
-
-
-
-
 
 ; Open a New or Existing File ($4420)
 ; B - Logical Record Length (0=256)
@@ -31,7 +26,6 @@ ENTRY:
 ; HL - Pointer to 256 byte IO Buffer
 ; Ret Z - No Error ; NZ - Error (A error Code)
 ; Registers Intact
-INITFILE:
 
 	push	de	; save the FCB
 	push	bc	; save the LRL
@@ -127,116 +121,15 @@ aplha_check:
 	CP	1AH	;Compare against 1AH (26). If result is less than 26, the character was 'a'-'z'.
 	RET		;Return. CARRY set if lowercase letter, CARRY clear if not alphabetic.
 
-
-
-
-
-;
-; ----------------------------------------------------------------------
-
-
-
 ;
 ; ======================================================================
 ; 4700 - End Of Overlay
 ; ======================================================================
 ;
-$OVERLAYFREE	EQU	DOSEND - $
+FREE_OVERLAYF	EQU	OVERLY + $200 - $
 ;
 	; FILL to end of REGION
-	DC	DOSEND - $ - 1,0
+	DC	FREE_OVERLAYF - 1,0
 	DB	$0F
 ;
-	END
-
-
-
-
-; Below is From NewDos 80 v2 SYS 1
-; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm
-' supports extracting a filename from a string.
-
-5163
-PUSH HL
-Save the current source pointer onto the stack.
-5164
-LD A,(HL)
-Load Register A with the current character.
-5165
-SUB 30H
-Subtract 30H (ASCII '0') from the character. This converts ASCII digits '0'-'9' to values 0-9.
-5167
-CP 0AH
-Compare against 0AH (10 decimal). If the result is less than 10, the original character was a digit '0'-'9'.
-5169
-CALL 5189H
-GOSUB to 5189H to check if the character is alphabetic (if not a digit). Returns CARRY if valid alphanumeric.
-516C
-JR NC,5184H
-If NO CARRY (character is not alphanumeric), JUMP to 5184H to finish with an error/end condition.
-Character passed the digit test or was confirmed alphabetic. Now check for special delimiters.
-
-516E
-LD A,(HL)
-Reload the original character from the source.
-516F
-SUB 2EH
-Subtract 2EH (ASCII '.') from the character. Testing for period (filename/extension separator).
-5171
-CP 0DH
-Compare against 0DH. If the original character was between 2EH ('.') and 3AH (':'), this checks range.
-5173
-CALL 5189H
-GOSUB to 5189H for additional character validation.
-5176
-JR C,517EH
-If CARRY is set (character is a valid part of filename), JUMP to 517EH to copy it.
-Character is a delimiter (like period) - mark end of filename portion.
-
-5178
-LD A,03H
-Load Register A with 03H (end-of-text marker).
-517A
-LD (DE),A
-Store the end-of-text marker into the destination buffer.
-517B
-POP AF
-Discard the saved HL (stored at 5163H) by popping into AF.
-517C
-XOR A
-Set Register A to zero and clear flags (Z FLAG set, indicating success).
-517D
-RET
-Return to the caller with Z FLAG set indicating successful parse.
-Character is valid - copy it to destination and continue loop.
-
-517E
-LD A,(HL)
-Load the valid character from the source.
-517F
-LD (DE),A
-Store the character into the destination buffer.
-5180
-INC DE
-Advance the destination pointer.
-5181
-INC HL
-Advance the source pointer.
-5182
-DJNZ 516EH
-[LOOP] Decrement B and if not zero, LOOP BACK to 516EH to process the next character.
-Reached end of loop (maximum characters processed) or hit invalid character.
-
-5184
-OR 01H
-OR Register A with 01H to ensure NZ FLAG is set (indicating we didn't end cleanly on a delimiter).
-5186
-POP HL
-Restore the source pointer from the stack.
-5187
-LD A,(HL)
-Load the current character into Register A (the character that caused loop exit).
-5188
-RET
-Return with NZ FLAG set and the terminating character in A.
 

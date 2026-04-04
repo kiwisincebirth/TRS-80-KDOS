@@ -1,0 +1,76 @@
+; ======================================================================
+;       	MINI DOS
+;	based on TRSDOS and NEWDOS/80 for Model 1
+;
+;     GENERAL FILE HANDLING - OPEN CLOSE etc.
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+
+; We are compiling the Pico Enhanced ROM File
+@D_PICOENHANCED	EQU	1
+
+; include the main SYS0
+include sys0.z
+
+; Include the overlays  within Defined Pages
+; ----------------------------------------------------------------------
+
+; Basic Load Save commands
+; These are functions that JP back to dos
+pageJump _basic_overb, PAGE_OVERLAYB
+include	overlayb.z
+pageEnd
+
+; Command Processor Overlay
+; it is a terminal service, no RETURN
+pageJump _basic_overc, PAGE_OVERLAYC
+include	overlayc.z
+pageEnd
+
+; DIR Command
+; No ret from this, back to dos
+pageJump _basic_overd, PAGE_OVERLAYD
+include	overlayd.z
+pageEnd
+
+; Error Reporting for DOS
+; These are routines that can either
+; return or Jump out to Dos
+pageCall _basic_overe, PAGE_OVERLAYE
+include	overlaye.z
+pageEnd
+
+; DOS Routines for DISK File Access
+; These are routines that return to caller
+pageCall _basic_overf, PAGE_OVERLAYF
+include	overlayf.z
+pageEnd
+
+; CMD Loader and Runner
+; For Loader there is a RET path
+pageCall _basic_overl, PAGE_OVERLAYL
+include	overlayl.z
+pageEnd
+
+; BASIC Extensions - Non Disk Functions
+; ----------------------------------------------------------------------
+include	BASIC-AMP.z		; $4194
+include	BASIC-INSTR.z		; $419D
+
+; DOS Exits
+; ----------------------------------------------------------------------
+include BASIC-ERROR.z		; $41A6
+include	BASIC-MID.z		; $41D9
+
+; Pico Scratch Memory
+; ----------------------------------------------------------------------
+include PICO-WORK.z
+
+; ======================================================================
+	END	STARTUP
+; ======================================================================

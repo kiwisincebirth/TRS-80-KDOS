@@ -1,8 +1,0 @@
-;;;
-;;; FREHD.ROM - Loader
-;;;
-;;; Purpose once loaded is to chain and load BOOT.SYS
-;;;
-;;; If loaded from floppy disk boot the code will automatically
-;;; be relocated and executed from $5000
-;;;
