@@ -16,6 +16,7 @@ OPRET	EQU	$C9	; RET (Opcode)
 
 _WHERE	EQU	$000B	; Used for Code relocation.
 KBWAIT	EQU	$0049
+INIT2	EQU	$0075	; L2 Basic Non Disk Init
 L3ERR	EQU	$012D
 OUTDO	EQU	$032A
 INLIN	EQU	$0361
@@ -160,9 +161,9 @@ UNKNOWN$	EQU	63
 ;
 ; ----------------------------------------------------------------------
 ;
+ETX         EQU     03H
 CR          EQU     0DH
 LF          EQU     0AH
-ETX         EQU     03H
 SPC         EQU     20H
 ;
 ; ----------------------------------------------------------------------
@@ -178,18 +179,20 @@ STATUS    	EQU	0cfh		; read only
 ;
 ; FreHD Commands
 GETVER		EQU	00h
-GETTIME		EQU	01h
-SETTIME		EQU	02h
+;GETTIME	EQU	01h
+;SETTIME	EQU	02h
 OPENFILE  	EQU	03h
 READFILE  	EQU	04h
 WRITEFILE 	EQU	05h
 CLOSEFILE	EQU	06h
 OPENDIR     	EQU	08h
 READDIR		EQU	09h
-MOUNTDRIVE	EQU	0Ah
-DRIVEINFO	EQU	0Ch
 ;
 TRS_NEW_DIR	EQU	11h
+TRS_NEW_CD	EQU	12h
+TRS_NEW_MD	EQU	13h
+TRS_NEW_REN	EQU	14h
+TRS_NEW_DEL	EQU	15h
 ;
 ; FatFS File Open flags
 FA_READ		EQU	01h	; Data can be read from the file.

@@ -18,6 +18,8 @@ import	constants.z
 ; ======================================================================
 ;
 	ORG	OVERLY
+
+	EX	DE, HL		; get the pointer into DE
 	;
 	; test if enhance rom	; todo this should be conditional compile
 	call	enh_VER		; call the Enhanced Pico check
@@ -70,16 +72,18 @@ GETDIR3
 NEWDIR:
 	call	SETROWS         ; Setup column and row count
 	;
-	ld      a,2             ; 2 bytes
-	out     (SIZE2),A
-	ld      a,TRS_NEW_DIR
+	call	_STR_LEN	; and get the length (DE), into B
+	;
+	ld	a,b		; add one byte for first param
+	out     (SIZE2),a
+	;
+	ld      a,TRS_NEW_DIR	; send the command
 	out     (COMMAND2),A
 	call    fhd_WAIT
 	;
-	ld      a,0			; Default to the "Current" DRIVE
-	out     (DATA2),A
-	ld      a,'*'			; all files todo should be parameter driven
-	out     (DATA2),A
+	EX	DE, HL		; string pointer back into HL
+	ld	c,DATA2		; data port
+	otir			; write all the bytes from (HL)
 	;
 NEWDIR2
 	call    fhd_WAIT
@@ -155,6 +159,27 @@ PROCES6
 	ret         		; Check for more files
 	;
 ; ----------------------------------------------------------------------
+;
+; Get the length of the string.
+; Also in OverlayL
+;
+_STR_LEN:
+	push	de		; save PCB pointer
+	dec	de		; dec as inc below happens first
+	ld	b,0		; length including the terminator
+	;
+_STR_LEN1
+	inc	de		; increment pointer
+	inc	b		; and the counters
+	ld	a,(de)		; get the byte
+	or	a		; check the byte
+	jr	nz,_STR_LEN1	; NOT a terminator, so loop
+	;
+	pop	de		; restore the FCB
+	ret			; and return the length
+
+; ----------------------------------------------------------------------
+
 
 BUFFER
 	DS      32		; 32 should be enough

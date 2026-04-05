@@ -31,7 +31,7 @@ import	constants.z
 	call	STROUT		;1a28 - Display the word “READY”
 
 	; **** Prompt the User
-MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
+_MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
 	ld	(CURLIN),hl	;1a36 - Set up for direct command mode - set line number
 	;
 	ld	a,'>'		;1a76 - READY> _ prompt
@@ -40,12 +40,12 @@ MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
 	; **** Get User Command
 	call	INLIN		;1a7b - Actually read a Line of input
 	;
-	jr	c,MAIN		;1a7e - loop back if BREAK pressed
+	jr	c,_MAIN		;1a7e - loop back if BREAK pressed
 	;
 	GETCHR			;1a81 - rst 10h
 	inc	a		;1a82 - sets the status flags but saves the carry flag
 	dec	a		;1a83 - so we can test for an end of statement
-	jp	z,MAIN		;1a84 - if we have an end of (or blank) statement
+	jp	z,_MAIN		;1a84 - if we have an end of (or blank) statement
 	push	af		;1a87 - save for latter -> 1A9D if jumping back to ROM code
 
 	; now we need to detect the "#" symbol, and if found process locally.
@@ -56,7 +56,7 @@ MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
 	jp	nz,$1A88	; jump back into DOS READY Handler processing the BASIC Command
 
 ; ----------------------------------------------------------------------
-; Processing of DOS SSpecific # COMMANDS starts here
+; Processing of DOS Specific # COMMANDS starts here
 ; ----------------------------------------------------------------------
 
 	pop	af		; pop AF fom above as not using it
@@ -68,41 +68,50 @@ MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
 	ld	de,LOOKUPTAB	; table lookup address
 
 	; start command lookup
-LOOK1
+_LOOK1
 	; check the command with the table entry
 	ld	a,(de)		; next char in lookup table
 	inc	de		; bump next lookup char to check
 	or	a		; flags
-	jr	z,FOUND1	; found terminator in table, i.e. Found Cmd
+	jr	z,_FOUND	; found terminator in table, i.e. Found Cmd
 	ld	b,a		; save lookup char for compare
 	;
 	RST	10h		; consume the next command char (A)
+	cp	'a'		; lower case check
+	jr	c,_LOOKU	; if less than `a` then skip
+	sub	$20		; make lower case into uppercase
+_LOOKU
 	cp	b		; see if same as table char
-	jr	z,LOOK1		; yes. keep trying attempt next char
-LOOK2:
+	jr	z,_LOOK1	; yes. keep trying attempt next char
+_LOOK2:
 	; table entry mismatch with command
 	ld	a,(de)		; examine next table char
 	inc	de
 	or	a		; checking the byte for 0 terminator
-	jr	nz,LOOK2	; not zero, keep skipping
+	jr	nz,_LOOK2	; not zero, keep skipping
 	; skipped to 0 terminator
-	inc	de		; then skip past the 2 nbyte address
+	inc	de		; then skip past the 3 byte commnad
 	inc	de		;
 	inc	de		;
 	ld	a,(de)		; examine table Char after the address
 	or	a
-	jr	z,NOTFND	; If Zero - then end of table process CMD
+	jr	z,_NOTFND	; If Zero - then end of table process CMD
 	; setup to check next table entry
 	ld	hl,(SAVBUFF)	; restore command buffer for next attempt
-	jr	LOOK1		; check the command against next tbale entry
+	jr	_LOOK1		; check the command against next tbale entry
 	;
 ; ----------------------------------------------------------------------
-FOUND1:
-	;; todo need to check for a trailing 0 or space in buffer
-	;; rather than ust matching "xxx" when string contains "xxxxxx"
-
-	push	de
-	ret
+_FOUND:
+	inc	hl		; consume the next command char
+	ld	a,(hl)
+	cp	0		; if a terminator
+	jr	z,_FOUND2
+	cp	' '		; is a space
+	jr	nz,_LOOK2	; NOT space havent found it
+	inc	hl		; increment past the space
+_FOUND2:
+	push	de		; save the pointer address on stack
+	ret			; ret / JUMP to the command
 
 	; command found in table
 ;	ex	de,hl		; DE -> curr cmd buff; hl -> table address
@@ -115,14 +124,14 @@ FOUND1:
 ;	ret			; Jump to address in BC
 ;	;
 ; ----------------------------------------------------------------------
-NOTFND:
+_NOTFND:
 	; parse the command line string as a file name
 	ld	hl,(SAVBUFF)	; get original address of command buffer
 	inc	hl		; buffer pointer so actual char (not prior)
 	ld	de,SYSFCB	; system FCB
 	push	de		; save for latter
 	ld	b,16		; max bytes in command name (could be 31?)
-	call	CHPARSE		; parse chars
+	call	CHPARSE		; parse chars, from source to target
 	jr	nz,ERROUT	; error out if NZ
 	;
 	; todo the following needs to be MUCH improved

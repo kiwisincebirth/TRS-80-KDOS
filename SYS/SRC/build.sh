@@ -1,14 +1,20 @@
 
 ./zmac boot.z --oo lst,cim,cmd,hex
 cp zout/boot.cmd    ../../frehd.rom
+cp zout/boot.cim    ../BOOT.SYS
 cp zout/boot.cmd    ~/Documents/FreHD/frehd.rom
+cp zout/boot.cim    ~/Documents/FreHD/SYS/BOOT.SYS
+cp zout/boot.cmd    /Volumes/FLOPPY90/frehd.rom
+cp zout/boot.cim    /Volumes/FLOPPY90/SYS/BOOT.SYS
 
 ./zmac sys0f.z --zmac --oo lst,cmd
 ./zmac sys0p.z --zmac --oo lst,cmd
 cp zout/sys0p.cmd    ../SYS0.sys
-cp zout/sys0p.cmd    ~/Documents/FreHD/SYS/SYS0.sys
 cp zout/sys0f.cmd   ../F/SYS0.sys
+cp zout/sys0p.cmd    ~/Documents/FreHD/SYS/SYS0.sys
 cp zout/sys0f.cmd   ~/Documents/FreHD/SYS/F/SYS0.sys
+cp zout/sys0p.cmd    /Volumes/FLOPPY90/SYS/SYS0.sys
+cp zout/sys0f.cmd   /Volumes/FLOPPY90/SYS/F/SYS0.sys
 
 ./zmac overlayb.z --oo lst,cim
 ./zmac overlayc.z --oo lst,cim
@@ -30,6 +36,13 @@ cp zout/overlayd.cim ~/Documents/FreHD/SYS/overlayd.sys
 cp zout/overlaye.cim ~/Documents/FreHD/SYS/overlaye.sys
 cp zout/overlayf.cim ~/Documents/FreHD/SYS/overlayf.sys
 cp zout/overlayl.cim ~/Documents/FreHD/SYS/overlayl.sys
+
+cp zout/overlayb.cim /Volumes/FLOPPY90/SYS/overlayb.sys
+cp zout/overlayc.cim /Volumes/FLOPPY90/SYS/overlayc.sys
+cp zout/overlayd.cim /Volumes/FLOPPY90/SYS/overlayd.sys
+cp zout/overlaye.cim /Volumes/FLOPPY90/SYS/overlaye.sys
+cp zout/overlayf.cim /Volumes/FLOPPY90/SYS/overlayf.sys
+cp zout/overlayl.cim /Volumes/FLOPPY90/SYS/overlayl.sys
 
 open -a trs80gp --args -m1 -dx \
   -frehd -frehd_dir ~/Documents/FreHD \

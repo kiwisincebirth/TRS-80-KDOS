@@ -273,7 +273,11 @@ DISPSTR9:
 ; NZ - if an enhanced version with Advanced Pico firmware (A=1)
 ; todo think this needs to moved nto loader code
 enhance_VER:
+ifdef @D_PICOENHANCED
+	ld	a,1		; FLAG TO INDICATE ON ENHANCED
+else
 	ld	a,0		; load the A register (SELF MODIFY CODE)
+endif
 	or	a		; 0 -> is set to 1 during INIT if enhanced firmware
 	ret			; set flags and return
 
@@ -631,7 +635,11 @@ READY1:
 	ld	(MEMEND),hl	; Save in DOS High Memory pointer
 	;
 
-	; todo following VERSION code should be removed
+ifndef @D_PICOENHANCED
+	;
+	; todo we eed a good story for this.
+	; code executes to detect if running on enhanced hardware
+	; this is requied if the Advanced hardware boots t
 	ld	a,GETVER	; version information from FreHD
 	out	(COMMAND2),a
 	call	frehd_WAIT	; ignoring result
@@ -642,11 +650,13 @@ READY1:
 	;
 	in	d,(c)		; first half of version stamp - byte 3
 	in	a,(c)		; second half of version stamp - byte 4
-	xor	d		; xor them together -> zero if Advanced Pico
-	jr	nz,READYX	; not 1 means not Advanced Pico, skip update
+	xor	d		; xor them together -> $FF if Advanced Pico
+	inc	a		; Advanced = 0
+	jr	nz,READYX	; not 0 means not Advanced Pico, skip update
 	;
 	ld	a,1		; indicates running on Advanced Pico
         ld	(enhance_VER+1),a ; Modify Code to flag Advanced Pico
+endif
 	;
 READYX:
 	ld	hl,WELCOMSG	; Free Bytes Message

@@ -49,7 +49,7 @@ import	constants.z
 	; otherwise assume a LOAD and fall through
 ;
 LOAD_FIL
-	call	FILE_LEN	; count the lenght of the string
+	call	_STR_LEN	; count the lenght of the string
 	;
 	call	file_loader	; attempt to load the file
 	;
@@ -57,7 +57,7 @@ LOAD_FIL
 				; no error. HL contains transfer address
 ;
 RUN_FIL:
-	call	FILE_LEN	; count the lenght of the string
+	call	_STR_LEN	; count the lenght of the string
 	;
 	call	file_loader	; attempt to load the file
 	jr	nz,RUN_FAIL	; error handler and exit to @ERROR
@@ -73,22 +73,23 @@ RUN_ER2:
 
 
 ;
-; count the lenght of the string.
+; Get the length of the string.
+; Also in OverlayD
 ;
-FILE_LEN:
+_STR_LEN:
 	push	de		; save PCB pointer
 	dec	de		; dec as inc below happens first
 	ld	b,0		; length of the terminator
 	;
-FILE_LEN1
+_STR_LEN1
 	inc	de		; increment pointer
 	inc	b		; and the counters
 	ld	a,(de)		; get the byte
 	or	a		; check the byte
-	jr	nz,FILE_LEN1	; NOT a terminator, so loop
+	jr	nz,_STR_LEN1	; NOT a terminator, so loop
 	;
 	pop	de		; restore the FCB
-	ret			; and return the lenght
+	ret			; and return the length
 ;
 ifdef	@D_PICOENHANCED
 ;

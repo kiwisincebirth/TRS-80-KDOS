@@ -39,11 +39,11 @@ import	constants.z
 RELOCATE
 	ld	l,0		; HL -> now has (where loaded) page address
 	ld	de,BOOTSYSLOC	; target address, where code should execute from
-	ld	bc,$100		; bytes to move
-	ldir			; transfer 256 bytes
+	ld	bc,$100		; 256 bytes to move
+	ldir			; transfer
 	;
 RELOADED:
-	jp	START		; Start the code.
+	jp	START		; Explicity - Start the code - Correct Location
 ;
 ; ----------------------------------------------------------------------
 ; Now we need to
@@ -61,32 +61,27 @@ START:
 	;
 	in	d,(c)		; first half of version stamp - byte 3
 	in	a,(c)		; second half of version stamp - byte 4
-	xor	d		; xor them together -> zero if Enhanced Pico
+	xor	d		; xor them together -> $FF if Enhanced Pico
+	inc	a		; $00 Z if advanced PICO hardware
 	;
-	ld	de,fnamef	; Default to FreHD Minimal SYS0F.SYS
+	ld	de,fnamef	; Default to FreHD Minimal /F/SYS0.SYS
 	ld	b,$10		; length of 16 bytes
 	;
-	jr	nz,START1	; NZ NOT Advanced Pico, skip over
-	ld	de,fnamep	; Set advanced Pico SYS0P.SYS
+	jr	nz,START1	; NZ If NOT Advanced Pico, skip over
+	;
+	ld	a,(14400)	; CLEAR Keyboard Row
+	and	2		; CLEAR KEY Pressed
+	jr	NZ, START1	; Then Use Traditional, not Paged
+	;
+	ld	de,fnamep	; Set advanced Pico /SYS0.SYS
 
 START1:
 	call	file_loader	; load the file
-
-	; if nz then need to display an error
-	jr	nz,SERROR
-
+	;
+	jp	nz,INIT2	; if FAILED init L2 BASIC
+	;
 	jp	(hl)		; jump to SYS0.SYS
-
-SERROR:
-	ld	HL,errMESG
-	call	LISPRT
-SERROR2:
-	jr	SERROR2		; halt at this point
-				; consider jumping back to INIT2:
-
-errMESG:
-	DB	"Load ERR",0
-
+	;
 ;;;
 ;;; FreHD file loader
 ;;;
@@ -126,7 +121,6 @@ load:
 	call	getbyte			; get type code
 	dec	a
 	jr	nz,load3		; bypass if not type 1
-;
 	call	getaddr			; get address
 load2:	call	getbyte
 	ld	(hl),a			; save that byte
@@ -136,7 +130,6 @@ load2:	call	getbyte
 ;
 load3:	dec	a			; test if type 2 (TRADDR)
 	jr	z,load5			; yes
-;
 	call	getbyte			; assume comment
 	ld	b,a			; get comment length
 load4:	call	getbyte
@@ -169,7 +162,7 @@ getbyte
 getbyte1:
 	in	a,(DATA2)		; get a byte
 	ret
-
+;
 getchunk
 	xor	a			; request 256 bytes
 	out	(SIZE2),a
@@ -180,6 +173,7 @@ getchunk
 	in	a,(STATUS)		; DRQ set means we got something
 	and	08h
 	ret	nz			; return if ok !
+					; fall through to error
 geterror:
 	ld	a,CLOSEFILE		; close file
 	out	(COMMAND2),a
@@ -189,8 +183,8 @@ geterror:
 	ret				; return
 
 fhdwait:
-	ex 	(sp),hl		; small delay to
-	ex 	(sp),hl		; settle the controller
+	ex 	(sp),hl			; small delay to
+	ex 	(sp),hl			; settle the controller
 fhdwait1:
 	in 	a, (STATUS)
 	rlca

@@ -13,27 +13,31 @@ import	constants.z
 ; ------------------------------
 ;
 ; Non Returning Routine.
-pageJump L2ERRORHAND, PAGE_DOSERROR2
+pageJump L2ERRORHAND1, PAGE_DOSERROR1
 ;
 ; ------------------------------
 ; Code Required Starts Here
 ; Copied From TRS DOS 2.3
 ; ------------------------------
+; code is invoked from Dos Exit $41a6
+; from call location 19EC in l2 Roms
+; ------------------------------
 ;
-   pop	hl                   ; 57e6:
+   pop	hl                   ; 57e6: - POP the Call off the Stack
    ld	hl,L2ERRTAB          ; 57e7: error table 5203 - 54c3 ($2c0 bytes)
-   ld	a,e                  ; 57ea:
+   ld	a,e                  ; 57ea: error number is passed in E
    cp	$2C + 1              ; $2C is largest handled by L2 Basic
-   jp	nc,L2ERRORHAND2      ; 57ed: *PAGE JUMP* an error code too big to display
+   jp	nc,L2ERRORHAND2      ; 57ed: ** PAGE JUMP ** an error code too big to display
    ;
-   rrca                      ; 57fb: divide by 2
-   inc	a                    ; 57fc: 0,2,4 -> 1,3,5
+   rrca                      ; 57fb: 0,2,4 -> 0,1,2
+   inc	a                    ; 57fc: 0,1,2 -> 1,2,3
    ld	e,a                  ; 57fd:
 _errloop
-   call	$1f07                ; 57fe:
-   dec	e                    ; 5801:
-   inc	hl                   ; 5802:
-   jr	nz,_errloop        ; 5803:
+   call	$1f07                ; 57fe: routine skips forward (HL) looking for 0 term
+   				; todo 1f07 (NON STANDARD ENTRY) investigate and document its usage.
+   dec	e                    ; 5801: error count down
+   inc	hl                   ; 5802: inc past 0 terminator
+   jr	nz,_errloop          ; 5803: still more errors LOOP
    call	$28a7                ; 5805: Here is where we display the message
    ld	hl,($40a2)           ; 5808: current line number
 ;
@@ -166,7 +170,7 @@ pageEnd
 ; ------------------------------
 ;
 	ORG	$41a6
-	jp	L2ERRORHAND
+	jp	L2ERRORHAND1
 ;
 ; ------------------------------
 ; CODE ENDS HERE
