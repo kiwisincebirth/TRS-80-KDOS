@@ -17,7 +17,8 @@
 ; include the main SYS0
 include sys0.z
 
-; Include the overlays  within Defined Pages
+; Include the overlays within
+; Defined Virtual RAM Pages
 ; ----------------------------------------------------------------------
 
 ; Basic Load Save commands
@@ -58,15 +59,15 @@ include	overlayg.z
 pageEnd
 
 ; CMD Loader and Runner
-; For Loader there is a RET path
+; For Loader API Call we have a RET path
 pageCall _basic_overl, PAGE_OVERLAYL
 include	overlayl.z
 pageEnd
 
 ; File System Command
 ; No ret from this, back to dos
-pageJump _basic_overs, PAGE_OVERLAYS
-include	overlays.z
+pageJump _basic_overs, PAGE_OVERLAYO
+include	overlayo.z
 pageEnd
 
 ; BASIC Extensions - Non Disk Functions

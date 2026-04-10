@@ -62,8 +62,11 @@ _ILLEGAL
 ; A <- terminating character
 ;
 _filespec
+	push	de
 	; todo
+	pop	de
 	JP	_ILLEGAL
+	ret
 
 ;
 ; @INIT New or Open Existing File ($4420)
@@ -95,7 +98,7 @@ _init_open:
 	pop	af			; get the Super ID back
 	cp	S_INITFILE		; Open Existing or Create New
 	ld	a,FA_OPEN_EXIST|FA_RW	; Default to Open Existing file @OPEN
-	jr	nz, _open_skip1		; skip IF NOT an INIT
+	jr	nz, _open_skip1		; skip IF NOT an INIT, is OPEN
 	ld	a,FA_OPEN_ALWAYS|FA_RW	; Open Existing or Create a new @INIT
 _open_skip1
 	ld	c,DATA2			; the data port
@@ -129,7 +132,7 @@ _open_out1:
 	ret				; and return
 ;
 ; @CLOSE Close an Open File ($4428)
-; Closes existing file writing anydirt data back to disk
+; Closes existing file writing any dirty data back to disk
 ;
 ; If bit 4 of the FCB's 2nd byte equals 1, the FCB's buffer is written to disk like a 4439H call.
 ; If the FCB's EOF is different from that in the FPDE, the FPDE is updated for the new EOF.

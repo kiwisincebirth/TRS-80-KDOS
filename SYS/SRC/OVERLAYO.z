@@ -35,6 +35,7 @@ _DOCMD1:
 ; the DOS Supervisor Command parameter    0 to 7
 ; into a matching FreHD Cmd ID in range $18 to $1F
 ;
+	; determine the command ID to send, based on Super Call ID
 	ld	a,c		; get the Supervisor ID
 	rra			; translate from NNNxxxxx
 	rra			; translate to   00011NNN
@@ -42,35 +43,55 @@ _DOCMD1:
 	rra
 	rra			; rotate right -> xxxxxNNN
 	and	$07		; mask the lower -> 00000NNN
-	or	$18		; set the forth bit 00011NNN
+	or	$18		; set bit 4/5  -> 00011NNN
 	;
+	; Send the Command
 	out     (COMMAND2),A	; send the command we just mapped
+				; Wait happens latter, or not at all
 	;
+	; determine if need to send command arguments
+	ld	a,c		; the original super ID passed if
+	cp	$C0		; Commands >= $C0 dont have parameters
+	jr	nc,_read_result ; so skip arguments
+	;
+	; get lenght of argument string
 	EX	DE, HL		; DE -> pointer to cmd buffer
 	call	_STR_LEN	; and get the length (DE), into B
 	;
+	; send lenght
 	ld	a,b		; size of the string
 	out     (SIZE2),a	; send it to pico
 	;
+	; send the arguments
 	EX	DE, HL		; string pointer back into HL
 	ld	c,DATA2		; data port
 	otir			; write bytes from (HL) cmd buffer
 	;
-	call    fhd_WAIT
-	jp      nz,@ERROR	; Read Failed
+_read_result
+	;
+	; check result of the operation, either command or arguments
+	call    fhd_WAIT	; wait for reslt
+	jp      nz,@ERROR	; Command Failed
 	;
 	and     STATUS_DRQ	; mask DRQ status
 	jr      z,_DOCMD9       ; No DRQ so done
 	;
-	; todo display any response from the command
-	; todo read string from DATA2 for SIZE2 bytes
-	; call    @DSPLY
+	; read the data from Pico into Buffer
+	in	a,(SIZE2)	; num bytes
+	ld	b,a		; count
+	ld      c,DATA2		; C from data IO Port
+	ld      hl,_STR_BUFF	; to buffer
+	push	hl		; save the buffer address
+	inir			; transfer the data
+	;
+	; display any response from the command
+	pop	hl		; get the start of the buffer
+	call    @DSPLY
 	;
 _DOCMD9
 	;
 	JP	@EXIT		; completed so exit
 ;
-
 ; ----------------------------------------------------------------------
 ;
 ; Get the length of the string.
@@ -93,15 +114,17 @@ _STR_LEN1
 
 ; ----------------------------------------------------------------------
 
-
+_STR_BUFF:
+	; DB	'0:/SYS',0
+	; storage for response strings
 
 
 ; ======================================================================
 ; 4700 - End Of Overlay
 ; ======================================================================
 ;
-FREE_OVERLAYS	EQU	OVERLY + $200 - $
+FREE_OVERLAYO	EQU	OVERLY + $200 - $
 ;
 	; FILL to end of REGION
-	DC	FREE_OVERLAYS , 0
+	DC	FREE_OVERLAYO , $0D
 ;

@@ -134,7 +134,7 @@ import	constants.z
 	RET3		; 41A9
 	jp	READY1  ; 41AC Basic StartUp just before READY> used Once for INIT
 	RET3		; 41AF At start of keyboard input
-	RET3		; todo verify not needed ; jp	CMDPROC	; 41B2 Input scanner after tokenizing input, handle # commands
+	RET3		;
 	RET3		; 41B5
 	RET3		; 41B8
 	RET3		; 41BB
@@ -210,7 +210,7 @@ RUNCMD:
 ; DOS Normal Entry Point (402D) and (4400)
 ;
 WARMSTART:
-	jp	READY		; jump to Basic Ready
+	jp	RESETR		; jump to Basic Ready
 ;
 ; DOS Error Entry Point (4409)
 ;
@@ -218,14 +218,14 @@ DOSERR:
 	ld	b,a		; put error into B, SUPERV uses A
 	SUPERV	S_ERRHAND	; handle displaying Disk Error Code
 ;
-; DOS display string routine (4467)
+; @DSPLY (4467) - DOS display string routine
 ;
 DISPSTR:
 	push	DE		; Save DE onto stack.
 	LD	DE,401DH	; Load DE with 401DH (video output DCB).
 	JR	DISPSTR1	; JUMP to common print loop.
 ;
-; DOS Print String Routine (446A)
+; @PRINT (446A) - DOS Print String Routine
 ;
 PRINTSTR:
 	push	DE		; Save DE (alternate print entry).
@@ -234,6 +234,8 @@ DISPSTR1:
 	push 	HL		; Save string pointer.
 DISPSTR2:
 	LD	A,(HL)		; Fetch character from string.
+	CP	00H		; Compare with 00 terminator
+	JR	Z,DISPSTR9	; finished
 	CP	03H		; Compare with ETX (03H end marker).
 	JR	Z,DISPSTR9	; finished
 	CALL	001BH		; display character

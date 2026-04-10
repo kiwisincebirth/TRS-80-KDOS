@@ -72,7 +72,7 @@ save3:
 ;
 save9:
 	call	fhd_CLOSE
-	jp	READY		; exit to Basic
+	jp	@EXIT		; exit to DOS
 ;
 ; ----------------------------------------------------------------------
 ; RUN "XXXXX.BAS" - LOAD and RUN a Basic program from Disk
@@ -148,7 +148,7 @@ LD_FIN:
 	;
 	ld	a,(RUNFLAG)	; Run or Load Only Flag
 	OR 	A		; non-zero if want to run
-	JP	Z,READY		; If the Z FLAG (Zero) has been set, Return to the READY prompt
+	JP	Z,@EXIT		; If the Z FLAG (Zero) has been set, Return to the READY prompt
 	JP 	NEWSTT		; Otherwise Level II BASIC - RUN
 ;
 ; ----------------------------------------------------------------------

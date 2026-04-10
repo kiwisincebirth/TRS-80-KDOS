@@ -154,10 +154,11 @@ DOS Entry Points (4400-4480)
 
 ## Caveats
 
+### Work In Progress
 This is a work in progress not all features are implemented at this time.
 See the separate Compatibility document for what is and isn't supported.
 
-The FreHD solution
+### FreHD solution
 * Only provides a small sub set of functions as he frehd firmware has not been evolved.
 * Consumes more RAM (512KB) for overlays as doesnt have paged memory.
 * Doesnt support Disk Basic functions.
@@ -165,31 +166,32 @@ The FreHD solution
 # DEV NOTES
 
 ## Todo 
-* FIRMWARE - Refactor the New DIR command to use ASYNC Step=10
-* FIRMWARE - STAatus command display Paging Info 
+* FIRMWARE - STAatus command display Paging Info
+* FIRMWARE - Reset Signal is not resetting the ROOT folder, left in sub folder.
 
 ### Issues
+* Typing #LOAD METEOR.CMD - causes a load and crash back to restart.
 * Typing something at command prompt and pressing <BREAK> dos weird thing, 
-  * Selects Page 225(unused) in the Page/Overlay - Doesnt Exist
   * Displays an FC error in FreHD Mode
+  * Selects Page 225(unused) in the Page/Overlay - Doesnt Exist
   * weeird openFile(+Memory Size messages in Pico CLI
 * Pressing BREAK during basic program does not stop the program
+  * Pico - Doest stop the program
+  * FreHD - drops on FC Error
 
 ### Improvement
-* The  "#" should be configurable as a CONSTANT Declartion
-* #LOAD and implicit #RUN dos commands, check how the interact with and reuse OVERLAYL
 * Rename the Overlay S file down in range A-O to ony use 4 bits.
 * Improve the code addition of .CMD to a filename when executing from CMD processor.
   * When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
 * FreHD DIR should not display directories, since there is no #CD command.
 
 ### Improvements - Error handling
-* #CD RUBBISH - produces "File Not Found", need new error.
+* There needs to be a new error when a function is not supported by FreHD (non enhanced ROM)
+* The Overlays themselves need a consistent error if SUPER ID is not valid. See CP JP table for each overlay
+  * OverlayB, should error out (@ABORT) if cant locate the command
 * #RM BASIC - removing a directory (not empty) produced Error 26 FR_DENIED (7) Access denied due to prohibited
   access or directory full -> Should provide better error.
-* The Overlays themselves need a consistent erro if SUPER ID is not valid. See CP JP table for each overlay
-* There needs to be a new error when a function is not supported by FreHD (non enhanced ROM)
-* OverlayB for basic save load etc, should error out (@ABORT) if cant locate the command
+* #CD RUBBISH - produces "File Not Found", need new error.
 
 ### PicoRAM
 * Need to investigate the Enhanced Flag ???
@@ -199,8 +201,8 @@ The FreHD solution
 
 ### High Priority
 * Add a COMMAND # just (#) which drops to # prompt, enter returns
-* #LOAD command needs to be implemented and tested
-* #DIR {optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
+* When Pressing RESET, ROM drops back to DOS Ready
+* #DIR {optional: wildcard}{optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
 
 ### DOS Entry Points
 These are only available on PICO enabled systems
