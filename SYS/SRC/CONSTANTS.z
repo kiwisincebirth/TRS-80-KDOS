@@ -2,6 +2,11 @@
 ; CONSTANTS
 ; ======================================================================
 ;
+
+; The character used on the command prompt
+CMD_PROMPT_CHR	EQU	'#'
+
+;
 ; ----------------------------------------------------------------------
 ; Z-80 Op Codes
 ; ----------------------------------------------------------------------
@@ -13,7 +18,6 @@ OPRET	EQU	$C9	; RET (Opcode)
 ;
 ; Level 2 Basic ROM Entry Addresses
 ;
-
 _WHERE	EQU	$000B	; Used for Code relocation.
 KBWAIT	EQU	$0049
 INIT2	EQU	$0075	; L2 Basic Non Disk Init
@@ -24,6 +28,7 @@ READY	EQU	$06CC
 LINPRT	EQU	$0FAF
 m_REDDY	EQU	$1929	; "READY" Message
 ERROR:	EQU	$19A2	; Display basic error
+READYC	EQU	$1A88	; Continue Normal READY process loop
 FINI	EQU	$1AE8
 FINIDE	EQU	$1AE9
 LINKER	EQU	$1AF8
@@ -35,18 +40,32 @@ FCERR	EQU	$1E4A
 CRDONZ	EQU	$20F9
 CRDO	EQU	$20FE
 FRMEVL	EQU	$2337
+STRINI	EQU	$2857
+PUTNEW	EQU	$2884
 STROUT	EQU	$28A7
 FRESTR	EQU	$29D7
 LISPRT	EQU	$2b75
+
 ;
 GETCHR	macro
 	rst	10h
 	endm
 ;
+;
+; Pico Scratch RAM $3600 - Entry Points
+;
+;
+SCR_LOADOADER	EQU PICOSCRATCH + 0	; entry point for Standalone Binary Loader
+SCR_INT_SERV	EQU PICOSCRATCH + 3	; entry point for Interrupt Service
+;
+;
 ; Level 2 Basic Communications region
+;
 ;
 @EXIT	EQU	$402D	; Exit program normally return to DOS
 @ABORT	EQU	$4030	; Abort program DONT display error message, dont continue JCL
+TICKCNT	EQU	$4040	; storage location for the RTC master Tick
+XTIME	EQU	$4041	; storage location for the current time and date
 ;
 MEMEND	EQU	$4049	; DOS High Memory
 ERRFLG	EQU	$409A	; Current Error Code. See ERR function
@@ -58,8 +77,6 @@ AUTFLG	EQU	$40E1	; AUTO on or off flag. 0=AUTO is off.
 VARTAB	EQU	$40F9
 PRGFIN	EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 ERRLIN	EQU	$40EA	; Line no. In which error occurred
-
-
 ;
 ; DOS Entry Points Routines
 ;
@@ -67,9 +84,9 @@ ERRLIN	EQU	$40EA	; Line no. In which error occurred
 @CMNDI		EQU	$4405 ; execute command (HL), and return to DOS
 @ERROR		EQU	$4409 ; Abort with AND DISPLAY error (A) message
 @INIT		EQU	$4420
+@OPEN		EQU	$4424
 @LOAD		EQU	$4430 ; load a program file (DE)
 @RUN		EQU	$4433 ; load a program file (DE), and execute it
-@OPEN		EQU	$4424
 @DSPLY		EQU     $4467
 @PRINT		EQU	$446A
 ;
@@ -85,15 +102,17 @@ fhd_READBYTE	equ	(4*3) + $4480
 fhd_WRITE	equ	(5*3) + $4480
 fhd_WAIT	equ	(6*3) + $4480
 ;
-; ----------------------------------------------------------------------
+; ======================================================================
 ; Memory Locations for Regions
 ; ----------------------------------------------------------------------
 ;
 PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
 PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
 ;
-STRBUFF		EQU	$41E8		; L2 Basic String Buffer (L2.Basic 41E5H)
-				; L2 Basic Assigns $103 bytes to this buffer
+STRBUFF		EQU	$41E8		; L2 Basic String Buffer
+					; L2 Basic Starts Buffer from 41E5H
+					; L2 Basic Assigns $103 bytes to this buffer
+;
 CORE1		EQU	$42E0		; DOS Core Resident Code Block
 SYSFCB  	EQU	$43E0		; DOS System FCB BUFFER
 DOSENTY 	EQU	$4400		; TRS-DOS Entry Points
@@ -119,26 +138,44 @@ STARTUP		EQU	$5400		; Startup Code Block is loaded here
 ;DEFW	DOSEND+$E9	;40A4 (TXTTAB) - BASIC Program Statement Table Pointer
 ;DEFW	DOSEND+$14C	;40A0 (STKTOP) - String Storage Area (434C)
 ;
-;
-; ----------------------------------------------------------------------
+; ======================================================================
 ; Supervisor Call ID's
 ; LSB 4 bits are the overlay file name ending with A-Z
 ; Noting the A translates to an ID of $xxx00001
 ; ----------------------------------------------------------------------
 ;
-S_LOADCMD	EQU	'B' - '@' + $20	; LOAD basic command
-S_SAVECMD	EQU	'B' - '@' + $40	; SAVE basic command
-S_RUNCMD	EQU	'B' - '@' + $80	; RUN  basic command
+S_BASICLOAD	EQU	'B' - '@' + $20	; LOAD basic command
+S_BASICSAVE	EQU	'B' - '@' + $40	; SAVE basic command
+S_BASICRUN	EQU	'B' - '@' + $80	; RUN  basic command
 ;
 S_CMDPROC	EQU	'C' - '@' 	; (4405) @CMNDI Command Interpreter
 S_DIRCMD	EQU	'D' - '@'	; #DIR command
 S_ERRHAND	EQU	'E' - '@'	; (4409) DOS Error Handler
 ;
-S_INITFILE	EQU	'F' - '@' + $00	; (4420) @INIT DOS Function
-S_OPENFILE	EQU	'F' - '@' + $20	; (4424) @OPEN DOS Function
+S_FILESPEC	EQU	'F' - '@' + $20	; (441C) @FSPEC API Function
+S_INITFILE	EQU	'F' - '@' + $40	; (4420) @INIT API Function
+S_OPENFILE	EQU	'F' - '@' + $60	; (4424) @OPEN API Function
+S_CLOSEFILE	EQU	'F' - '@' + $80	; (4428) @CLOSE API Function
+S_KILLFILE	EQU	'F' - '@' + $A0	; (4428) @KILL API Function
+;
+S_READFILE	EQU	'G' - '@' + $20	; (4436) @READ API Function
+S_WRITEFILE	EQU	'G' - '@' + $40	; (4439) @WRITE API Function
+S_VERIFYFILE	EQU	'G' - '@' + $60	; (443C) @VER API Function
+S_REWFILE	EQU	'G' - '@' + $80	; (443F) @REW API Function
+S_POSNFILE	EQU	'G' - '@' + $A0	; (4442) @POSN API Function
+S_BKSPFILE	EQU	'G' - '@' + $C0	; (4445) @BKSP API Function
+S_PEOFFILE	EQU	'G' - '@' + $E0	; (4448) @PEOF API Function
 ;
 S_LOADFILE	EQU	'L' - '@' + $20	; (4430) @LOAD DOS Function
 S_RUNFILE	EQU	'L' - '@' + $40	; (4433) @RUN  DOS Function
+S_LOADCMD	EQU	'L' - '@' + $A0	; todo #LOAD DOS COMMAND - separate or just call the API
+;
+S_CDCMD		EQU	'S' - '@' + $20	; #CD command
+S_COPYCMD	EQU	'S' - '@' + $40	; #COPY #CP command
+S_DELCMD	EQU	'S' - '@' + $60	; #DEL #DELETE #KILL #RM command
+S_MDCMD		EQU	'S' - '@' + $80	; #MKDIR command
+S_RENCMD	EQU	'S' - '@' + $A0	; #REN #RENAME #MV #MOVE command
+S_PWDCMD	EQU	'S' - '@' + $C0	; #PWD command
 ;
 SUPERV 	macro	p1
 	ld	a,p1	; load supervisor id
@@ -155,8 +192,11 @@ ERRSN		EQU	02H	; Syntax Error
 ;
 ILLFILNAM$	EQU	19	; Illegal Filename
 FILNOTFND$	EQU	24	; File Not Found
+DIRSPCFUL$	EQU	26	; Directory Space Full
+DSCSPCFUL$	EQU	27	; Disk Space Full
 PRGNOTFND$	EQU	31	; Program not found
 LOAFILFMT$	EQU	34 	; Load file format error
+ILLDOSFUN$	EQU	42 	; Illegal (Unsupported) DOS Functon. From ND80
 UNKNOWN$	EQU	63
 ;
 ; ----------------------------------------------------------------------
@@ -166,18 +206,21 @@ CR          EQU     0DH
 LF          EQU     0AH
 SPC         EQU     20H
 ;
-; ----------------------------------------------------------------------
+; ======================================================================
 ; FREHD
 ; ----------------------------------------------------------------------
 ;
 ; FreHD PORT Interface defines
+; ----------------------------------------------------------------------
 DATA2	  	EQU	0c2h
 SIZE2     	EQU	0c3h
 COMMAND2  	EQU	0c4h
 ERROR2    	EQU	0c5h		; read only
 STATUS    	EQU	0cfh		; read only
 ;
-; FreHD Commands
+; COMMAND ID's
+; ----------------------------------------------------------------------
+; $00 - $0F FreHD Original
 GETVER		EQU	00h
 ;GETTIME	EQU	01h
 ;SETTIME	EQU	02h
@@ -188,11 +231,24 @@ CLOSEFILE	EQU	06h
 OPENDIR     	EQU	08h
 READDIR		EQU	09h
 ;
+; $10 - 17 General Purpose
 TRS_NEW_DIR	EQU	11h
-TRS_NEW_CD	EQU	12h
-TRS_NEW_MD	EQU	13h
-TRS_NEW_REN	EQU	14h
-TRS_NEW_DEL	EQU	15h
+;
+; $18 - $1F Reserved for OverlayS
+; They Map to the Superviser Call ID's
+TRS_NEW_CD	EQU	19h
+TRS_NEW_COPY	EQU	1Ah
+TRS_NEW_DEL	EQU	1Bh
+TRS_NEW_MD	EQU	1Ch
+TRS_NEW_REN	EQU	1Dh
+TRS_NEW_MOVE	EQU	1Eh
+;
+; $20 - $2F File API Commands
+TRS_FILE_OPEN	EQU	20h
+;
+; ======================================================================
+; PICO API (including FATFS) attributes
+; ----------------------------------------------------------------------
 ;
 ; FatFS File Open flags
 FA_READ		EQU	01h	; Data can be read from the file.
@@ -204,7 +260,7 @@ FA_CREATE_NEW   EQU	04h	; Creates a new file. Fails if the file DOES Exist
 FA_CREATE_ALWAYS EQU	08h	; Creates a new file. Truncates, and overrites existing file.
 FA_OPEN_ALWAYS  EQU	10h	; Opens a file, or creates a new file if it does not exist.
 ;
-; Directory Attributes
+; FatFS Directory Attributes
 AM_RDO		EQU     001H            ; Read only
 AM_HID		EQU     002H            ; Hidden
 AM_SYS		EQU     004H            ; System
@@ -212,7 +268,7 @@ AM_VOL		EQU     008H            ; Volume label
 AM_DIR		EQU     010H            ; Directory
 AM_ARC		EQU     020H            ; Archive
 ;
-; Status Codes
+; API Status Codes
 STATUS_BUSY     EQU	0x80		; interface is BUSY, must wait for completion
 STATUS_READY    EQU	0x40		; interface is READY, to accept a new command
 STATUS_WRERR    EQU	0x20		; ?
@@ -245,9 +301,39 @@ NOP3 	macro
 	NOP
 	endm
 
-; ------------------------------
+; ======================================================================
+; Memory Banking
+; ======================================================================
+
+; Bank Pages
+; ----------------------------------------------------------------------
+
+; DOS Overlays (32 of them) $00 - $1F
+; Map to Page in range $E0 (224) to $FF (255)
+; Which Map to entry addresses $3380 to $33FC
+;
+PAGE_OVERLAYA	EQU	$E1	; A 225 - Doesnt Exit
+PAGE_OVERLAYB	EQU	$E2	; B
+PAGE_OVERLAYC	EQU	$E3	; C
+PAGE_OVERLAYD	EQU	$E4	; D
+PAGE_OVERLAYE	EQU	$E5	; E
+PAGE_OVERLAYF	EQU	$E6	; F
+PAGE_OVERLAYG	EQU	$E7	; G
+PAGE_OVERLAYL	EQU	$EC	; L
+PAGE_OVERLAYS	EQU	$F3	; Dos Filesystem Commands
+
+; Basic Extensions (32)
+; Propose C0 (192) to DF (223)
+;
+PAGE_AMPERSAND	EQU	215
+PAGE_DOSERROR1	EQU	216
+PAGE_DOSERROR2	EQU	217
+PAGE_INSTRFUNC	EQU	218
+PAGE_MIDOLLAR	EQU	219
+PAGE_TIMEDOLL	EQU	220
+
 ; BANK PAGING MACROS
-; ------------------------------
+; ----------------------------------------------------------------------
 
 ; Callable Routine that Returns
 pageCall macro label, pagenum
@@ -270,33 +356,4 @@ endm
 pageEnd macro
 	assert $ <= $3600
 endm
-
-; ------------------------------
-; Bank Pages
-; ------------------------------
-
-; DOS Overlays (32)
-; Propose E0 (224) to FF (255)
-; Mask is 111xxxxx and can be applied easily
-; to Super call id since it has same structure
-; then we can shift left < 2 -> xxxxxx11 1xxxxx00
-; then or with $3000  -> 00110011 1xxxxx00
-; to get the JUMP address
-;
-PAGE_OVERLAYA	EQU	$E1
-PAGE_OVERLAYB	EQU	$E2
-PAGE_OVERLAYC	EQU	$E3
-PAGE_OVERLAYD	EQU	$E4
-PAGE_OVERLAYE	EQU	$E5
-PAGE_OVERLAYF	EQU	$E6
-PAGE_OVERLAYL	EQU	$EC
-
-; Basic Extensions (32)
-; Propose C0 (192) to DF (223)
-;
-PAGE_AMPERSAND	EQU	215
-PAGE_DOSERROR1	EQU	216
-PAGE_DOSERROR2	EQU	217
-PAGE_INSTRFUNC	EQU	218
-PAGE_MIDOLLAR	EQU	219
 

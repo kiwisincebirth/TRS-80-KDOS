@@ -1,0 +1,80 @@
+
+; ------------------------------
+; BASIC MID$ Dos extension
+; Original Source from TRSDOS 2.3
+; SEE
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+; ------------------------------
+;
+import	constants.z
+;
+; ------------------------------
+; CODE STARTS HERE
+; ------------------------------
+;
+pageCall timedollar, PAGE_TIMEDOLL
+;
+; ------------------------------
+; Code Required Starts Here
+; Copied From TRS DOS 2.3
+; ------------------------------
+;
+
+	rst	$0010                 ; 5745:
+	push	hl                    ; 5746:
+	ld	a,$11                 ; 5747:
+	call	STRINI                 ; 5749:
+	ld	hl,($40d4)            ; 574c: not entirely sure what tis address is
+	ld	de,XTIME+5            ; 574f:
+	call	_5776                 ; 5752:
+	ld	(hl),'/'              ; 5755:
+	inc	hl                    ; 5757:
+	call	_5776                 ; 5758:
+	ld	(hl),'/'              ; 575b:
+	inc	hl                    ; 575d:
+	call	_5776                 ; 575e:
+	ld	(hl),' '              ; 5761:
+	inc	hl                    ; 5763:
+	call	_5776                 ; 5764:
+	ld	(hl),':'              ; 5767:
+	inc	hl                    ; 5769:
+	call	_5776                 ; 576a:
+	ld	(hl),':'              ; 576d:
+	inc	hl                    ; 576f:
+	call	_5776                 ; 5770:
+	jp	PUTNEW                 ; 5773:
+_5776:
+	ld	a,(de)                ; 5776:
+	dec	de                    ; 5777:
+	ld	b,'/'                 ; 5778:
+_577A
+	sub	10                    ; 577a:
+	inc	b                     ; 577c:
+	jr	nc,_577A              ; 577d:
+	add	a,':'                 ; 577f:
+	ld	(hl),b                ; 5781:
+	inc	hl                    ; 5782:
+	ld	(hl),a                ; 5783:
+	inc	hl                    ; 5784:
+	ret                           ; 5785:
+
+;
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+pageEnd
+;
+; ------------------------------
+; DOS ENTRY VECTOR
+; ------------------------------
+;
+	ORG	$4176
+	jp	timedollar
+;
+; ------------------------------
+; CODE ENDS HERE
+; ------------------------------
+	; After loading return to DOS
+	END	$402D
+;
+

@@ -1,6 +1,6 @@
 ; ======================================================================
 ;       	MINI DOS
-;	based on TRSDOS and NEWDOS/80 for Model 1
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     LOADER - Support Load and Run of CMD fies
 ;
@@ -15,8 +15,12 @@
 import	constants.z
 ;
 ; ======================================================================
-; Overlay Region (4500h - 4600h)
+; Overlay Region (4500h - 4700h)
 ; ======================================================================
+;
+; todo We should ideally handle issue with loading a File to protected memory
+; todo e.g. $0000 - $3000 (ROM) - which is illegal, the is a DOS error for this.
+; todo Error 36 ( 24H ) - Attempt to load read only memory
 ;
 ; Handles 4430 - Load Program File
 ;
@@ -36,18 +40,26 @@ import	constants.z
 ;    HL <- is passed onto the program
 ;    AF and BC are Altered
 ;    Exit to 4409 displaying error, if Fail to execute
-;
-; todo We should ideally handle issue with loading a File to protected memory
-; todo e.g. $0000 - $3000 (ROM) - which is illegal, the is a DOS error for this.
-; Error 36 ( 24H ) - Attempt to load read only memory
-;
+
 	ORG	OVERLY
 	;
-	cp	S_RUNFILE	; WAS it a RUN command
+	cp	S_LOADFILE	; WAS it a @LOAD 4430 API Call
+ 	jr	z,LOAD_FIL
+	;
+	cp	S_RUNFILE	; WAS it a @RUN  4433 API Call
  	jr	z,RUN_FIL
 	;
-	; otherwise assume a LOAD and fall through
+	cp	S_LOADCMD	; #LOAD XXXXXXXX DOS COMMAND
+	jr	z,LOAD_CMD
+	;
+	ret
 ;
+; ======================================================================
+;
+LOAD_CMD
+	ld	d,h		; In the cmd processor HL points to the buffer
+	ld	e,l		; In the cmd processor HL points to the buffer
+	;
 LOAD_FIL
 	call	_STR_LEN	; count the lenght of the string
 	;
@@ -94,7 +106,10 @@ _STR_LEN1
 ifdef	@D_PICOENHANCED
 ;
 ; ON a PICo this code has to be in the SCRATCH RAM
-file_loader	EQU	PICOSCRATCH + 0
+; as keeping it in the Paged Ram (with the overlay)
+; caused issues, specifically with loading code
+; into he virtal ram pages themselves
+file_loader	EQU	SCR_LOADOADER
 ;
 else
 ;;;
@@ -133,6 +148,7 @@ _load2:	dec	a		; test if type 2 (TRADDR)
 	jr	z,_load8		; yes consume transfer address
 	;
 	call	fhd_READBYTE	; Type 3 and above: assume comment
+	ret	nz
 	ld	b,a		; get comment length
 _load2a:
 	call	fhd_READBYTE	; read comment character

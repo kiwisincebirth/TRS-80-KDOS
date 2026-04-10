@@ -1,0 +1,107 @@
+; ======================================================================
+;       	MINI DOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     Directory Management Shell Commands (multiple)
+;	that act as filesystem level eg. CD, MKDIR, DEL, etc
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4700h)
+; ======================================================================
+;
+	ORG	OVERLY
+	;
+	ld	c,a		; c -> the command passed in.
+	;
+	call	enh_VER		; test if Enhanced Pico (NZ flag)
+	;
+	jr	nz,_DOCMD1	; Enhanced Fre Hd / Advanced Pico handling
+	;
+	ld	a, ILLDOSFUN$	; if NOT enhanced the illegal Dos Function
+	jp	@ERROR		; jump to dos and display error
+;
+_DOCMD1:
+;
+; Note The Command Sent to the PICO is mapped from
+; the DOS Supervisor Command parameter    0 to 7
+; into a matching FreHD Cmd ID in range $18 to $1F
+;
+	ld	a,c		; get the Supervisor ID
+	rra			; translate from NNNxxxxx
+	rra			; translate to   00011NNN
+	rra
+	rra
+	rra			; rotate right -> xxxxxNNN
+	and	$07		; mask the lower -> 00000NNN
+	or	$18		; set the forth bit 00011NNN
+	;
+	out     (COMMAND2),A	; send the command we just mapped
+	;
+	EX	DE, HL		; DE -> pointer to cmd buffer
+	call	_STR_LEN	; and get the length (DE), into B
+	;
+	ld	a,b		; size of the string
+	out     (SIZE2),a	; send it to pico
+	;
+	EX	DE, HL		; string pointer back into HL
+	ld	c,DATA2		; data port
+	otir			; write bytes from (HL) cmd buffer
+	;
+	call    fhd_WAIT
+	jp      nz,@ERROR	; Read Failed
+	;
+	and     STATUS_DRQ	; mask DRQ status
+	jr      z,_DOCMD9       ; No DRQ so done
+	;
+	; todo display any response from the command
+	; todo read string from DATA2 for SIZE2 bytes
+	; call    @DSPLY
+	;
+_DOCMD9
+	;
+	JP	@EXIT		; completed so exit
+;
+
+; ----------------------------------------------------------------------
+;
+; Get the length of the string.
+; Also in OverlayL and OverlayD
+;
+_STR_LEN:
+	push	de		; save PCB pointer
+	dec	de		; dec as inc below happens first
+	ld	b,0		; length including the terminator
+	;
+_STR_LEN1
+	inc	de		; increment pointer
+	inc	b		; and the counters
+	ld	a,(de)		; get the byte
+	or	a		; check the byte
+	jr	nz,_STR_LEN1	; NOT a terminator, so loop
+	;
+	pop	de		; restore the FCB
+	ret			; and return the length
+
+; ----------------------------------------------------------------------
+
+
+
+
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+FREE_OVERLAYS	EQU	OVERLY + $200 - $
+;
+	; FILL to end of REGION
+	DC	FREE_OVERLAYS , 0
+;

@@ -1,6 +1,6 @@
 ; ======================================================================
 ;       	MINI DOS
-;	based on TRSDOS and NEWDOS/80 for Model 1
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     GENERAL FILE HANDLING - OPEN CLOSE etc.
 ;
@@ -45,16 +45,28 @@ pageCall _basic_overe, PAGE_OVERLAYE
 include	overlaye.z
 pageEnd
 
-; DOS Routines for DISK File Access
+; DOS Routines for DISK File Open/Close Access
 ; These are routines that return to caller
 pageCall _basic_overf, PAGE_OVERLAYF
 include	overlayf.z
+pageEnd
+
+; DOS Routines for DISK File R/W Access
+; These are routines that return to caller
+pageCall _basic_overg, PAGE_OVERLAYG
+include	overlayg.z
 pageEnd
 
 ; CMD Loader and Runner
 ; For Loader there is a RET path
 pageCall _basic_overl, PAGE_OVERLAYL
 include	overlayl.z
+pageEnd
+
+; File System Command
+; No ret from this, back to dos
+pageJump _basic_overs, PAGE_OVERLAYS
+include	overlays.z
 pageEnd
 
 ; BASIC Extensions - Non Disk Functions
@@ -64,6 +76,7 @@ include	BASIC-INSTR.z		; $419D
 
 ; DOS Exits
 ; ----------------------------------------------------------------------
+include	BASIC-TIME.z		; $4176
 include BASIC-ERROR.z		; $41A6
 include	BASIC-MID.z		; $41D9
 

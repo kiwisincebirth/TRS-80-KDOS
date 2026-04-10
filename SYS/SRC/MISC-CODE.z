@@ -1,5 +1,13 @@
 
 
+
+
+
+
+
+
+
+
 ; Below is From NewDos 80 v2 SYS 1
 ; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm
 ' supports extracting a filename from a string.
@@ -294,3 +302,78 @@ MXCHAR:	LD	A,0	; Self-Modifying Code The operand byte (00H shown here) is the ta
 	LD	A,C	; Restore the terminating character from Register C back into Register A. The caller can examine A to determine what character caused the extraction to stop (separator, terminator, or invalid character).
 	RET		; RETURN to the caller. Z flag indicates the result: Z set = no valid characters were stored (first call yielded nothing), NZ = at least one character was stored. Register A holds the terminating character.
 
+
+
+; MY CODE Before moved it into PicoRAM
+;
+	; Parse and extract the 12 character filename
+	; convert the / character into .
+	; only copy first 8 and 3 extension chars
+	; strip out any :0 and .password
+loop_start:
+	ld	b,12		; max character count 8.3 filename
+	ld	hl, $20 - 13	; number of chars into FCB to copy parsed filename
+	add	hl,de		; add the starting DE pointer to HL, now has target
+	push	hl		; pointer to start of parsed filename
+loop:
+	ld 	a,(de)		; get char from source filename FCB
+	call	aplha_check	; check for alphanumeric
+	ld 	a,(de)		; reload that char after the check
+	jr	c, good_char	; if alphnumeric then proceed
+	cp	'/'		; test a for / -> only other valid char
+	jr	nz,finish_up	; not a / then we need to finish
+	ld	a,'.'		; / needs to be converted to .
+good_char:
+	ld 	(hl),a		; placeing parsed filename char at end of FCB
+	inc 	de		; fcb address containing source filename
+	inc 	hl		; fcb address containing parsed filename
+	djnz 	loop		; LOOP BACK to process the next character.
+finish_up:
+	inc	b		; finish by processing 1 more terminate char
+	ld	a,0		; the string terminator character
+padd:
+	ld	(hl),a		; add string terminator to parsed string
+	inc	hl		; bump the pointer
+	djnz	padd		; padd until until finished
+exit:
+;
+; This subroutine checks if the character in A is an alphabetic letter (A-Z or a-z) or 0-9
+; Returns with CARRY set if the character is alphabetic. If called after a digit test fails,
+; it determines if the character is a valid filename character.
+; Destroys A in the process
+aplha_check:
+	SUB 	30H	; This converts ASCII digits '0'-'9' to values 0-9.
+	CP 	0AH	; If is less than 10, the original character was a digit '0'-'9'.
+	RET 	C	; If CARRY is set return immediately - character is valid.
+	SUB 	11H	;Subtract 41H (ASCII 'A') from the character. This normalizes uppercase letters to 0-25.
+	CP	1AH	;Compare against 1AH (26 decimal). If result is less than 26, the character was 'A'-'Z'.
+	RET	C	;If CARRY is set (character is uppercase letter 'A'-'Z'), return with CARRY indicating valid.
+; Not an uppercase letter - check for lowercase.
+	SUB	20H	;Subtract 20H more (the difference between lowercase and uppercase in ASCII). Now checking for 'a'-'z'.
+	CP	1AH	;Compare against 1AH (26). If result is less than 26, the character was 'a'-'z'.
+	RET		;Return. CARRY set if lowercase letter, CARRY clear if not alphabetic.
+
+
+
+
+; this was attept at documenting THE default FCB
+DEF_FCB_BLK:
+	DEFB	$80		; 0 Flags - $80 Open
+	DEFB	$28		; 1 Flags
+	DEFB	$20		; 2 Flags
+
+	DEFB	$00		; 3 FCB Data Buffer (Passed in HL)
+	DEFB	$00		; 4 FCB Data Buffer (Passed in HL)
+	DEFB	$00		; 5 NEXT Low Order Byte
+
+	DEFB	$00		; 6 Drive Number (6/7 are Filesystem ID)
+	DEFB	$00		; 7 Pointer to the Files Directory Entry
+
+	DEFB	$00		; 8 EOF Low Order Byte
+	DEFB	$00		; 9 LRECL Logical Record Len (Parsed in B)
+	DEFB	$00		; 10 NEXT Middle Order Byte
+	DEFB	$00		; 11 NEXT High Order Byte
+	DEFB	$00		; 12 EOF Middle Order Byte (from file length)
+	DEFB	$00		; 13 EOF High Order Byte (from file length)
+	DEFW	$FFFF		; 14 15 File Directory Extent
+				; 16-31 File Directory Extent's

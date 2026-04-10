@@ -1,0 +1,147 @@
+; ======================================================================
+;       	MINI DOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     FILE HANDLING FOR DOS API's @ $4400 - $4480
+;	Deals with Access to Data in an Open File
+;	( See Overlay F for the Open/Close functions )
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4700h)
+; ======================================================================
+;
+	ORG	OVERLY
+
+	push	af		; preserve the Super Call ID
+	call	enh_VER		; test if Enhanced Pico (NZ flag)
+	jr	z,_NOT_ENH	; Enhanced Fre Hd / Advanced Pico handling
+	pop	af
+	;
+	cp	S_READFILE	; (4436) @READ API Function
+	jr	z,_readfile
+	;
+	cp	S_WRITEFILE	; (4439) @WRITE API Function
+	jr	z,_writefile
+	;
+	cp	S_VERIFYFILE	; (443C) @VER API Function
+	jr	z,_verifyfile
+	;
+	cp	S_REWFILE	; (443F) @REW API Function
+	jr	z,_rewindfile
+	;
+	cp	S_POSNFILE	; (4442) @POSN API Function
+	jr	z,_positionfile
+	;
+	cp	S_BKSPFILE	; (4445) @BKSP API Function
+	jr	z,_backspacefile
+	;
+	cp	S_PEOFFILE	; (4448) @PEOF API Function
+	jr	z,_eoffile
+ 	;
+	jr	_ILLEGAL	; not found so it is illegal
+
+_NOT_ENH
+	pop	af
+_ILLEGAL
+	ld	a, ILLDOSFUN$	; (NOT enhanced) so illegal Dos Function
+	or	a		; set the flags
+	ret			; return falure
+;
+; ----------------------------------------------------------------------
+;
+; @READ READ File ($4436)
+; Read a record from Disk, based on LRL specified at open time FCB+1(Bit7)
+; If LRL = 256 (0) record will be placed in the IO buffer (held in FCB)
+; If LRL < 256 record will be placed in buffer specified in Argument
+; DE -> Pointer to FCB 32 byte Buffer
+; HL -> User Record Buffer address for LRL <256
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB Next Record num - increased by number of bytes Read
+;
+_readfile
+	; todo
+	JP	_ILLEGAL
+
+;
+; @WRITE WRITE (no verify) File ($4439)
+; DE -> Pointer to FCB 32 byte Buffer
+; HL -> User Record Buffer address for LRL <256
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB Next Record num - increased by number of bytes Written
+; FCB EOF - Updated (conditionally) after write to equal NEXT
+;   * If NEXT exceeds EOF
+;   * If FCB+1 (Bit6 = 0) - the default when opening a file
+;
+_writefile
+	; todo
+	JP	_ILLEGAL
+
+;
+; @VER  Write and VERIFY File ($443C)
+; Same as @WRITE
+;
+_verifyfile
+	; todo
+	JP	_ILLEGAL
+
+;
+; @REW  Position to start of file SOF ($443F)
+; DE -> Pointer to FCB 32 byte Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB Next Record num - will be set to 0
+;
+_rewindfile
+	; todo
+	JP	_ILLEGAL
+
+;
+; @POSN Position to a specified record ($4442)
+; DE -> Pointer to FCB 32 byte Buffer
+; BC -> Logical Record Number (0= first record)
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB Next Record Num = LogRecLength * LogRecNumber
+;
+_positionfile
+	; todo
+	JP	_ILLEGAL
+
+;
+; @BKSP Backspace One Record ($4445)
+; DE -> Pointer to FCB 32 byte Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB Next Record num - decreased by LRL
+;
+_backspacefile
+	; todo
+	JP	_ILLEGAL
+
+;
+; @PEOF Position to End Of File  EOF ($4448)
+; DE -> Pointer to FCB 32 byte Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB Next Record num - Set to EOF
+;
+_eoffile
+	; todo
+	JP	_ILLEGAL
+
+;
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+FREE_OVERLAYG	EQU	OVERLY + $200 - $
+;
+	; FILL to end of REGION
+	DC	FREE_OVERLAYG - 1,0
+	DB	$0F
+;

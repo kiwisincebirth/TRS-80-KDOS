@@ -1,6 +1,6 @@
 ; ======================================================================
 ;       	MINI DOS
-;	based on TRSDOS and NEWDOS/80 for Model 1
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     BASIC - LOAD, SAVE and RUN
 ;
@@ -14,19 +14,19 @@
 import	constants.z
 ;
 ; ======================================================================
-; Overlay Region (4500h - 4600h)
+; Overlay Region (4500h - 4700h)
 ; ======================================================================
 ;
 	ORG	OVERLY
 	;
 ENTRY:
-	cp	S_SAVECMD
+	cp	S_BASICSAVE
 	jr	z,BASIC_SAVE	; SAVE
 	;
-	cp	S_RUNCMD
+	cp	S_BASICRUN
 	jr	z,BASIC_RUN	; RUN
 	;
-	cp	S_LOADCMD
+	cp	S_BASICLOAD
 	jr	z,BASIC_LOAD	; LOAD
 	;
 	ret	; todo this should be an error

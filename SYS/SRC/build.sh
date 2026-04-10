@@ -21,33 +21,40 @@ cp zout/sys0f.cmd   /Volumes/FLOPPY90/SYS/F/SYS0.sys
 ./zmac overlayd.z --oo lst,cim
 ./zmac overlaye.z --oo lst,cim
 ./zmac overlayf.z --oo lst,cim
+./zmac overlayg.z --oo lst,cim
 ./zmac overlayl.z --oo lst,cim
+./zmac overlays.z --oo lst,cim
 
 cp zout/overlayb.cim ../overlayb.sys
 cp zout/overlayc.cim ../overlayc.sys
 cp zout/overlayd.cim ../overlayd.sys
 cp zout/overlaye.cim ../overlaye.sys
 cp zout/overlayf.cim ../overlayf.sys
+cp zout/overlayg.cim ../overlayg.sys
 cp zout/overlayl.cim ../overlayl.sys
+cp zout/overlays.cim ../overlays.sys
 
 cp zout/overlayb.cim ~/Documents/FreHD/SYS/overlayb.sys
 cp zout/overlayc.cim ~/Documents/FreHD/SYS/overlayc.sys
 cp zout/overlayd.cim ~/Documents/FreHD/SYS/overlayd.sys
 cp zout/overlaye.cim ~/Documents/FreHD/SYS/overlaye.sys
 cp zout/overlayf.cim ~/Documents/FreHD/SYS/overlayf.sys
+cp zout/overlayg.cim ~/Documents/FreHD/SYS/overlayg.sys
 cp zout/overlayl.cim ~/Documents/FreHD/SYS/overlayl.sys
+cp zout/overlays.cim ~/Documents/FreHD/SYS/overlays.sys
 
 cp zout/overlayb.cim /Volumes/FLOPPY90/SYS/overlayb.sys
 cp zout/overlayc.cim /Volumes/FLOPPY90/SYS/overlayc.sys
 cp zout/overlayd.cim /Volumes/FLOPPY90/SYS/overlayd.sys
 cp zout/overlaye.cim /Volumes/FLOPPY90/SYS/overlaye.sys
 cp zout/overlayf.cim /Volumes/FLOPPY90/SYS/overlayf.sys
+cp zout/overlayg.cim /Volumes/FLOPPY90/SYS/overlayg.sys
 cp zout/overlayl.cim /Volumes/FLOPPY90/SYS/overlayl.sys
+cp zout/overlays.cim /Volumes/FLOPPY90/SYS/overlays.sys
 
-open -a trs80gp --args -m1 -dx \
+open -a trs80gp --args -m1 \
   -frehd -frehd_dir ~/Documents/FreHD \
   -rom ~/GITHUB/TRS-80-ROMS/MDL1REV4.bin \
-
 
 #  -frehd_patch \
 #  -b 4420 \

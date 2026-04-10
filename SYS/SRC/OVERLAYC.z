@@ -1,6 +1,6 @@
 ; ======================================================================
 ;       	MINI DOS
-;	based on TRSDOS and NEWDOS/80 for Model 1
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     COMMAND PROCESSOR
 ;
@@ -15,7 +15,7 @@ import	constants.z
 
 ;
 ; ======================================================================
-; Overlay Region (4500h - 4600h)
+; Overlay Region (4500h - 4700h)
 ; ======================================================================
 ;
 	ORG	OVERLY
@@ -50,10 +50,10 @@ _MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
 
 	; now we need to detect the "#" symbol, and if found process locally.
 	; noting first POP the Return address, the use the DOS code
-	cp	'#'		; is it the start of a DOS command
+	cp	CMD_PROMPT_CHR	; is it the start of a DOS command
 
 	; Jumping Back INTO BASIC to continue
-	jp	nz,$1A88	; jump back into DOS READY Handler processing the BASIC Command
+	jp	nz,READYC	; jump back into DOS READY Handler processing the BASIC Command
 
 ; ----------------------------------------------------------------------
 ; Processing of DOS Specific # COMMANDS starts here
@@ -125,6 +125,10 @@ _FOUND2:
 ;	;
 ; ----------------------------------------------------------------------
 _NOTFND:
+	; todo review this code
+	; todo we have a OVERLAYL specifically for loading and running
+	; todo programs, we show defer to thi, or just use the API it exposes.
+
 	; parse the command line string as a file name
 	ld	hl,(SAVBUFF)	; get original address of command buffer
 	inc	hl		; buffer pointer so actual char (not prior)
@@ -157,28 +161,55 @@ SAVBUFF
 	DW	0		; address of buffer containing command
 	;
 LOOKUPTAB
-	; internal command lookup table,
-	; with three byte instruction
+	; internal command lookup table, with three byte instruction
 	DB	'CD',0
-	JP	@EXIT
+	SUPERV	S_CDCMD
 	;
 	DB	'COPY',0
-	JP	@EXIT
+	SUPERV	S_COPYCMD
+	;
+	DB	'CP',0
+	SUPERV	S_COPYCMD
 	;
 	DB	'DEL',0
-	JP	@EXIT
+	SUPERV	S_DELCMD
+	;
+	DB	'DELETE',0
+	SUPERV	S_DELCMD
 	;
 	DB	'DIR',0
 	SUPERV	S_DIRCMD
 	;
+	DB	'KILL',0
+	SUPERV	S_DELCMD
+	;
 	DB	'LOAD',0
-	JP	@EXIT
+	SUPERV	S_LOADCMD
+	;
+	DB	'LS',0
+	SUPERV	S_DIRCMD
 	;
 	DB	'MKDIR',0
-	JP	@EXIT
+	SUPERV	S_MDCMD
+	;
+	DB	'MOVE',0
+	SUPERV	S_RENCMD
+	;
+	DB	'MV',0
+	SUPERV	S_RENCMD
+	;
+	DB	'PWD',0
+	SUPERV	S_PWDCMD
 	;
 	DB	'REN',0
-	JP	@EXIT
+	SUPERV	S_RENCMD
+	;
+	DB	'RENAME',0
+	SUPERV	S_RENCMD
+	;
+	DB	'RM',0
+	SUPERV	S_DELCMD
+	;
 	; table terminator
 	DB	0
 ;

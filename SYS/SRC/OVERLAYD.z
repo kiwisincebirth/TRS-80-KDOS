@@ -1,6 +1,6 @@
 ; ======================================================================
 ;       	MINI DOS
-;	based on TRSDOS and NEWDOS/80 for Model 1
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     DIR COMMAND
 ;
@@ -14,7 +14,7 @@
 import	constants.z
 ;
 ; ======================================================================
-; Overlay Region (4500h - 4600h)
+; Overlay Region (4500h - 4700h)
 ; ======================================================================
 ;
 	ORG	OVERLY
@@ -35,10 +35,10 @@ GETDIR:
 	out     (SIZE2),A
 	ld      a,OPENDIR
 	out     (COMMAND2),A
-	call    fhd_WAIT
+	; call    fhd_WAIT
 	;
 	ld      a,"/"		; Default to the "ROOT" directory
-	out     (DATA2),A
+	out     (DATA2),A	; Directories are really for Oico Version only.
 	ld      a,0
 	out     (DATA2),A
 	;
@@ -67,19 +67,17 @@ GETDIR3
 ;
 ; Advanced Pico API to do a DIR listing
 ;
-; todo need to provide simple filtering *XXX and XXX*
-;
 NEWDIR:
 	call	SETROWS         ; Setup column and row count
 	;
 	call	_STR_LEN	; and get the length (DE), into B
 	;
-	ld	a,b		; add one byte for first param
-	out     (SIZE2),a
+	ld	a,b		; get the size of string
+	out     (SIZE2),a	; send to PICO
 	;
 	ld      a,TRS_NEW_DIR	; send the command
 	out     (COMMAND2),A
-	call    fhd_WAIT
+	;call    fhd_WAIT
 	;
 	EX	DE, HL		; string pointer back into HL
 	ld	c,DATA2		; data port

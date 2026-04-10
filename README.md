@@ -11,7 +11,7 @@ as they use standard DOS calls.
 The DOS runs in the Level 2 Basic command Shell, and dos
 commands are executed using the `#` prefix. e.g.
 
-`#DIR`
+`#DIR *.*`
 
 ## Features
 
@@ -21,11 +21,12 @@ Core Features
   * FreHD - In a basic very basic form. This is supported mainly for emulation and testing purposes
 * Runs in the BASIC command shell
 * DOS Features
-  * Most DOS entry points at $4400 are supported. 
+  * Most DOS entry points at $4400 are supported.
+  * Interrupts with real Time Clock support
 * BASIC features
   * Disc Basic Features are supported
   * Long error messages ar displayed
-* Modern features including 
+* Modern Filesystem features including 
   * Files are stored natively on the FAT filesystem.
   * File directories are supported, (currently 1 directory at a time)
 * Has a Low memory overhead than a traditional DOS
@@ -39,10 +40,24 @@ The Floppy 80 is the primary hardware required by this solution. Custom Firmware
 * Paged Memory (in the $3000 - $37DF memory region) to allow for
 * A Floppy Disk emulation (only) to support the loading of a boot block at start
 
-The FreHD solution
-* Only provides a sub set of functions as It's firmware has not been evolved.
-* Consumes more RAM (512KB) for overlays as doesnt have paged memory.
-* Doesnt support Disk Basic functions.
+### Hardware Address Map
+
+The following is provided by the Pic Hardware
+
+| Address     |                                 |
+|-------------|---------------------------------|
+| 3000 - 3400 | Virtual Memory (page entry)     |
+| 3400 - 3600 | Virtual Memory (page swappable) |
+| 3600 - 37E0 | Scratch Memory (static)         |
+| 37E0        | Read and Reset of RTC Interrupt |
+| 37EC        | FDC Command Status              |
+| 37EF        | FDC Data Register               |
+| 37F0        | Virtual Memory Page Register    |
+| IO Port $C2 | Pico DATA IO Port               |
+| IO Port $C3 | Pico SIZE Register              |
+| IO Port $C4 | Pico COMMAND Register           |
+| IO Port $C5 | Pico ERROR Register             |
+| IO Port $CF | Pico STATUS Register            |
 
 ## Components
 
@@ -52,119 +67,166 @@ The FreHD solution
 * SD Card for storage
 * Expansion Interface is not needed
 
-## Spported
+## Supported
 
-|              | Floppy 80           | Caveat                |
-|--------------|---------------------|-----------------------|
-| BASIC        | LOAD "filename.BAS" |                       |
-| Commands     | SAVE "filename.BAS" |                       |
-|              | RUN "filename.BAS"  |                       |
-|              | -                   |                       |
-| BASIC        | &Hxx                | Hexidecimal Constant  |
-| Instructions | &Hxx                | Octodecimal Constant  |
-|              | MID(X$,N,N)=""      | Mid String Assignment |
-|              | INSTR(X$,Y$)        | String Searh          |
-|              |                     |                       |
-| DOS          | #filename           | Runs a CMD program    |
-|              | #LOAD filename.CMD  | Load a CMD program    |
-|              |                     |                       |
-| DOS          | #DIR *.*            |                       |
-|              | #CD                 |                       |
-|              |                     |                       |
-
+|              | Floppy 80           | Caveat                     |      |
+|--------------|---------------------|----------------------------|------|
+| BASIC        | LOAD "filename.BAS" | Load a basic Program       | All  |
+| Commands     | SAVE "filename.BAS" |                            | All  |
+|              | RUN "filename.BAS"  |                            | All  |
+|              | KILL "filename"     | Delete a file (todo)       | Pico | 
+|              | -                   |                            |      |
+| BASIC        | &Hxx                | Hexadecimal Constant       | Pico |
+| Instructions | &Hxx                | Octo-decimal Constant      | Pico |
+|              | MID(X$,N,N)=""      | Mid String Assignment      | Pico |
+|              | INSTR(X$,Y$)        | String Search function     | Pico |
+|              | TIME$               | RTC Current DateTime       | Pico |
+|              |                     |                            |      |
+| BASIC Errors | Display Full Error  |                            | Pico |
+|              |                     |                            |      |
+| DOS          | #filename           | Runs a CMD program         | All  |
+|              | #LOAD filename.CMD  | Load a CMD program         | All  |
+|              |                     |                            |      |
+| DOS          | #DIR {wildcard}     | display directory contents |      |
+|              | #CD {dirName}       | Set working directory      | Pico |
+|              | #MKDIR {dirname}    | Make a directory           | Pico |
+|              | #DEL {filename}     | delete file or directory   | Pico |
 
 ## Technical
 
+### Startup
+
+At startup holding the <CLEAR> key will disable the Virtualised RAM
+and instead use Liner Overlay RAM. This will also disable other features
+like extended disk basic. It will also reduce available ram by 512 bytes
+
 ### Boot Process
 
-|            | Floppy 80                  | F80 & FHD                | FreHD                      |
-|------------|----------------------------|--------------------------|----------------------------|
-| ROM        | Uses a Standard L2 ROM     | ->                       | Requires FreHD Autoboot ROM |
-| ROM        | Loads Floppy Boot Block    | ->                       | Loads FreHD Boot Block     |
-| ROM        | (BOOT.SYS loaded to $4200) | BOOT.SYS loaded to $5000 | FreHD boot loaded to $5000 |
-| Boot Block |                            |                          | Loads FREHD.ROM            |
-| Boot Block |                            |                          | -aka- BOOT/CMD to $5200    |
-| Boot.SYS   | Relocates to $5200         | <-                       |                            |
-| Boot.SYS   | Detects Hardware           | <-                       | Detects Hardware           |
-| Boot.SYS   | Loads /SYS/SYS0P.SYS       | <-                       | Loads /SYS/SYS0F.SYS       |
-| SYS0.SYS   | Starts at $5400            | <-                       | Starts at $5400            |
-| Overlays   | -included in SYS0P-        | <-                       | Loads /SYS/SYS(A-Z).SYS    |
+|            | Floppy 80                | F80 & FHD              | FreHD                       |
+|------------|--------------------------|------------------------|-----------------------------|
+| ROM        | Uses a Standard L2 ROM   | ->                     | Requires FreHD Autoboot ROM |
+| ROM        | Loads Floppy Boot Block  | ->                     | Loads FreHD Boot Block      |
+| ROM        | (BOOT.SYS loaded $4200)  | BOOT.SYS loaded $5000  | FreHD boot loaded to $5000  |
+| Boot Block |                          |                        | Loads FREHD.ROM             |
+| Boot Block |                          |                        | -aka- BOOT/CMD to $5200     |
+| Boot.SYS   | Relocates to $5200       | <-                     |                             |
+| Boot.SYS   | Detects Hardware         | <-                     | Detects Hardware            |
+| Boot.SYS   | Loads /SYS/SYS0.SYS      | <-                     | Loads /SYS/F/SYS0.SYS       |
+| SYS0.SYS   | Starts at $5400          | <-                     | Starts at $5400             |
+| Overlays   | -included in SYS0P-      | <-                     | Loads /SYS/SYS(A-Z).SYS     |
 
 * BOOT.SYS - 256 byte binary image, with ORG = $6000 
 * FreHD.ROM - is a direct copy of BOOT.SYS in CMD format 
-* SYS0P.SYS - Enhanced PICO full DOS Version 
-* SYS0F.SYS - FreHD Limited version (same source code)
+* SYS0.SYS - Enhanced PICO full DOS Version 
+* F/SYS0.SYS - FreHD Limited version (same source code)
 * Overlays are pre-loaded into Pages RAM, not dynamically
   * Are preloaded into Paged RAM as part of SYS0 on Floppy80
   * Are loaded (on demand) into normal RAM, like a normal DOS
 
 ### Memory Map
 
-| Address     | Contents               | For FreHD               |
-|-------------|------------------------|-------------------------|
-| 3400 - 3600 | DOS Overlay Area       | Located at 4500-4700    |
-| 3600 - 37E0 | DOS Loader Utility     | Moved into Overlay Code |
-| 4000 - 41E8 | As per Level 2 Basic   |                         |
-| 41E8 - 42E8 | String CMD Line Buffer |                         |
-| 42E0 - 43E0 | DOS Resident Code 1    |                         |
-| 43E0 - 4400 | System FCB Buffer      |                         |
-| 4400 - 4480 | DOS Entry Points       |                         |
-| 4480 - 4500 | DOS Resident Code 2    |                         |
-| 4500 -      | BASIC Program Start    | Raised to 4700          |
+The effective Memory map
 
+| Address     | Contents               | For FreHD                 |
+|-------------|------------------------|---------------------------|
+| 3400 - 3600 | DOS Overlay Area       | Located at 4500-4700      |
+| 3600 - 37E0 | DOS Loader Utility     | resides into Overlay Code |
+| 4000 - 41E8 | As per Level 2 Basic   |                           |
+| 41E8 - 42E8 | String CMD Line Buffer |                           |
+| 42E0 - 43E0 | DOS Resident Code 1    |                           |
+| 43E0 - 4400 | System FCB Buffer      |                           |
+| 4400 - 4480 | DOS Entry Points       |                           |
+| 4480 - 4500 | DOS Resident Code 2    |                           |
+| 4500 -      | BASIC Program Start    | Raised to 4700            |
+
+DOS Entry Points (4400-4480)
+
+| Address |        | Contents                           |     |
+|---------|--------|------------------------------------|-----|
+| 402D    |        | No Error DOS Exit (Same as 4400)   |     |
+| 4400    | @CMD   | No Error DOS Exit                  |     |
+| 4405    | @CMNDI | Execute CMD an Exit (Same as 4400) | *   |
+| 4409    | @ERROR | Exit and Display Error             |     |
+| 44      | @      |                                    |     |
+| 44      | @      |                                    |     |
+| 44      | @      | - tbc -                            |     |
+| 44      | @      |                                    |     |
 
 ## Caveats
 
 This is a work in progress not all features are implemented at this time.
 See the separate Compatibility document for what is and isn't supported.
 
-## Todo
+The FreHD solution
+* Only provides a small sub set of functions as he frehd firmware has not been evolved.
+* Consumes more RAM (512KB) for overlays as doesnt have paged memory.
+* Doesnt support Disk Basic functions.
+
+# DEV NOTES
+
+## Todo 
+* FIRMWARE - Refactor the New DIR command to use ASYNC Step=10
 * FIRMWARE - STAatus command display Paging Info 
-* FIRMWARE - Create a loader for the Boot.SYS startup block into FDC boot
-* FIRMWARE - create a floppy FDC loader for Boot.SYS at $4200
 
 ### Issues
+* Typing something at command prompt and pressing <BREAK> dos weird thing, 
+  * Selects Page 225(unused) in the Page/Overlay - Doesnt Exist
+  * Displays an FC error in FreHD Mode
+  * weeird openFile(+Memory Size messages in Pico CLI
+* Pressing BREAK during basic program does not stop the program
 
-### Improvment
-* Improve the code addition of .CMD to a filename when execuing from CMD processor.
+### Improvement
+* The  "#" should be configurable as a CONSTANT Declartion
+* #LOAD and implicit #RUN dos commands, check how the interact with and reuse OVERLAYL
+* Rename the Overlay S file down in range A-O to ony use 4 bits.
+* Improve the code addition of .CMD to a filename when executing from CMD processor.
   * When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
-* OverlayB for basic save load etc, should error out if can locate the command
-* FreHD DIR should not display directories
+* FreHD DIR should not display directories, since there is no #CD command.
+
+### Improvements - Error handling
+* #CD RUBBISH - produces "File Not Found", need new error.
+* #RM BASIC - removing a directory (not empty) produced Error 26 FR_DENIED (7) Access denied due to prohibited
+  access or directory full -> Should provide better error.
+* The Overlays themselves need a consistent erro if SUPER ID is not valid. See CP JP table for each overlay
+* There needs to be a new error when a function is not supported by FreHD (non enhanced ROM)
+* OverlayB for basic save load etc, should error out (@ABORT) if cant locate the command
 
 ### PicoRAM
-* Need to investigate the Enhanced Flag
-* Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
+* Need to investigate the Enhanced Flag ???
+* Remove the ENHANCED runtime variable directive ???
 * Conditional Build directives #IFDEF FREHD_BUILD
-* Remove the ENHANCED runtime variable directive
+* Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
 
 ### High Priority
-* DIR {optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
-* CD {nameOfDirectory or /} - Sets an implicitly named directory as :0
-* Add a #CD command (PICO)
+* Add a COMMAND # just (#) which drops to # prompt, enter returns
+* #LOAD command needs to be implemented and tested
+* #DIR {optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
 
 ### DOS Entry Points
+These are only available on PICO enabled systems
+* FSPEC
 * InitFile / OpenFile
 * CloseFile
-* ReadFile / WriteFile
+* ReadFile / WriteFile / Verify
 * Rewind / BackSpace / Skip / EOF
 
 ### Medium
 * Add a #COPY file.ext:N file.ext:N command
-* Add a #DEL file/ext:N - KILL "" (basic) command
-* Add a #MKDIR command
-* MKDIR {nameOfDirectory}
-* Add a #REN command
-* RENAME file/ext:N file/ext:N
+* Add a KILL basic command, leveraging #DELETE
+
+### Features
+* Good Keyboard Driver e.g. LDOS, interrupt driven e.g. support typeahead
 * Add ability for search paths when looking for file.
 * Add ability for named directories :1 to :9
+* NewDos 80 #System like command to store configuration
 
 ### Low Priority Commands
-* Add a #HELP command
-* AUTO - startup command execution
-* APPEND - one file to another
-* Boot
-* Status
-* Ver
+* #HELP command
+* #AUTO - startup command execution
+* #APPEND - one file to another
+* #REBOOT 
+* #Status - display something about the Environment
+* #Ver - something about the DOS build # Pico Build #
 
 # Other Docs
 
@@ -191,3 +253,39 @@ DIR9=namedDirectory9
 BASIC
 
 
+
+
+# Filenames
+
+## Enhanced Filename & Path Handling
+
+MDOS features a filename and path sanitiser that allows the TRS-80 to interact with a modern SD card.
+This system supports both legacy TRS-DOS naming conventions and modern hierarchical FAT subdirectories.
+
+### Core Features
+* **Legacy Support:** Automatically translates the classic `FILENAME/EXT` syntax into modern `FILENAME.EXT` format.
+* **Modern Pathing:** Supports standard FAT subdirectories (e.g., `GAMES/ACTION/ZAXON`).
+* **Automatic Sanitization:** All filenames are automatically converted to uppercase and stripped of non-compatible characters.
+* **Drive Mapping:** Use the `:D` suffix (0-9) to quickly access different "Mount Points" or directories configured on your SD card.
+* **Password Stripping:** Automatically ignores the `.PASSWORD` suffix used in some legacy software, ensuring compatibility without manual file renaming.
+
+### Some Examples
+
+| Input Pattern       | Logic Applied        | Resulting Behavior                                          |
+|:--------------------|:---------------------|:------------------------------------------------------------|
+| `name.bas`          | **Case Insensitive** | File names are converted to uppercase e.g. `NAME.BAS`       |
+| `NAME/BAS`          | **Legacy Ext**       | Single slash with 1-3 chars are converted `NAME.BAS`        |
+| `/SYS/SYS0.SYS`     | **Absolute Path**    | Direct path from SD root.                                   |
+| `../DIR/FILE.BAS`   | **Relative Path**    | Leading dots are preserved; slashes treated as directories. |
+| `EDIT/ASM/CMD`      | **Hybrid File**      | Handles the Path and legacy extension `EDIT/ASM.CMD`        |
+| `FILE.TXT:1`        | **Drive Map**        | `:1` is extracted as Drive ID 1 and removed from path.      |
+| `F.PASS` (4+ chars) | **Password**         | Treated as legacy password; string is truncated.            |
+| `F.PAS` (1-3 chars) | **Modern Ext**       | Treated as valid modern extension; extension is preserved.  |
+
+### Filenames
+
+The following inputs all result in the same FAT filename CONFIG.SYS:
+* CONFIG.SYS (Modern FAT style)
+* config.sys (User typing in lowercase)
+* CONFIG/SYS (Legacy TRS-DOS style)
+* CONFIG/SYS.PASSWORD (Legacy with password ignored)

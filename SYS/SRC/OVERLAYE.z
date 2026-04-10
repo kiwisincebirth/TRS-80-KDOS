@@ -1,6 +1,6 @@
 ; ======================================================================
 ;       	MINI DOS
-;	based on TRSDOS and NEWDOS/80 for Model 1
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     ERROR HANDLING
 ;
@@ -14,7 +14,7 @@
 import	constants.z
 ;
 ; ======================================================================
-; Overlay Region (4500h - 4600h)
+; Overlay Region (4500h - 4700h)
 ; ======================================================================
 ;
 	ORG	OVERLY
@@ -52,7 +52,6 @@ HAND1
 	push	hl
 	;
 ;	ld	b,a		; save the error code
-	; test if enhance rom todo this should be conditional compile
 	call	enh_VER		; call the Enhanced Pico check
 	jr	nz,ENHANCED	; enhanced handling
 ;
@@ -92,7 +91,9 @@ ENHANCED
 	; call the enhanced function passing the Error code
 	; get the response message / printing it.
 
-	jr	STANDARD	; todo FUTURE this could be done with Advanced Pico call
+	jr	STANDARD
+	; todo FUTURE this could be done with Advanced Pico call
+	; todo which has a complete tble of error messages, OR multiple overlays
 
 HANDX
 	pop	hl		; restore the stack
@@ -107,8 +108,11 @@ lookupt:
 	; common errors (not all) are here
 	defb	ILLFILNAM$ , "Illegal Filename",ETX		; 19
 	defb	FILNOTFND$ , "File Not Found",ETX		; 24
+	defb	DIRSPCFUL$ , "Directory Space Full"		; 26
+	defb	DSCSPCFUL$ , "Disk Space Full"			; 27
 	defb	PRGNOTFND$ , "Program Not Found",ETX		; 31
 	defb	LOAFILFMT$ , "Load File Format Error",ETX	; 34
+	defb	ILLDOSFUN$ , "Illegal DOS Function",ETX		; 42
 	defb	UNKNOWN$   , "Unknown Error",ETX		; 63
 	defb	$0
 

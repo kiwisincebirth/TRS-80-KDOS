@@ -1,8 +1,10 @@
 ; ======================================================================
 ;       	MINI DOS
-;	based on TRSDOS and NEWDOS/80 for Model 1
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
-;     GENERAL FILE HANDLING - OPEN CLOSE etc.
+;     FILE HANDLING FOR DOS API's @ $4400 - $4480
+;	Deals with Lifecycle of File Object
+;	( See Overlay G for the R/W access functions )
 ;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -14,112 +16,145 @@
 import	constants.z
 ;
 ; ======================================================================
-; Overlay Region (4500h - 4600h)
+; Overlay Region (4500h - 4700h)
 ; ======================================================================
 ;
 	ORG	OVERLY
-	;
 
-; Open a New or Existing File ($4420)
+	push	af		; preserve the Super Call ID
+	call	enh_VER		; test if Enhanced Pico (NZ flag)
+	jr	z,_NOT_ENH	; Enhanced Fre Hd / Advanced Pico handling
+	pop	af
+	;
+	cp	S_FILESPEC	; (441C) @FSPEC API Function
+	jp	z,_filespec
+	;
+	cp	S_INITFILE	; (4420) @INIT API Function
+ 	jp	z,_init_open
+ 	;
+	cp	S_OPENFILE	; (4424) @OPEN API Function
+ 	jp	z,_init_open	; same function as INIT, it checks.
+ 	;
+ 	cp	S_CLOSEFILE	; (4428) @CLOSE API Function
+ 	jp	z,_closefile
+ 	;
+ 	cp	S_KILLFILE	; (4428) @KILL API Function
+ 	jp	z,_killfile
+ 	;
+	jr	_ILLEGAL	; not found so it is illegal
+
+_NOT_ENH
+	pop	af
+_ILLEGAL
+	ld	a, ILLDOSFUN$	; (NOT enhanced) so illegal Dos Function
+	or	a		; set the flags
+	ret			; return falure
+
+;
+; @FSPEC API Function (441C)
+;
+; DE -> Pointer to FCB 32 byte Buffer.
+; HL -> Pointer to string containing the input filename
+; Ret Z - No Error ; NZ - Error (A DOES'NT contain error)
+; BC is destroyed
+; DE <- Unchanged, pointer to FCB
+; HL <- Terminating character in the Buffer
+; A <- terminating character
+;
+_filespec
+	; todo
+	JP	_ILLEGAL
+
+;
+; @INIT New or Open Existing File ($4420)
 ; B - Logical Record Length (0=256)
 ; DE - Pointer to FCB 32 byte Buffer, containing filename
 ; HL - Pointer to 256 byte IO Buffer
 ; Ret Z - No Error ; NZ - Error (A error Code)
-; Registers Intact
-
-	push	de	; save the FCB
-	push	bc	; save the LRL
-	push	hl	; save the buffer pointer
-
-	; Parse and extract the 12 character filename
-	; convert the / character into .
-	; only copy first 8 and 3 extension chars
-	; strip out any :0 and .password
-loop_start:
-	ld	b,12		; max character count
-	ld	hl, $20 - 12	; number of chars into FCB to copy filename
-	add	hl,de		; add the starting DE pointer to HL, now has target
-	push	hl		; pointer to start of target filename
-loop:
-	ld 	a,(de)		; get char from source filename FCB
-	call	aplha_check	; check for alphanumeric
-	ld 	a,(de)		; reload
-	jr	c, good		; if valid the proceed
-	cp	'/'		; test a / -> only other valid char
-	jr	nz,not_good	; not a / then we need to finish
-	ld	a,'.'		; / needs to be converted to .
-good:
-	LD 	(hl),A
-	inc 	de
-	inc 	hl
-	djnz 	loop		; [LOOP] Decrement B and if not zero, LOOP BACK to 516EH to process the next character.
-	jr	exit
-not_good
-	ld	a,0		; string terminator
-padd:
-	ld	(de),a
-	inc	de
-	djnz	padd
-exit:
-	pop	de		; pointer to target filename
-
-	; call the open, getting some metrics into FCB
-	; then call Close
-
-	; Open A file
-	; de pointer to the filename
-	; b  the length of the filename
-	; c  The open FA_* options - e.g. FA_OPEN_EXIST|FA_READ
-	ld	b, 12		; length of filename
-	ld	c, FA_RW | FA_OPEN_ALWAYS
-	call	fhd_OPEN	; open
-
-	pop	hl
-	pop	bc
-	pop	de
-
-	ret	nz
-
-; 48 49 53 43  4F 52 45 53  2F 4D 45 54  3A 30 0D 4D |HISCORES/MET:0.M|
-; 45 54 45 4F  52 20 4D 49  53 53 49 4F  4E 20 49 49 |ETEOR MISSION II|
-
-; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
-; FF FF FF FF  48 49 53 43  4F 52 45 53  2F 4D 45 54 |....HISCORES.MET|
-
-	xor	a
-	ret
-
-DEF_FCB_BLK:
-	DEFB	$80		; 0 Flags - $80 Open
-	DEFB	$28		; 1 Flags
-	DEFB	$20		; 2 Flags
-	DEFW	$00		; 3,4 FCB Buffer address (Reg HL)
-	DEFB	$00		; 5 NEXT Low Order Byte
-	DEFB	$00		; 6 Drive Number
-	DEFB	$00		; 7 Pointer to the Files Directory Entry
-	DEFB	$00		; 8 EOF Low Order Byte
-	DEFB	$00		; 9 LRECL Logical Record Len (0=256) (Reg B)
-	DEFB	$00		; 10 NEXT Middle Order Byte
-	DEFB	$00		; 11 NEXT High Order Byte
-	DEFB	$00		; 12 EOF Middle Order Byte
-	DEFB	$00		; 13 EOF High Order Byte
-	DEFB	$FF,$FF,$FF,$FF,$FF,$FF,0,0,0,0,0,0,0,0,0,0,0,0
+; B DE HL Registers Intact
 ;
-; This subroutine checks if the character in A is an alphabetic letter (A-Z or a-z) or 0-9
-; Returns with CARRY set if the character is alphabetic. If called after a digit test fails,
-; it determines if the character is a valid filename character.
-; Destroys A in the process
-aplha_check:
-	SUB 	30H	; This converts ASCII digits '0'-'9' to values 0-9.
-	CP 	0AH	; If is less than 10, the original character was a digit '0'-'9'.
-	RET 	C	; If CARRY is set return immediately - character is valid.
-	SUB 	11H	;Subtract 41H (ASCII 'A') from the character. This normalizes uppercase letters to 0-25.
-	CP	1AH	;Compare against 1AH (26 decimal). If result is less than 26, the character was 'A'-'Z'.
-	RET	C	;If CARRY is set (character is uppercase letter 'A'-'Z'), return with CARRY indicating valid.
-; Not an uppercase letter - check for lowercase.
-	SUB	20H	;Subtract 20H more (the difference between lowercase and uppercase in ASCII). Now checking for 'a'-'z'.
-	CP	1AH	;Compare against 1AH (26). If result is less than 26, the character was 'a'-'z'.
-	RET		;Return. CARRY set if lowercase letter, CARRY clear if not alphabetic.
+; @OPEN Existing File ($4424)
+; B - Logical Record Length (0=256)
+; DE - Pointer to FCB 32 byte Buffer, containing filename
+; HL - Pointer to 256 byte IO Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; If the file doesnt exist then this is an ERROR
+; B DE HL Registers Intact
+;
+_init_open:
+	push	hl	; save the buffer pointer
+	push	bc	; save the LRL
+	push	de	; save the FCB
+	push	af	; save the super ID
+;
+	; setup the file open command
+	ld	a,TRS_FILE_OPEN		; API FILE OPEN command
+	out	(COMMAND2),a		; send command to frehd
+;
+ 	; byte 0 : open options
+	pop	af			; get the Super ID back
+	cp	S_INITFILE		; Open Existing or Create New
+	ld	a,FA_OPEN_EXIST|FA_RW	; Default to Open Existing file @OPEN
+	jr	nz, _open_skip1		; skip IF NOT an INIT
+	ld	a,FA_OPEN_ALWAYS|FA_RW	; Open Existing or Create a new @INIT
+_open_skip1
+	ld	c,DATA2			; the data port
+	out	(c),a			; send it.
+;
+ 	; byte 1 : logical record lenght 0=256 (B)
+ 	out	(c),b
+ 	; byte 2,3 : location of Buffer in TRS memory (DE)
+ 	out	(c),e
+ 	out	(c),d
+ 	; bytes 4..36 : fcb data from TRS (HL)
+	ld	b,$20			; b=0 "256" bytes
+	ex	de,hl			; swap FCB into HL
+	otir				; send data from (hl) to port (C)
+;
+_open_open:
+	call	fhd_WAIT		; wait for status of OPEN
+	jr	nz,_open_out1		; error then out of here
+;
+	pop	hl			; pop the FCB address
+	push	hl			; saving it back
+	ld	b,$20			; FCB is 32 bytes
+	inir				; transfer the data back to HL
+;
+	xor	a			; success
+;
+_open_out1:
+	pop	de			; restore the pointers
+	pop	bc
+	pop	hl
+	ret				; and return
+;
+; @CLOSE Close an Open File ($4428)
+; Closes existing file writing anydirt data back to disk
+;
+; If bit 4 of the FCB's 2nd byte equals 1, the FCB's buffer is written to disk like a 4439H call.
+; If the FCB's EOF is different from that in the FPDE, the FPDE is updated for the new EOF.
+; If the file has excess granules beyond EOF and if automatic space deallocation is allowed,
+; the excess granules are released.
+;
+; DE -> Pointer to FCB 32 byte Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB now contain the original full file name.
+;
+_closefile
+	; todo
+	JP	_ILLEGAL
+
+;
+; @KILL Kill FCB's associated file. ($442C)
+; If a file is to be killed, the FCB must be in an open condition.
+; DE -> Pointer to FCB 32 byte Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; The original Filename placed back in the FCB (LDOS)
+; The FCB is set to all zero's (NewDos80)
+;
+_killfile
+	; todo
+	JP	_ILLEGAL
 
 ;
 ; ======================================================================
@@ -132,4 +167,54 @@ FREE_OVERLAYF	EQU	OVERLY + $200 - $
 	DC	FREE_OVERLAYF - 1,0
 	DB	$0F
 ;
+
+; OPEN
+; * Send the 32 byte FCB block to PICO, OPEN command
+; * PICO
+;   * extracts the parameters
+;   * Parses the FIlename
+;   * Opens the FIle
+;   * Return Block  0-31 - As defined
+; * PICO ALternate
+;   Pass filemode, and parsed filename, responds with EOF, and File 16 bit ID
+; * Receive back 32 bytes which override the existing FCB
+; * Return
+
+; Other Operations
+;   Pass the 16bit File Identifier,
+;   For Read need to pass the LRL
+;   Always respond with the 16 byte updated FCB
+;   For reads the LRL data follows this.
+
+; BEFORE CALL to DOS
+; 48 49 53 43  4F 52 45 53  2F 4D 45 54  3A 30 0D 4D |HISCORES/MET:0.M|
+; 45 54 45 4F  52 20 4D 49  53 53 49 4F  4E 20 49 49 |ETEOR MISSION II|
+
+; $B277 - Calls Open File 4420
+
+; LDOS - Open Existing File
+; 80 20 00 00  73 00 00 0B  00 00 00 00  01 00 0F 40 |. ..s..........@|
+; FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF |................|
+
+; NEWDOS/80 - Open Existing File
+; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
+; FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF |................|
+
+; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
+; FF FF FF 48  49 53 43 4F  52 45 53 2F  4D 45 54 00 |...HISCORES.MET.|
+
+; M1ZVM
+; =====
+
+;@FSPEC	EQU	441CH	;4EH
+;@INIT	EQU	4420H	;3AH in progress
+;@OPEN	EQU	4424H	;3BH in progress
+;@CLOSE	EQU	4428H	;3CH
+
+;@READ	EQU	4436H	;43H	;Read a file record
+;@WRITE	EQU	4439H	;4BH	;Write a file record
+;@VER	EQU	$443c   ; (METEOR MISSION)
+
+;@REW	EQU	443FH	; This SVC will rewind a file to its beginning and reset the 3-byte NRN pointer to 0.
+;@POSN	EQU	4442H	; Position file to record BC
 

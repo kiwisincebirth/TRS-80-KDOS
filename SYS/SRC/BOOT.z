@@ -102,7 +102,7 @@ file_loader:
 	ex	de,hl
 	ld	a,OPENFILE		; open file command
 	out	(COMMAND2),a
-	call	fhdwait
+	; call	fhdwait			; not needed
 	ld	a,b
 	inc	a			; +1 for options
 	inc	a			; +1 for null-terminator
