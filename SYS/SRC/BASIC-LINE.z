@@ -1,0 +1,71 @@
+
+; ------------------------------
+; BASIC LINE INPUT
+; Original Source from TRSDOS 2.3
+; SEE
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+; ------------------------------
+;
+import	constants.z
+;
+; ------------------------------
+; CODE STARTS HERE
+; ------------------------------
+;
+pageCall basiclineinput, PAGE_LINEINP
+;
+; ------------------------------
+; Code Required Starts Here
+; Copied From TRS DOS 2.3
+; ------------------------------
+;
+
+	rst	$0008        ; 5786:
+	DEFB	$89	     ; 5787:     INPUT
+	call	$2828        ; 5788:
+	ld	a,(hl)       ; 578b:
+
+; If we have a LINE INPUT #, then the the Z FLAG (Zero) will have been set,
+; so JUMP to 5F4CH which is part of the LINE INPUT routine which will read
+; code for item fetching from sequential input files
+;	cp	"#"          ; 578c:
+;	jp	z,$5f4c      ; 578e:
+
+	call	$21cd        ; 5791:
+	call	$260d        ; 5794:
+	call	$0af4        ; 5797:
+	push	de           ; 579a:
+	push	hl           ; 579b:
+	call	$0361        ; 579c:
+	pop	de           ; 579f:
+	pop	bc           ; 57a0:
+	jp	c,$1dbe      ; 57a1:
+	push	bc           ; 57a4:
+	push	de           ; 57a5:
+	ld	b,$00        ; 57a6:
+	call	$2868        ; 57a8:
+	pop	hl           ; 57ab:
+	xor	a            ; 57ac:
+	jp	$1f32        ; 57ad:
+
+;
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+pageEnd
+;
+; ------------------------------
+; DOS ENTRY VECTOR
+; ------------------------------
+;
+;
+	ORG	$41A3
+	jp	basiclineinput
+;
+; ------------------------------
+; CODE ENDS HERE
+; ------------------------------
+	; After loading return to DOS
+	END	$402D
+;
+

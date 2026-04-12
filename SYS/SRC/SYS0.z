@@ -130,11 +130,11 @@ import	constants.z
 ; ----------------------------------------------------------------------
 	ORG	$41A6
 ; Set DOS Exit links (21 exits) to RET instructions (41A6-41E2)
-	RET3		; 41A6 Disk Basic Error Handling - done in BASIC overlay
+	RET3		; 41A6
 	RET3		; 41A9
 	jp	READY1  ; 41AC Basic StartUp just before READY> used Once for INIT
 	RET3		; 41AF At start of keyboard input
-	RET3		;
+	RET3		; 41B2
 	RET3		; 41B5
 	RET3		; 41B8
 	RET3		; 41BB
@@ -147,7 +147,7 @@ import	constants.z
 	RET3		; 41D0
 	RET3		; 41D3
 	RET3		; 41D6
-	RET3		; 41D9 MID$() = - done in BASIC overlay
+	RET3		; 41D9
 	RET3
 	RET3
 	RET3		; 41E2 SYSTEM command (potentially use this)

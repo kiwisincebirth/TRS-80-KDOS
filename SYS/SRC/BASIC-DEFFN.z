@@ -1,0 +1,292 @@
+
+; ------------------------------
+; BASIC FN - Part of DEF FN
+; Original Source from TRSDOS 2.3
+; SEE
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+; ------------------------------
+;
+import	constants.z
+;
+; ------------------------------
+; CODE STARTS HERE
+; ------------------------------
+;
+pageCall basicdefinefn, PAGE_DEFINEFN
+;
+;  	DEF 	- $415B -> 5655
+; 	FN  	- $4155 -> 558E
+;	USR N	- $41A9 -> 5679
+;
+	; entry point for FN
+	jp	_558e
+;
+; ------------------------------
+; Code Required Starts Here
+; Copied From TRS DOS 2.3
+; ------------------------------
+;
+
+_5556
+	ld	a,($40af)   ; 5556:
+	dec	a           ; 5559:
+	dec	a           ; 555a:
+	dec	a           ; 555b:
+	or	a           ; 555c:
+	scf                 ; 555d:
+	jp	z,_55c2     ; 555e:
+	ld	c,(hl)      ; 5561:
+	inc	hl          ; 5562:
+	ld	b,(hl)      ; 5563:
+	push	bc          ; 5564:
+	jp	m,_557f     ; 5565:
+	inc	hl          ; 5568:
+	ld	c,(hl)      ; 5569:
+	inc	hl          ; 556a:
+	ld	b,(hl)      ; 556b:
+	push	bc          ; 556c:
+	jp	po,_557f    ; 556d:
+	inc	hl          ; 5570:
+	jr	c,_5576     ; 5571:
+	ld	hl,$411d    ; 5573:
+_5576
+	ld	c,(hl)      ; 5576:
+	inc	hl          ; 5577:
+	ld	b,(hl)      ; 5578:
+	inc	hl          ; 5579:
+	push	bc          ; 557a:
+	ld	c,(hl)      ; 557b:
+	inc	hl          ; 557c:
+	ld	b,(hl)      ; 557d:
+	push	bc          ; 557e:
+_557f
+	jp	c,_55cc     ; 557f:
+_5582
+	rst	$0008       ; 5582:
+	DEFB	$BE  			;TOKEN for FN
+	ld	a,$80       ; 5584:
+	ld	($40dc),a   ; 5586:
+	or	(hl)        ; 5589:
+	ld	b,a         ; 558a:
+	jp	$2612       ; 558b:
+_558e
+	call	_5582       ; 558e:
+	ld	a,($40af)   ; 5591:
+	or	a           ; 5594:
+	push	af          ; 5595:
+	ld	($40f3),hl  ; 5596:
+	ex	de,hl       ; 5599:
+	ld	a,(hl)      ; 559a:
+	inc	hl          ; 559b:
+	ld	h,(hl)      ; 559c:
+	ld	l,a         ; 559d:
+	or	h           ; 559e:
+	jp	z,_56ba     ; 559f:
+	ld	a,(hl)      ; 55a2:
+	cp	$28         ; 55a3:
+	jp	nz,_55f5    ; 55a5:
+	rst	$0010       ; 55a8:
+	ld	($40d8),hl  ; 55a9:
+	jr	_55b0       ; 55ac:
+_55ae
+	rst	$0008       ; 55ae:
+	DEFB	','
+_55b0
+	ld	c,$04       ; 55b0:
+	call	$1963       ; 55b2:
+	ld	a,$80       ; 55b5:
+	ld	($40dc),a   ; 55b7:
+	call	$260d       ; 55ba:
+	ex	de,hl       ; 55bd:
+	scf                 ; 55be:
+_55bf
+	jp	_5556       ; 55bf:
+_55c2
+	jp	nc,$2423    ; 55c2:
+	push	de          ; 55c5:
+	ex	de,hl       ; 55c6:
+	call	$2888       ; 55c7:
+	pop	de          ; 55ca:
+	xor	a           ; 55cb:
+_55cc
+	push	hl          ; 55cc:
+	push	af          ; 55cd:
+	ex	de,hl       ; 55ce:
+	ld	a,(hl)      ; 55cf:
+	cp	$29         ; 55d0:
+	jr	nz,_55ae    ; 55d2:
+	ld	hl,($40f3)  ; 55d4:
+	rst	$0008       ; 55d7:
+	DEFB	'('
+	push	hl	    ; 55d9:
+	ld	hl,($40d8)  ; 55da:
+_55dd
+	call	$260d       ; 55dd:
+	ex	(sp),hl     ; 55e0:
+	call	$1f2b       ; 55e1:
+	ld	a,(hl)      ; 55e4:
+	cp	$29         ; 55e5:
+	jr	z,_55f0     ; 55e7:
+	rst	$0008       ; 55e9:
+	DEFB	','
+	ex	(sp),hl     ; 55eb:
+	rst	$0008       ; 55ec:
+	DEFB	','
+	jr	_55dd       ; 55ee:
+_55f0
+	rst	$0010       ; 55f0:
+	ex	(sp),hl     ; 55f1:
+	rst	$0008       ; 55f2:
+	DEFB	')'
+	DEFB	$3E         ; 55f4: op code for LD a,N - skip next push
+_55f5
+	push	de	    ; 55f5
+	rst	$0008       ; 55f6:
+	DEFB	$D5
+	call	$2337       ; 55f8:
+	dec	hl          ; 55fb:
+	rst	$0010       ; 55fc:
+	jp	nz,$1997    ; 55fd:
+	rst	$0020       ; 5600:
+	jr	z,_5632     ; 5601:
+_5603
+	pop	de          ; 5603:
+_5604
+	pop	af          ; 5604:
+	jr	z,_5646     ; 5605:
+	jr	nc,_5625    ; 5607:
+	pop	hl          ; 5609:
+	pop	bc          ; 560a:
+	ld	(hl),b      ; 560b:
+	dec	hl          ; 560c:
+	ld	(hl),c      ; 560d:
+	jp	m,_5604     ; 560e:
+	dec	hl          ; 5611:
+	pop	bc          ; 5612:
+	ld	(hl),b      ; 5613:
+	dec	hl          ; 5614:
+	ld	(hl),c      ; 5615:
+	jp	po,_5604    ; 5616:
+	dec	hl          ; 5619:
+	pop	bc          ; 561a:
+	ld	(hl),b      ; 561b:
+	dec	hl          ; 561c:
+	ld	(hl),c      ; 561d:
+	dec	hl          ; 561e:
+	pop	bc          ; 561f:
+	ld	(hl),b      ; 5620:
+	dec	hl          ; 5621:
+	ld	(hl),c      ; 5622:
+	jr	_5604       ; 5623:
+_5625
+	push	de          ; 5625:
+	push	af          ; 5626:
+	rst	$0020       ; 5627:
+	ld	de,$40d3    ; 5628:
+	call	z,$2888     ; 562b:
+	pop	af          ; 562e:
+	jp	$281a       ; 562f:
+_5632
+	ld	hl,($40b3)  ; 5632:
+	ex	de,hl       ; 5635:
+	ld	hl,($4121)  ; 5636:
+	rst	$0018       ; 5639:
+	jr	c,_5641     ; 563a:
+	call	$2843       ; 563c:
+	jr	_5603       ; 563f:
+_5641
+	pop	de          ; 5641:
+	ld	hl,$40d3    ; 5642:
+	push	hl          ; 5645:
+_5646
+	call	$29f5       ; 5646:
+	ld	a,(hl)      ; 5649:
+	ld	($40b3),hl  ; 564a:
+	pop	hl          ; 564d:
+	ld	(hl),a      ; 564e:
+	inc	hl          ; 564f:
+	ld	(hl),c      ; 5650:
+	inc	hl          ; 5651:
+	ld	(hl),b      ; 5652:
+	jr	_5604       ; 5653:
+_5655
+	cp	$c1         ; 5655:
+	jr	z,_56ab     ; 5657:
+	call	_5582       ; 5659:
+	call	$2828       ; 565c:
+	ex	de,hl       ; 565f:
+	ld	(hl),e      ; 5660:
+	inc	hl          ; 5661:
+	ld	(hl),d      ; 5662:
+	ex	de,hl       ; 5663:
+	ld	a,(hl)      ; 5664:
+	cp	$28         ; 5665:
+	jp	nz,$1f05    ; 5667:
+	rst	$0010       ; 566a:
+_566b
+	call	$260d       ; 566b:
+	ld	a,(hl)      ; 566e:
+	cp	$29         ; 566f:
+	jp	z,$1f05     ; 5671:
+	rst	$0008       ; 5674:
+	DEFB	','
+	jp	_566b       ; 5676:
+
+; ------------------------------
+
+_5699
+	rst	$0010       ; 5699:
+	ld	bc,$0000    ; 569a:
+	jr	nc,_56a4    ; 569d:
+	sub	$30         ; 569f:
+	rla                 ; 56a1:
+	ld	c,a         ; 56a2:
+	rst	$0010       ; 56a3:
+_56a4
+	ex	de,hl       ; 56a4:
+
+	ld	hl,PICOSCRDUSR    ; 56a5: Address of Jump Table for USR 0-9
+
+	add	hl,bc       ; 56a8:
+	ex	de,hl       ; 56a9:
+	ret                 ; 56aa:
+_56ab
+	call	_5699       ; 56ab:
+	push	de          ; 56ae:
+	rst	$0008       ; 56af:
+	DEFB	$D5
+	call	$2b02       ; 56b1:
+	ex	(sp),hl     ; 56b4:
+	ld	(hl),e      ; 56b5:
+	inc	hl          ; 56b6:
+	ld	(hl),d      ; 56b7:
+	pop	hl          ; 56b8:
+	ret                 ; 56b9:
+_56ba
+	ld	e,$2e       ; 56ba:
+	jp	$19a2       ; 56bc:
+
+;
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+pageEnd
+;
+; ------------------------------
+; DOS ENTRY VECTOR
+; ------------------------------
+;
+;  	DEF 	- $415B -> 5655
+; 	FN  	- $4155 -> 558E
+;	USR N	- $41A9 -> 5679
+;
+	ORG	$4155
+	jp	basicdefinefn
+;
+; ------------------------------
+; CODE ENDS HERE
+; ------------------------------
+	; After loading return to DOS
+	END	$402D
+;
+

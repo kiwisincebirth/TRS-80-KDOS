@@ -107,6 +107,7 @@ fhd_WAIT	equ	(6*3) + $4480
 ; ----------------------------------------------------------------------
 ;
 PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
+PICOSCRDUSR	EQU	$36C8		; Holds Def USR 0-9 jump Addresses 20 bytes
 PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
 ;
 STRBUFF		EQU	$41E8		; L2 Basic String Buffer
@@ -352,12 +353,16 @@ PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
 ; Basic Extensions (32)
 ; Propose C0 (192) to DF (223)
 ;
-PAGE_AMPERSAND	EQU	215
-PAGE_DOSERROR1	EQU	216
-PAGE_DOSERROR2	EQU	217
-PAGE_INSTRFUNC	EQU	218
+PAGE_AMPERSAND	EQU	212
+PAGE_DOSERROR1	EQU	213
+PAGE_DOSERROR2	EQU	214
+PAGE_DEFINE	EQU	215
+PAGE_DEFINEFN	EQU	216
+PAGE_INSTRFUNC	EQU	217
+PAGE_LINEINP	EQU	218
 PAGE_MIDOLLAR	EQU	219
 PAGE_TIMEDOLL	EQU	220
+PAGE_USRN	EQU	221
 
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------

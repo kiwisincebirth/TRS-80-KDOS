@@ -197,7 +197,25 @@ _cal_limit_45ef:
 	DB	1EH	; Maximum number of 30 for NOVEMBER
 	DB	1FH 	; Maximum number of 31 for DECEMBER
 ;
+; ----------------------------------------------------------------------
 ;
-FREE_PICOWORK	EQU	PICOSCRATCH + $1DF - $
+FREE_PICOWORK	EQU	PICOSCRDUSR - $
 	assert	FREE_PICOWORK > 0
 ;
+; ----------------------------------------------------------------------
+; Everything from here down is top down and fixed by address
+; ----------------------------------------------------------------------
+;
+	; Hold Jump address for USR 0 - 9 Functional calls
+	;
+	ORG	PICOSCRDUSR
+	DEFW	$1E4A		; Jump address of FC Error
+	DEFW	$1E4A
+	DEFW	$1E4A
+	DEFW	$1E4A
+	DEFW	$1E4A
+	DEFW	$1E4A
+	DEFW	$1E4A
+	DEFW	$1E4A
+	DEFW	$1E4A
+	DEFW	$1E4A

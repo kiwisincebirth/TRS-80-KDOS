@@ -1,0 +1,92 @@
+
+; ------------------------------
+; BASIC USR N - Part of DEF USR
+; Original Source from TRSDOS 2.3
+; SEE
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+; ------------------------------
+;
+import	constants.z
+;
+; ------------------------------
+; CODE STARTS HERE
+; ------------------------------
+;
+pageCall basicusr, PAGE_USRN
+;
+;  	DEF 	- $415B -> 5655
+; 	FN  	- $4155 -> 558E
+;	USR N	- $41A9 -> 5679
+;
+	; entry point for DEF
+	jp	_5679
+;
+; ------------------------------
+; Code Required Starts Here
+; Copied From TRS DOS 2.3
+; ------------------------------
+;
+
+_5679
+	pop	af           ; 5679:
+	call	_5699        ; 567a:
+	push	de           ; 567d:
+	call	$252c        ; 567e:
+	ex	(sp),hl      ; 5681:
+	ld	c,(hl)       ; 5682:
+	inc	hl           ; 5683:
+	ld	b,(hl)       ; 5684:
+	ld	hl,$26e7     ; 5685:
+	push	hl           ; 5688:
+	push	bc           ; 5689:
+	ld	a,($40af)    ; 568a:
+	push	af           ; 568d:
+	cp	$03          ; 568e:
+	call	z,$29da      ; 5690:
+	pop	af           ; 5693:
+	ex	de,hl        ; 5694:
+	ld	hl,$4121     ; 5695:
+	ret                  ; 5698:
+
+; ------------------------------
+
+_5699
+	rst	$0010       ; 5699:
+	ld	bc,$0000    ; 569a:
+	jr	nc,_56a4    ; 569d:
+	sub	$30         ; 569f:
+	rla                 ; 56a1:
+	ld	c,a         ; 56a2:
+	rst	$0010       ; 56a3:
+_56a4
+	ex	de,hl       ; 56a4:
+
+	ld	hl,PICOSCRDUSR    ; 56a5: Address of Jump Table for USR 0-9
+
+	add	hl,bc       ; 56a8:
+	ex	de,hl       ; 56a9:
+	ret                 ; 56aa:
+;
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+pageEnd
+;
+; ------------------------------
+; DOS ENTRY VECTOR
+; ------------------------------
+;
+;  	DEF 	- $415B -> 5655
+; 	FN  	- $4155 -> 558E
+;	USR N	- $41A9 -> 5679
+;
+	ORG	$41A9
+	jp	basicusr
+;
+; ------------------------------
+; CODE ENDS HERE
+; ------------------------------
+	; After loading return to DOS
+	END	$402D
+;
+

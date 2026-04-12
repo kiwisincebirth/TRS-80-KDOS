@@ -78,10 +78,15 @@ The following is provided by the Pic Hardware
 |              | KILL "filename"      | Delete a file (todo)       | Pico | 
 |              | -                    |                            |      |
 | BASIC        | &Hxx                 | Hexadecimal Constant       | Pico |
-| Instructions | &Hxx                 | Octo-decimal Constant      | Pico |
+| Instructions | &Oxx                 | Octo-decimal Constant      | Pico |
+|              | DEF FNn(A)=A         | Define a User Function     | Pico |
+|              | DEF USRn=ADDR        | Define a Call address      | Pico |
+|              | FNn(A)               | Invoke a User Function     | Pico |
+|              | LINE INPUT A$        | Input an entire line       | Pico |
 |              | MID(X$,N,N)=""       | Mid String Assignment      | Pico |
 |              | INSTR(X$,Y$)         | String Search function     | Pico |
 |              | TIME$                | RTC Current DateTime       | Pico |
+|              | USRn(A)              | Invoke a Call address      | Pico |
 |              |                      |                            |      |
 | BASIC Errors | Display Full Error   |                            | Pico |
 |              |                      |                            |      |
@@ -146,27 +151,41 @@ The effective Memory map
 
 DOS Entry Points (4400-4480)
 
-| Address |        | Contents                  | Issues          |
-|---------|--------|---------------------------|-----------------|
-| 402D    |        | No Error DOS Exit (44400) |                 |
-| 4400    | @CMD   | No Error DOS Exit         |                 |
-| 4405    | @CMNDI | Execute CMD and Exit      | (Same as 4400)  |
-| 4409    | @ERROR | Exit and Display Error    |                 |
-| 440D    | @DEBUG | Debug Mode                | Not Implmented  |
-| 4410    | @ADTSK | Add Interrupt Task        | Not Implmented  |
-| 4413    | @RMTSK | Remove Interrupt Task     | Not Implmented  |
-| 4416    |        | DOS Specific Routine      | Not Implmented  |
-| 4419    |        | DOS Specific Routine      | Not Implmented  |
-| 441C    | @FSPEC | Extract File Spec         | todo            |
-| 4420    | @INIT  | Create or Open File       | todo            |
-| 4424    | @OPEN  | Open Existing File        | todo            |
-| 4428    | @CLOSE | Close a File              | todo            |
-| 4428    | @KILL  | Delete an Open File       | todo            |
-| 44      | @      |                           |                 |
-| 44      | @      |                           |                 |
-| 44      | @      |                           |                 |
-| 44      | @      | - tbc -                   |                 |
-| 44      | @      |                           |                 |
+| Address |        | Contents                  | Issues         |
+|---------|--------|---------------------------|----------------|
+| 402D    |        | No Error DOS Exit (44400) |                |
+| 4400    | @CMD   | No Error DOS Exit         |                |
+| 4405    | @CMNDI | Execute CMD and Exit      | (Same as 4400) |
+| 4409    | @ERROR | Exit and Display Error    |                |
+| 440D    | @DEBUG | Debug Mode                | Not Implmented |
+| 4410    | @ADTSK | Add Interrupt Task        | Not Implmented |
+| 4413    | @RMTSK | Remove Interrupt Task     | Not Implmented |
+| 4416    |        | DOS Specific Routine      | Not Implmented |
+| 4419    |        | DOS Specific Routine      | Not Implmented |
+| 441C    | @FSPEC | Extract File Spec         | todo           |
+| 4420    | @INIT  | Create or Open File       | todo           |
+| 4424    | @OPEN  | Open Existing File        | todo           |
+| 4428    | @CLOSE | Close a File              | todo           |
+| 442C    | @KILL  | Delete an Open File       | todo           |
+| 4430    | @LOAD  | Load Program              |                |
+| 4433    | @RUN   | Load and Run Program      |                |
+| 4436    | @READ  | Read from Disk File       | todo           |
+| 4439    | @WRITE | Write to Disk File        | todo           |
+| 443C    | @VER   | Write and Verify          | (Same as 4339) |
+| 443F    | @REW   | Position File to Start    | todo           |
+| 4442    | @POSN  | Position File             | todo           |
+| 4445    | @BKSP  | Backspace Fle 1 Record    | todo           |
+| 4448    | @PEOF  | Position File to EOF      | todo           |
+| 44      | @      |                           |                |
+| 44      | @      |                           |                |
+| 44      | @      |                           |                |
+| 4467    | @DSPLY | Display String            |                |
+| 446A    | @PRINT | Print a String            |                |
+| 44      | @      |                           |                |
+| 44      | @      | - tbc -                   |                |
+| 44      | @      |                           |                |
+| 447E    |        | Major Version             |                |
+| 447F    |        | Minor Version             |                |
 
 ## Caveats
 
