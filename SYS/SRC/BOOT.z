@@ -64,7 +64,7 @@ START:
 	xor	d		; xor them together -> $FF if Enhanced Pico
 	inc	a		; $00 Z if advanced PICO hardware
 	;
-	ld	de,fnamef	; Default to FreHD Minimal /F/SYS0.SYS
+	ld	de,fnamef	; Default to FreHD Minimal /SYS0.SYS
 	ld	b,$10		; length of 16 bytes
 	;
 	jr	nz,START1	; NZ If NOT Advanced Pico, skip over
@@ -73,7 +73,7 @@ START:
 	and	2		; CLEAR KEY Pressed
 	jr	NZ, START1	; Then Use Traditional, not Paged
 	;
-	ld	de,fnamep	; Set advanced Pico /SYS0.SYS
+	ld	de,fnamep	; Set advanced Pico /SYSP.SYS
 
 START1:
 	call	file_loader	; load the file
@@ -102,8 +102,8 @@ file_loader:
 	ex	de,hl
 	ld	a,OPENFILE		; open file command
 	out	(COMMAND2),a
-	; call	fhdwait			; not needed
-	ld	a,b
+	;
+	ld	a,b			; Size Computation
 	inc	a			; +1 for options
 	inc	a			; +1 for null-terminator
 	out	(SIZE2),a
@@ -113,6 +113,7 @@ file_loader:
 	otir				; send filename
 	xor	a			; send null-terminator
 	out	(c),a
+	;
 	call	fhdwait
 	ret	nz			; error, return
 
@@ -201,10 +202,10 @@ fhdwait1:
 ; ----------------------------------------------------------------------
 ;
 	assert $ = BOOTSYSLOC + $E0
-fnamef	db	"/SYS/F/SYS0.SYS",0		; FRED file name
+fnamef	db	"/SYS/SYS0.SYS",0,0,0		; FRED file name
 	;
 	assert $ = BOOTSYSLOC + $F0
-fnamep	db	"/SYS/SYS0.SYS",0,0,0		; PICO file name
+fnamep	db	"/SYS/SYSP.SYS",0,0,0		; PICO file name
 ;
 	assert $ = BOOTSYSLOC + $100
 ;

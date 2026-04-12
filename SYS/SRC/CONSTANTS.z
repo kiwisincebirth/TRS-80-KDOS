@@ -170,12 +170,12 @@ S_LOADFILE	EQU	'L' - '@' + $20	; (4430) @LOAD DOS Function
 S_RUNFILE	EQU	'L' - '@' + $40	; (4433) @RUN  DOS Function
 S_LOADCMD	EQU	'L' - '@' + $A0	; todo #LOAD DOS COMMAND - separate or just call the API
 ;
-S_CDCMD		EQU	'S' - '@' + $20	; #CD command
-S_COPYCMD	EQU	'S' - '@' + $40	; #COPY #CP command
-S_DELCMD	EQU	'S' - '@' + $60	; #DEL #DELETE #KILL #RM command
-S_MDCMD		EQU	'S' - '@' + $80	; #MKDIR command
-S_RENCMD	EQU	'S' - '@' + $A0	; #REN #RENAME #MV #MOVE command
-S_PWDCMD	EQU	'S' - '@' + $C0	; #PWD command
+S_CDCMD		EQU	'O' - '@' + $20	; #CD command
+S_COPYCMD	EQU	'O' - '@' + $40	; #COPY #CP command
+S_DELCMD	EQU	'O' - '@' + $60	; #DEL #DELETE #KILL #RM command
+S_MDCMD		EQU	'O' - '@' + $80	; #MKDIR command
+S_RENCMD	EQU	'O' - '@' + $A0	; #REN #RENAME #MV #MOVE command
+S_PWDCMD	EQU	'O' - '@' + $C0	; #PWD command
 ;
 SUPERV 	macro	p1
 	ld	a,p1	; load supervisor id
@@ -190,13 +190,24 @@ ERRSN		EQU	02H	; Syntax Error
 ;
 ; DOS ERROR CODES
 ;
+DEVNOTAVA$	EQU	08	; Device Not Avalable
+WRITEPROT$	EQU	15	; Write Protected Disk
+ILLLOGFIL$	EQU	15	; Illegal Logical File Number
 ILLFILNAM$	EQU	19	; Illegal Filename
 FILNOTFND$	EQU	24	; File Not Found
+ACCESSDEN$	EQU	25	; Access Denied
 DIRSPCFUL$	EQU	26	; Directory Space Full
 DSCSPCFUL$	EQU	27	; Disk Space Full
 PRGNOTFND$	EQU	31	; Program not found
+ILLDRINUM$	EQU	32	; Illegal Drive Number
 LOAFILFMT$	EQU	34 	; Load file format error
-ILLDOSFUN$	EQU	42 	; Illegal (Unsupported) DOS Functon. From ND80
+;
+; Error Codes 39-62 are Undefined By TrsDOS
+; but valid for the TRS-80
+;
+PATNOTFOU$	EQU	60	; Path Not Found, (like File Not Found)
+ILLDOSFUN$	EQU	61 	; Illegal (Unsupported) DOS Functon.
+INTDOSERR$	EQU	62	; Internal DOS Error - Unexpected
 UNKNOWN$	EQU	63
 ;
 ; ----------------------------------------------------------------------
@@ -212,11 +223,11 @@ SPC         EQU     20H
 ;
 ; FreHD PORT Interface defines
 ; ----------------------------------------------------------------------
-DATA2	  	EQU	0c2h
-SIZE2     	EQU	0c3h
+DATA2	  	EQU	0c2h		; 194
+SIZE2     	EQU	0c3h		; 195
 COMMAND2  	EQU	0c4h
-ERROR2    	EQU	0c5h		; read only
-STATUS    	EQU	0cfh		; read only
+ERROR2    	EQU	0c5h		; 197 read only
+STATUS    	EQU	0cfh		; 207 read only
 ;
 ; COMMAND ID's
 ; ----------------------------------------------------------------------
@@ -231,8 +242,13 @@ CLOSEFILE	EQU	06h
 OPENDIR     	EQU	08h
 READDIR		EQU	09h
 ;
-; $10 - 17 General Purpose
+; $10 - $13 General Purpose
 TRS_NEW_DIR	EQU	11h
+;
+; $14 - $17 File API Commands
+TRS_FILE_OPEN	EQU	$14
+TRS_FILE_CLOSE	EQU	$15
+TRS_FILE_KILL	EQU	$16
 ;
 ; $18 - $1F Reserved for OverlayS
 ; They Map to the Superviser Call ID's
@@ -243,8 +259,13 @@ TRS_NEW_MD	EQU	1Ch
 TRS_NEW_REN	EQU	1Dh
 TRS_NEW_PWD	EQU	1Eh
 ;
-; $20 - $2F File API Commands
-TRS_FILE_OPEN	EQU	20h
+; $20 - $27 File API Commands
+TRS_FILE_READ	EQU	$20
+TRS_FILE_WRITE	EQU	$21
+TRS_FILE_SOF	EQU	$22
+TRS_FILE_POS	EQU	$23
+TRS_FILE_BACK	EQU	$24
+TRS_FILE_EOF	EQU	$25
 ;
 ; ======================================================================
 ; PICO API (including FATFS) attributes

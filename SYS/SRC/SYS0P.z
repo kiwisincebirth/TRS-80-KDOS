@@ -2,7 +2,7 @@
 ;       	MINI DOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
-;     GENERAL FILE HANDLING - OPEN CLOSE etc.
+;     SYSP (Paged SYS0) - including all additional modules
 ;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]

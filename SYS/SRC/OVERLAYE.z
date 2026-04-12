@@ -32,98 +32,111 @@ import	constants.z
 
 	; test the MS bit, flag 1=return
 	bit	7,b		; test the 7th bit
-	jr	nz,HANDERR	; =1 jp down, with RET out
+	jr	nz,_HANDERR	; =1 jp down, with RET out
 
 	; otherwise if bit 7=0 then
-	call	HANDERR		; display the error
+	call	_HANDERR		; display the error
 	jp	@EXIT		; JP back to DOS
 ;
 ; ----------------------------------------------------------------------
 ;
-HANDERR:
-	ld	a,UNKNOWN$	; mask for error code to 0-63
-	and	b		; and with the passed in error code B
-	jr	nz,HAND1	; 1-63 so continue with Error
-	ld	a,UNKNOWN$	;  =0  use unknown Error
-HAND1
+_HANDERR:
 	push	af
 	push	bc
 	push	de
 	push	hl
 	;
-;	ld	b,a		; save the error code
-	call	enh_VER		; call the Enhanced Pico check
-	jr	nz,ENHANCED	; enhanced handling
+;	call	enh_VER		; call the Enhanced Pico check
+;	jr	nz,_ENHANCED	; enhanced handling
 ;
 STANDARD
+	res	7,b		; Bit 7 has been tested, remove bit 7
+	;
+	bit	6,b		; Test Bit 6 - FF Error Flag
+	jp	nz,_FATFS	; if Bit 6 set then handle FF error
+	;
+_STD0
+				; B now in range 0-63
 	ld	hl,lookupt	; message lookup table
-STD1:
+_STD1:
 	ld	a,(hl)
 	inc	hl
 	or	a		; compare table terminator $00
-	jr	z,STD4		; last entry so handle generic
+	jr	z,_STD4		; last entry so handle generic
 	cp	b		; compare with passed error
-	jr	z,STD3		; same so process it fully
-STD2
+	jr	z,_STD3		; same so process it fully
+_STD2
 	ld	a,(hl)
 	inc	hl
 	cp	ETX		; is it ETX table entry terminator
-	jr	nz, STD2	; not end of table entry
-	jr	STD1		; now check next table entr
+	jr	nz, _STD2	; not end of table entry
+	jr	_STD1		; now check next table entr
 ;
-STD3:
+_STD3:
 ;	call	CRDONZ		; print CR if needed
 	call	@DSPLY		; display the message from lookup table
-	jr	STD5
+	jr	_STD9		; and skip forward
 ;
-STD4:
+_STD4:
 ;	call	CRDONZ		; print CR if needed
-	ld	hl,error_m	; "Error " messaage
+	ld	hl,_ERR_MSG	; "Error " messaage
+_STD8:
 	call	@DSPLY		; display it
 	ld	h,0
 	ld	l,b		; error into HL
 	call	LINPRT		; print integer HL
-STD5:
+_STD9:
 	call	CRDO		; print a CR
-	jr	HANDX
-	;
-ENHANCED
-	; call the enhanced function passing the Error code
-	; get the response message / printing it.
-
-	jr	STANDARD
-	; todo FUTURE this could be done with Advanced Pico call
-	; todo which has a complete tble of error messages, OR multiple overlays
-
-HANDX
+_HANDX
 	pop	hl		; restore the stack
 	pop	de
 	pop	bc
 	pop	af
 	ret			; return to invocation
 ;
+; FAT FS Error in range 64-128, with a 64 offset.
+_FATFS
+	res	6,b		; clear bit 6 ->  0 - 63
+	ld	hl,_FF_MSG	; "FF Error " message
+	jr	_STD8		; and print the error
+;
+; ----------------------------------------------------------------------
+;
+_ENHANCED
+	; call the enhanced function passing the Error code
+	; get the response message / printing it.
+	; jr	STANDARD
+	; todo FUTURE this could be done with Advanced Pico call
+	; todo which has a complete tble of error messages, OR multiple overlays
+;
 ; ----------------------------------------------------------------------
 
 lookupt:
 	; common errors (not all) are here
-	defb	ILLFILNAM$ , "Illegal Filename",ETX		; 19
-	defb	FILNOTFND$ , "File Not Found",ETX		; 24
-	defb	DIRSPCFUL$ , "Directory Space Full"		; 26
-	defb	DSCSPCFUL$ , "Disk Space Full"			; 27
-	defb	PRGNOTFND$ , "Program Not Found",ETX		; 31
-	defb	LOAFILFMT$ , "Load File Format Error",ETX	; 34
-	defb	ILLDOSFUN$ , "Illegal DOS Function",ETX		; 42
-	defb	UNKNOWN$   , "Unknown Error",ETX		; 63
+;	defb	DEVNOTAVA$ , "Device Not Available"	,ETX	; 08
+	defb	WRITEPROT$ , "Write Protected Disk"	,ETX	; 15
+	defb	ILLLOGFIL$ , "Illegal File Number"	,ETX	; 16
+	defb	ILLFILNAM$ , "Illegal Filename"		,ETX	; 19
+	defb	FILNOTFND$ , "File Not Found"		,ETX	; 24
+;	defb	ACCESSDEN$ , "Access Denied"		,ETX	; 25
+	defb	DIRSPCFUL$ , "Directory Space Full"	,ETX	; 26
+	defb	DSCSPCFUL$ , "Disk Space Full"		,ETX	; 27
+	defb	PRGNOTFND$ , "Program Not Found"	,ETX	; 31
+	defb	ILLDRINUM$ , "Illegal Drive Number"	,ETX	; 32
+	defb	LOAFILFMT$ , "Load File Format Error"	,ETX	; 34
+	;
+	defb	ILLDOSFUN$ , "Illegal DOS Function"	,ETX	; 60 - ND/80 for disabled functions
+	defb	PATNOTFOU$ , "Path Not Found"		,ETX	; 61 - Path not found, like File not found
+	defb	INTDOSERR$ , "Internal DOS Error"	,ETX	; 62 - Something that should never happen
+	defb	UNKNOWN$   , "Unknown Error"		,ETX	; 63
 	defb	$0
 
-	; These can be uncommented as necessary
-;	defb	08 ,"Device Not Available",ETX
-;	defb	15 ,"Write Protected Disk",ETX
-;	defb	25 ,"Access Denied",ETX
+;	; TRS-80 Error messages - uncommented as necessary
 ;	defb	26 ,"Full or Write Protected",ETX
-;	defb	32 ,"Illegal Drive Number",ETX
 ;
-error_m:
+_FF_MSG:
+	defb 'FF '		; FF Error merges into next Error
+_ERR_MSG:
 	defb 'Error ', ETX
 
 ; ======================================================================

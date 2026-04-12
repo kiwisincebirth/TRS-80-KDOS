@@ -26,8 +26,8 @@ import	constants.z
 	;
 	jr	nz,_DOCMD1	; Enhanced Fre Hd / Advanced Pico handling
 	;
-	ld	a, ILLDOSFUN$	; if NOT enhanced the illegal Dos Function
-	jp	@ERROR		; jump to dos and display error
+	ld	a, INTDOSERR$	; Internal Failure
+	jp	@ERROR
 ;
 _DOCMD1:
 ;

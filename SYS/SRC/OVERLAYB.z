@@ -29,7 +29,8 @@ ENTRY:
 	cp	S_BASICLOAD
 	jr	z,BASIC_LOAD	; LOAD
 	;
-	ret	; todo this should be an error
+	ld	a, INTDOSERR$	; Internal Failure
+	jp	@ERROR
 ;
 ; ----------------------------------------------------------------------
 ; SAVE "XXXXX.BAS" - Save a Basic program to Disk

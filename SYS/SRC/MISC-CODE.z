@@ -125,6 +125,30 @@ typedef enum {
 	FR_INVALID_PARAMETER	3F(Unknown)	/* (19) Given parameter is invalid */
 } FRESULT;
 
+
+	; TRS 80 DOS Error Codes Translated from FF error codes
+	DB	UNKNOWN$ ;(0) NO ERROR
+	DB	$03	; (1) A hard error occurred in the low level disk I/O layer
+	DB	$04	; (2) Assertion failed
+	DB	$08	; (3) The physical drive cannot work
+	DB	$18	; (4) Could not find the file
+	DB	$18	; (5) Could not find the path
+	DB	$13	; (6) The path name format is invalid
+	DB	$1A	; (7) Access denied due to prohibited access or directory full
+	DB	$19	; (8) Access denied due to prohibited access
+	DB	$10	; (9) The file/directory object is invalid -> 16 Illegal Logical File Number
+	DB	$0F	; (10) The physical drive is write protected
+	DB	$20	; (11) The logical drive number is invalid
+	DB	$12	; (12) The volume has no work area
+	DB	$05	; (13) There is no valid FAT volume
+	DB	$0B	; (14) The f_mkfs() aborted due to any problem
+	DB	$03	; (15) Could not get a grant to access the volume within defined period
+	DB	$25	; (16) The operation is rejected according to the file sharing policy
+	DB	$21	; (17) LFN working buffer could not be allocated
+	DB	UNKNOWN$ ;(18) Number of open files > FF_FS_LOCK
+	DB	UNKNOWN$ ;(19) Given parameter is invalid
+
+
 BELO contains -> Mapping to possible error code to map to
 specifically for API calls where specific I's migt be meaininful.
 

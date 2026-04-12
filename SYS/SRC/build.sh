@@ -25,8 +25,8 @@ echo Copying Files to Parent
 
 cp zout/boot.cmd     ../../frehd.rom
 cp zout/boot.cim     ../BOOT.SYS
-cp zout/sys0p.cmd    ../SYS0.sys
-cp zout/sys0f.cmd    ../F/SYS0.sys
+cp zout/sys0p.cmd    ../SYSP.sys
+cp zout/sys0f.cmd    ../SYS0.sys
 cp zout/overlayb.cim ../overlayb.sys
 cp zout/overlayc.cim ../overlayc.sys
 cp zout/overlayd.cim ../overlayd.sys
@@ -40,8 +40,8 @@ echo Copying Files to FreHD
 
 cp zout/boot.cmd     ~/Documents/FreHD/frehd.rom
 cp zout/boot.cim     ~/Documents/FreHD/SYS/BOOT.SYS
-cp zout/sys0p.cmd    ~/Documents/FreHD/SYS/SYS0.sys
-cp zout/sys0f.cmd    ~/Documents/FreHD/SYS/F/SYS0.sys
+cp zout/sys0p.cmd    ~/Documents/FreHD/SYS/SYSP.sys
+cp zout/sys0f.cmd    ~/Documents/FreHD/SYS/SYS0.sys
 cp zout/overlayb.cim ~/Documents/FreHD/SYS/overlayb.sys
 cp zout/overlayc.cim ~/Documents/FreHD/SYS/overlayc.sys
 cp zout/overlayd.cim ~/Documents/FreHD/SYS/overlayd.sys
@@ -57,8 +57,8 @@ echo Copying Files to Floppy90
 
 cp zout/boot.cmd     /Volumes/FLOPPY90/frehd.rom
 cp zout/boot.cim     /Volumes/FLOPPY90/SYS/BOOT.SYS
-cp zout/sys0p.cmd    /Volumes/FLOPPY90/SYS/SYS0.sys
-cp zout/sys0f.cmd    /Volumes/FLOPPY90/SYS/F/SYS0.sys
+cp zout/sys0p.cmd    /Volumes/FLOPPY90/SYS/SYSP.sys
+cp zout/sys0f.cmd    /Volumes/FLOPPY90/SYS/SYS0.sys
 cp zout/overlayb.cim /Volumes/FLOPPY90/SYS/overlayb.sys
 cp zout/overlayc.cim /Volumes/FLOPPY90/SYS/overlayc.sys
 cp zout/overlayd.cim /Volumes/FLOPPY90/SYS/overlayd.sys

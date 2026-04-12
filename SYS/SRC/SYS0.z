@@ -2,6 +2,8 @@
 ;       	MINI DOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
+;     SYS0 - CORE SYS0 Module
+;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]
 ;
@@ -10,8 +12,6 @@
 ; ----------------------------------------------------------------------
 ;
 import	constants.z
-;
-; todo implement get time and set time wrappers
 ;
 ; ======================================================================
 ; Level 2 Communication Region (4000h - 4200h)
@@ -353,28 +353,28 @@ frehd_WAIT:
 	ex 	(sp),hl		; small delay to
 	ex 	(sp),hl		; settle the controller
 	;
-wait1:	in 	a, (STATUS)	; read status from FreHD
+_wait1:	in 	a, (STATUS)	; read status from FreHD
 	bit	7,a		; BUSY status bit
-	jr 	nz, wait1	; loop while busy, for correct status
+	jr 	nz, _wait1	; loop while busy, for correct status
 	;
 	; in 	a, (STATUS)	; read status again
 	bit	0,a		; test the LSB bit (STATUS_ERR)
 	ret	z		; No error just return the status
 	;
 	in	a, (ERROR2)	; read the FF error code from frehd
-	push	hl		; save reg
-	ld	hl,transtable	; translation table
-	cp	19 + 1		; the highest error number
-	jr	nc,transl	; >= 20 out of range so just use default.	;
-	;
-	add	l		; add the error code to hl
-	ld	l,a		; to get address in lookup table
-	jr	nc,transl
-	inc	h
-transl:
-	ld	a,(hl)		; get the translated error code
-	or	a		; set flags
-	pop	hl		; restore stack and ret
+
+	; The error code is mapped in the following way (bit 7 removed)
+	;   as 0 -  20 FF  Error -> map to 64- 128 by  setting Bit 6,
+	; and 64 - 192 TRS Error -> map to  0-  63 by removing Bit 6,
+        bit	6,a
+        jr	nz,_waitTRS	; Not Zero -> TRS-error
+        			; otherwise FF error
+_waitFF
+	and	$3F
+	or	$40		; FF Err -> Mask as 01xxxxxx
+	ret
+_waitTRS
+	and	$3F		; TRS Err -> Mask as 00xxxxxx
 	ret
 ;
 ; ----------------------------------------------------------------------
@@ -382,9 +382,6 @@ transl:
 ; ENTRY POINT FOR ALL INTERRUPTS (4012)
 ;
 INTERRUP_SR:
-;	di			; todo disable
-;	ret
-;
 	push	af
 	ld	a,($37e0) 	; clear the RTC interrupt latch
 	rlca			; mve bit 7 into the CARRY regster
@@ -600,28 +597,28 @@ OVRNAM: 	DEFB	'/SYS/OVERLAYz.SYS'
 OVRCURR:	EQU	$ - 5		; address of overlay ID in file name
 OVRNAMLEN	EQU	$ - OVRNAM	; length of the overlay file name
 ;
-transtable:
-	; TRS 80 DOS Error Codes Translated from FF error codes
-	DB	UNKNOWN$ ;(0) NO ERROR
-	DB	$01	; (1) A hard error occurred in the low level disk I/O layer
-	DB	$04	; (2) Assertion failed
-	DB	$08	; (3) The physical drive cannot work
-	DB	$18	; (4) Could not find the file
-	DB	$18	; (5) Could not find the path
-	DB	$13	; (6) The path name format is invalid
-	DB	$1A	; (7) Access denied due to prohibited access or directory full
-	DB	$19	; (8) Access denied due to prohibited access
-	DB	$10	; (9) The file/directory object is invalid
-	DB	$0F	; (10) The physical drive is write protected
-	DB	$20	; (11) The logical drive number is invalid
-	DB	$12	; (12) The volume has no work area
-	DB	$05	; (13) There is no valid FAT volume
-	DB	$0B	; (14) The f_mkfs() aborted due to any problem
-	DB	$03	; (15) Could not get a grant to access the volume within defined period
-	DB	$25	; (16) The operation is rejected according to the file sharing policy
-	DB	$21	; (17) LFN working buffer could not be allocated
-	DB	UNKNOWN$ ;(18) Number of open files > FF_FS_LOCK
-	DB	UNKNOWN$ ;(19) Given parameter is invalid
+;transtable:
+;	; TRS 80 DOS Error Codes Translated from FF error codes
+;	DB	UNKNOWN$ ;(0) NO ERROR
+;	DB	$03	; (1) A hard error occurred in the low level disk I/O layer
+;	DB	$04	; (2) Assertion failed
+;	DB	$08	; (3) The physical drive cannot work
+;	DB	$18	; (4) Could not find the file
+;	DB	$18	; (5) Could not find the path
+;	DB	$13	; (6) The path name format is invalid
+;	DB	$1A	; (7) Access denied due to prohibited access or directory full
+;	DB	$19	; (8) Access denied due to prohibited access
+;	DB	$10	; (9) The file/directory object is invalid -> 16 Illegal Logical File Number
+;	DB	$0F	; (10) The physical drive is write protected
+;	DB	$20	; (11) The logical drive number is invalid
+;	DB	$12	; (12) The volume has no work area
+;	DB	$05	; (13) There is no valid FAT volume
+;	DB	$0B	; (14) The f_mkfs() aborted due to any problem
+;	DB	$03	; (15) Could not get a grant to access the volume within defined period
+;	DB	$25	; (16) The operation is rejected according to the file sharing policy
+;	DB	$21	; (17) LFN working buffer could not be allocated
+;	DB	UNKNOWN$ ;(18) Number of open files > FF_FS_LOCK
+;	DB	UNKNOWN$ ;(19) Given parameter is invalid
 ;
 $FREE_CORE2	EQU	CORE2END - $
 ;

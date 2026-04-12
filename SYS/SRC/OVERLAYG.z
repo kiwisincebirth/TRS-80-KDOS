@@ -47,14 +47,15 @@ import	constants.z
 	cp	S_PEOFFILE	; (4448) @PEOF API Function
 	jr	z,_eoffile
  	;
-	jr	_ILLEGAL	; not found so it is illegal
-
+	ld	a, INTDOSERR$	; Internal Failure
+	jp	@ERROR
+	;
 _NOT_ENH
 	pop	af
 _ILLEGAL
 	ld	a, ILLDOSFUN$	; (NOT enhanced) so illegal Dos Function
 	or	a		; set the flags
-	ret			; return falure
+	ret			; return failure
 ;
 ; ----------------------------------------------------------------------
 ;
@@ -68,13 +69,58 @@ _ILLEGAL
 ; FCB Next Record num - increased by number of bytes Read
 ;
 _readfile
-	; todo
-	JP	_ILLEGAL
+	push	hl			; save the input buffer address
+
+	; Send the Command
+	ld	a,TRS_FILE_READ		; API READ command
+	out	(COMMAND2),a		; send command to frehd
+
+	; Send the 16 byte FCB
+	ld	bc, $1000 + DATA2	; b = 16 bytes + C the data port
+	ld	h,d			; fcb adress into HL
+	ld	l,e
+	otir				; send data from (hl) to port (C)
+
+	; Wait and return if error
+	call	fhd_WAIT		; wait for status of OPEN
+	jr	nz,_read_out1		; error then out of here
+
+	; Receive the updated 16 byte FCB
+	ld	b,$10			; 16 byte FCB
+	ld	h,d			; fcb address into HL
+	ld	l,e
+	inir
+
+	; receive the data buffer
+	pop	hl			; saved Hl buffer addr parameter
+	call	_LRL_FCB		; update HL from FCB for LRL=0
+	ld	b,a			; LRL record length from A
+	inir				; load N bytes into Buffer
+	;
+	xor	a			; success
+	ret
+
+_read_out1:
+	pop	hl
+	ret				; and return
+
+_LRL_FCB:
+	push	de			; Copy DE register
+	pop	ix			; IX conatins FCB
+	ld	a,(IX+9)		; get LRL fro FCB
+	or	a			; flags
+	ret	nz			; LRL != 256
+	ld	l,(IX+3)		; HL from FCB buffer
+	ld	h,(IX+4)
+	ret
+
+
+
 
 ;
 ; @WRITE WRITE (no verify) File ($4439)
 ; DE -> Pointer to FCB 32 byte Buffer
-; HL -> User Record Buffer address for LRL <256
+; HL -> User Record Buffer address for LRL <256 ; !=0
 ; Ret Z - No Error ; NZ - Error (A error Code)
 ; FCB Next Record num - increased by number of bytes Written
 ; FCB EOF - Updated (conditionally) after write to equal NEXT
@@ -82,6 +128,13 @@ _readfile
 ;   * If FCB+1 (Bit6 = 0) - the default when opening a file
 ;
 _writefile
+	; Send the Command
+	; Send the 16 byte FCB
+	; Send the 256 or lower data to write
+	; Wait
+	; Return if any Error
+	; Receive the 16 byte FCB
+	; Return
 	; todo
 	JP	_ILLEGAL
 
@@ -90,9 +143,7 @@ _writefile
 ; Same as @WRITE
 ;
 _verifyfile
-	; todo
-	JP	_ILLEGAL
-
+	jr	_writefile
 ;
 ; @REW  Position to start of file SOF ($443F)
 ; DE -> Pointer to FCB 32 byte Buffer
@@ -101,6 +152,12 @@ _verifyfile
 ;
 _rewindfile
 	; todo
+	; Send the Command
+	; Send the 16 byte FCB
+	; Wait
+	; Return if any Error
+	; Receive the 16 byte FCB
+	; Return
 	JP	_ILLEGAL
 
 ;
@@ -112,6 +169,13 @@ _rewindfile
 ;
 _positionfile
 	; todo
+	; Send the Command
+	; Send the 16 byte FCB
+	; Send the 2 byte LRN
+	; Wait
+	; Return if any Error
+	; Receive the 16 byte FCB
+	; Return
 	JP	_ILLEGAL
 
 ;
@@ -122,6 +186,12 @@ _positionfile
 ;
 _backspacefile
 	; todo
+	; Send the Command
+	; Send the 16 byte FCB
+	; Wait
+	; Return if any Error
+	; Receive the 16 byte FCB
+	; Return
 	JP	_ILLEGAL
 
 ;
@@ -132,6 +202,12 @@ _backspacefile
 ;
 _eoffile
 	; todo
+	; Send the Command
+	; Send the 16 byte FCB
+	; Wait
+	; Return if any Error
+	; Receive the 16 byte FCB
+	; Return
 	JP	_ILLEGAL
 
 ;

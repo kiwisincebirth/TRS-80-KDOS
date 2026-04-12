@@ -20,7 +20,7 @@ import	constants.z
 ;
 	ORG	OVERLY
 ;
-	; Continuaton of Code in SYS 0 to Prompt the User and
+	; Continuation of Code in SYS 0 to Prompt the User and
 	; Process rthe Command. follows same structure as L2 Basic
 	; not the comments below indicate the original source code
 	; this is done because we need to trap before tokenisation.
@@ -117,16 +117,6 @@ _FOUND2:
 	push	de		; JP DE : save DE pointer to stack
 	ret			; ret / JUMP to the command
 
-	; command found in table
-;	ex	de,hl		; DE -> curr cmd buff; hl -> table address
-;	ld	c,(hl)		; low order command address
-;	inc	hl		; high order command address
-;	ld	b,(hl)		; BC -> full address of command
-;	ex	de,hl		; HL -> curr cmd buff
-;	;
-;	push	bc		; setup BC as address return address
-;	ret			; Jump to address in BC
-;	;
 ; ----------------------------------------------------------------------
 _NOTFND:
 	; todo review this code

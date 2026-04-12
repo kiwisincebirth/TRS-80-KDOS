@@ -41,14 +41,15 @@ import	constants.z
  	cp	S_KILLFILE	; (4428) @KILL API Function
  	jp	z,_killfile
  	;
-	jr	_ILLEGAL	; not found so it is illegal
+	ld	a, INTDOSERR$	; Internal Failure
+	jp	@ERROR
 
 _NOT_ENH
 	pop	af
 _ILLEGAL
 	ld	a, ILLDOSFUN$	; (NOT enhanced) so illegal Dos Function
 	or	a		; set the flags
-	ret			; return falure
+	ret			; return failure
 
 ;
 ; @FSPEC API Function (441C)
@@ -135,9 +136,7 @@ _open_out1:
 ; Closes existing file writing any dirty data back to disk
 ;
 ; If bit 4 of the FCB's 2nd byte equals 1, the FCB's buffer is written to disk like a 4439H call.
-; If the FCB's EOF is different from that in the FPDE, the FPDE is updated for the new EOF.
-; If the file has excess granules beyond EOF and if automatic space deallocation is allowed,
-; the excess granules are released.
+; If the file has excess data beyond EOF and if automatic space deallocation is allowed, fle is truncated
 ;
 ; DE -> Pointer to FCB 32 byte Buffer
 ; Ret Z - No Error ; NZ - Error (A error Code)
@@ -145,6 +144,12 @@ _open_out1:
 ;
 _closefile
 	; todo
+	; Send the Command
+	; Send the 16 byte FCB
+	; Wait
+	; Return if any Error
+	; Receive the 32 byte FCB
+	; Return
 	JP	_ILLEGAL
 
 ;
@@ -157,6 +162,12 @@ _closefile
 ;
 _killfile
 	; todo
+	; Send the Command
+	; Send the 16 byte FCB
+	; Wait
+	; Return if any Error
+	; Receive the 32 byte FCB
+	; Return
 	JP	_ILLEGAL
 
 ;

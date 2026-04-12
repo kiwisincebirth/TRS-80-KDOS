@@ -54,7 +54,8 @@ import	constants.z
 	cp	S_LOADCMD	; #LOAD XXXXXXXX DOS COMMAND
 	jr	z,LOAD_CMD	; called from OverlayC
 	;
-	ret
+	ld	a, INTDOSERR$	; Internal Failure
+	jp	@ERROR
 ;
 ; ======================================================================
 ;
