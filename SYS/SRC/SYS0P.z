@@ -23,50 +23,50 @@ include sys0.z
 
 ; Basic Load Save commands
 ; These are functions that JP back to dos
-pageJump _basic_overb, PAGE_OVERLAYB
+VIRTUAL_ROUTINE _basic_overb, PAGE_OVERLAYB
 include	overlayb.z
 pageEnd
 
 ; Command Processor Overlay
 ; it is a terminal service, no RETURN
-pageJump _basic_overc, PAGE_OVERLAYC
+VIRTUAL_ROUTINE _basic_overc, PAGE_OVERLAYC
 include	overlayc.z
 pageEnd
 
 ; DIR Command
 ; No ret from this, back to dos
-pageJump _basic_overd, PAGE_OVERLAYD
+VIRTUAL_ROUTINE _basic_overd, PAGE_OVERLAYD
 include	overlayd.z
 pageEnd
 
 ; Error Reporting for DOS
 ; These are routines that can either
 ; return or Jump out to Dos
-pageCall _basic_overe, PAGE_OVERLAYE
+VIRTUAL_ROUTINE _basic_overe, PAGE_OVERLAYE
 include	overlaye.z
 pageEnd
 
 ; DOS Routines for DISK File Open/Close Access
 ; These are routines that return to caller
-pageCall _basic_overf, PAGE_OVERLAYF
+VIRTUAL_ROUTINE _basic_overf, PAGE_OVERLAYF
 include	overlayf.z
 pageEnd
 
 ; DOS Routines for DISK File R/W Access
 ; These are routines that return to caller
-pageCall _basic_overg, PAGE_OVERLAYG
+VIRTUAL_ROUTINE _basic_overg, PAGE_OVERLAYG
 include	overlayg.z
 pageEnd
 
 ; CMD Loader and Runner
 ; For Loader API Call we have a RET path
-pageCall _basic_overl, PAGE_OVERLAYL
+VIRTUAL_ROUTINE _basic_overl, PAGE_OVERLAYL
 include	overlayl.z
 pageEnd
 
 ; File System Command
 ; No ret from this, back to dos
-pageJump _basic_overs, PAGE_OVERLAYO
+VIRTUAL_ROUTINE _basic_overs, PAGE_OVERLAYO
 include	overlayo.z
 pageEnd
 

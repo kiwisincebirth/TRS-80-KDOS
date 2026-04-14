@@ -12,7 +12,7 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-pageCall basicdefine, PAGE_DEFINE
+VIRTUAL_ROUTINE basicdefine, PAGE_DEFINE
 ;
 ;  	DEF 	- $415B -> 5655
 ; 	FN  	- $4155 -> 558E

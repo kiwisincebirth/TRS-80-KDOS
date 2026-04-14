@@ -12,7 +12,7 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-pageCall basiclineinput, PAGE_LINEINP
+VIRTUAL_ROUTINE basiclineinput, PAGE_LINEINP
 ;
 ; ------------------------------
 ; Code Required Starts Here

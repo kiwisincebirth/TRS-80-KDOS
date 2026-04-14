@@ -108,7 +108,8 @@ The following is provided by the Pic Hardware
 At startup holding the <CLEAR> key will :
 * Disable Virtual RAM and instead use Liner Overlay RAM. 
 * Reduce available ram by 512 bytes needed for overlay loading
-* Disable Extended disk basic, which require virtual memory. 
+* Disable Extended basic features, which require virtual memory.
+* Disable any AUTO processing
 
 ### Boot Process
 
@@ -151,41 +152,47 @@ The effective Memory map
 
 DOS Entry Points (4400-4480)
 
-| Address |        | Contents                  | Issues         |
-|---------|--------|---------------------------|----------------|
-| 402D    |        | No Error DOS Exit (44400) |                |
-| 4400    | @CMD   | No Error DOS Exit         |                |
-| 4405    | @CMNDI | Execute CMD and Exit      | (Same as 4400) |
-| 4409    | @ERROR | Exit and Display Error    |                |
-| 440D    | @DEBUG | Debug Mode                | Not Implmented |
-| 4410    | @ADTSK | Add Interrupt Task        | Not Implmented |
-| 4413    | @RMTSK | Remove Interrupt Task     | Not Implmented |
-| 4416    |        | DOS Specific Routine      | Not Implmented |
-| 4419    |        | DOS Specific Routine      | Not Implmented |
-| 441C    | @FSPEC | Extract File Spec         | todo           |
-| 4420    | @INIT  | Create or Open File       | todo           |
-| 4424    | @OPEN  | Open Existing File        | todo           |
-| 4428    | @CLOSE | Close a File              | todo           |
-| 442C    | @KILL  | Delete an Open File       | todo           |
-| 4430    | @LOAD  | Load Program              |                |
-| 4433    | @RUN   | Load and Run Program      |                |
-| 4436    | @READ  | Read from Disk File       | todo           |
-| 4439    | @WRITE | Write to Disk File        | todo           |
-| 443C    | @VER   | Write and Verify          | (Same as 4339) |
-| 443F    | @REW   | Position File to Start    | todo           |
-| 4442    | @POSN  | Position File             | todo           |
-| 4445    | @BKSP  | Backspace Fle 1 Record    | todo           |
-| 4448    | @PEOF  | Position File to EOF      | todo           |
-| 44      | @      |                           |                |
-| 44      | @      |                           |                |
-| 44      | @      |                           |                |
-| 4467    | @DSPLY | Display String            |                |
-| 446A    | @PRINT | Print a String            |                |
-| 44      | @      |                           |                |
-| 44      | @      | - tbc -                   |                |
-| 44      | @      |                           |                |
-| 447E    |        | Major Version             |                |
-| 447F    |        | Minor Version             |                |
+; todo should we insert these int table below
+; (400C) RST 28H Break Key; DOS Supervisor Call Dispatcher     
+; (400F) RST 30h (DOS DEBUG entry point) Vector.
+; (4012) RST 38h (Interrupt Service) Vector.                                                                                                 
+; (4033) DOS Char I/O Driver for Disk Files
+; (4427) * ND8Ø $82 identifying ND(8)0v(2)                                        
+; (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
+
+| Address |        | Contents                   | Issues         |
+|---------|--------|----------------------------|----------------|
+| 402D    |        | No Error DOS Exit (44400)  |                |
+| 4400    | @CMD   | No Error DOS Exit          |                |
+| 4405    | @CMNDI | Execute CMD and Exit       | (Same as 4400) |
+| 4409    | @ERROR | Exit and Display Error     |                |
+| 440D    | @DEBUG | Debug Mode                 | Not Implemented |
+| 4410    | @ADTSK | Add Interrupt Task         | Not Implemented |
+| 4413    | @RMTSK | Remove Interrupt Task      | Not Implemented |
+| 441C    | @FSPEC | Extract File Spec          | todo           |
+| 4420    | @INIT  | Create or Open File        | todo           |
+| 4424    | @OPEN  | Open Existing File         | todo           |
+| 4428    | @CLOSE | Close a File               | todo           |
+| 442C    | @KILL  | Delete an Open File        | todo           |
+| 4430    | @LOAD  | Load Program               |                |
+| 4433    | @RUN   | Load and Run Program       |                |
+| 4436    | @READ  | Read from Disk File        | todo           |
+| 4439    | @WRITE | Write to Disk File         | todo           |
+| 443C    | @VER   | Write and Verify           | (Same as 4339) |
+| 443F    | @REW   | Position File to Start     | todo           |
+| 4442    | @POSN  | Position File              | todo           |
+| 4445    | @BKSP  | Backspace Fle 1 Record     | todo           |
+| 4448    | @PEOF  | Position File to EOF       | todo           |
+| 4467    | @DSPLY | Display a String           |                |
+| 446A    | @PRINT | Print a String             |                |
+| 446D    | @TIME  | Time into (HL) buffer      | todo           |
+| 4470    | @DATE  | Date into (HL) buffer      | todo           |
+| 4473    | @FEXT  | Default Filename extension | todo           |
+| 44      | @      |                            |                |
+| 44      | @      | - tbc -                    |                |
+| 44      | @      |                            |                |
+| 447E    |        | DOS Major Version          |                |
+| 447F    |        | DOS Minor Version          |                | 
 
 ## Caveats
 
@@ -206,7 +213,7 @@ See the separate Compatibility document for what is and isn't supported.
 
 ### Issues
 * Typing #LOAD METEOR.CMD - causes a load and crash back to restart.
-* Typing something at command prompt and pressing <BREAK> dos weird thing, 
+* Typing something at command prompt and pressing <BREAK> does weird thing, 
   * Displays an FC error in FreHD Mode
   * Selects Page 225(unused) in the Page/Overlay - Doesnt Exist
   * weeird openFile(+Memory Size messages in Pico CLI
@@ -221,10 +228,12 @@ See the separate Compatibility document for what is and isn't supported.
 * FreHD DIR should not display directories, since there is no #CD command.
 
 ### Improvement - Error handling
-* #RM BASIC - removing a directory (not empty) produced Error 26 FR_DENIED (7) Access denied due to prohibited
+* #RM BASIC - removing a directory (not empty) produced "FF Error 7" Access denied due to prohibited
   access or directory full -> Should provide better error.
-* #CD RUBBISH - produces "File Not Found"
-  * need new error "Directory Not Found"
+* #MKdir BASIC - FF Error 8 - Exists
+* Need "Access Dnied" and "Exists" messages - but maybe 
+  * in RM we MAP the Access Denied to "Directory Not Empty"
+  * in MKDIR we MAP the Exists     to "Directory Exists"
 
 ### PicoRAM
 * Need to investigate the Enhanced Flag ???
@@ -287,7 +296,18 @@ DIR9=namedDirectory9
 
 BASIC
 
+# Virtual Memory
 
+| Calling Code | Springboard  | Exit From VM | Notes                                                         | 
+|--------------|--------------|--------------|---------------------------------------------------------------|
+| JUMP         | JUMP         | JUMP         | MID. Any future ret will bypass spring, not unwind. Intent?   |
+| JUMP         | JUMP         | RET          | BAD. Bypass Spring and not unwind. Intent                     |
+| JUMP         | CALL (push)  | JUMP         | GOOD. Push VM left, a latter ret will hit Spring, and unwind. |
+| JUMP         | CALL (push)  | RET          | GOOD. Normal Ret from subroutine as final instruction         |
+| CALL         | JUMP         | JUMP         | BAD. A future ret will bypass the unwind                      |
+| CALL         | JUMP         | RET          | BAD. Bypasses the unwind of Memory                            |
+| CALL         | CALL (push)  | JUMP         | GOOD. Normal Call, future ret will unwind VM                  |
+| CALL         | CALL (push)  | RET          | GOOD. Normal Call/Ret pttern                                  |
 
 
 # Filenames

@@ -106,8 +106,8 @@ _ENHANCED
 	; call the enhanced function passing the Error code
 	; get the response message / printing it.
 	; jr	STANDARD
-	; todo FUTURE this could be done with Advanced Pico call
-	; todo which has a complete tble of error messages, OR multiple overlays
+	; todo FUTURE this could be done with Advanced Pico call which has
+	; todo a complete table of error messages, OR multiple overlays
 ;
 ; ----------------------------------------------------------------------
 
@@ -125,8 +125,8 @@ lookupt:
 	defb	ILLDRINUM$ , "Illegal Drive Number"	,ETX	; 32
 	defb	LOAFILFMT$ , "Load File Format Error"	,ETX	; 34
 	;
-	defb	ILLDOSFUN$ , "Illegal DOS Function"	,ETX	; 60 - ND/80 for disabled functions
-	defb	PATNOTFOU$ , "Path Not Found"		,ETX	; 61 - Path not found, like File not found
+	defb	PATNOTFOU$ , "Path Not Found"		,ETX	; 60 - Path not found, like File not found
+	defb	ILLDOSFUN$ , "Illegal DOS Function"	,ETX	; 61 - ND/80 for disabled functions
 	defb	INTDOSERR$ , "Internal DOS Error"	,ETX	; 62 - Something that should never happen
 	defb	UNKNOWN$   , "Unknown Error"		,ETX	; 63
 	defb	$0

@@ -12,7 +12,7 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-pageCall instrfunc, PAGE_INSTRFUNC
+VIRTUAL_ROUTINE instrfunc, PAGE_INSTRFUNC
 ;
 ; ------------------------------
 ; Code Required Starts Here

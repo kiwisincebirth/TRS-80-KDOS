@@ -23,7 +23,7 @@ import	constants.z
 
 	push	af		; preserve the Super Call ID
 	call	enh_VER		; test if Enhanced Pico (NZ flag)
-	jr	z,_NOT_ENH	; Enhanced Fre Hd / Advanced Pico handling
+	jr	z,_NOT_ENH	; Only works on Enhanced - Escape Out
 	pop	af
 	;
 	cp	S_FILESPEC	; (441C) @FSPEC API Function
@@ -93,7 +93,7 @@ _init_open:
 ;
 	; setup the file open command
 	ld	a,TRS_FILE_OPEN		; API FILE OPEN command
-	out	(COMMAND2),a		; send command to frehd
+	out	(COMMAND2),a		; send command to Pico
 ;
  	; byte 0 : open options
 	pop	af			; get the Super ID back

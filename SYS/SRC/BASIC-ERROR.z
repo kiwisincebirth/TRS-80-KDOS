@@ -13,7 +13,7 @@ import	constants.z
 ; ------------------------------
 ;
 ; Non Returning Routine.
-pageJump L2ERRORHAND1, PAGE_DOSERROR1
+VIRTUAL_ROUTINE L2ERRORHAND1, PAGE_DOSERROR1
 ;
 ; ------------------------------
 ; Code Required Starts Here
@@ -85,7 +85,7 @@ pageEnd
 ; ------------------------------
 ;
 ; Non Returning Routine.
-pageJump L2ERRORHAND2, PAGE_DOSERROR2
+VIRTUAL_ROUTINE L2ERRORHAND2, PAGE_DOSERROR2
 ;
 ; ------------------------------
 

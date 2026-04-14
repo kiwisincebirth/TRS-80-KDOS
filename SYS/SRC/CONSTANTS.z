@@ -95,11 +95,13 @@ ERRLIN	EQU	$40EA	; Line no. In which error occurred
 ; which is a jump table to these internal routines
 ;
 enh_VER   	equ	(0*3) + $4480
-fhd_OPEN   	equ	(1*3) + $4480
+;
+fhd_OPEN   	equ	(1*3) + $4480	; These routines are for the Legacy File
 fhd_CLOSE 	equ	(2*3) + $4480
 fhd_READ	equ	(3*3) + $4480
 fhd_READBYTE	equ	(4*3) + $4480
 fhd_WRITE	equ	(5*3) + $4480
+;
 fhd_WAIT	equ	(6*3) + $4480
 ;
 ; ======================================================================
@@ -107,7 +109,8 @@ fhd_WAIT	equ	(6*3) + $4480
 ; ----------------------------------------------------------------------
 ;
 PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
-PICOSCRDUSR	EQU	$36C8		; Holds Def USR 0-9 jump Addresses 20 bytes
+PICOSCRDUSR	EQU	$37C8		; Holds Def USR 0-9 jump Addresses 20 bytes
+					; 37E0 - 37EF Gap Here
 PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
 ;
 STRBUFF		EQU	$41E8		; L2 Basic String Buffer
@@ -224,11 +227,14 @@ SPC         EQU     20H
 ;
 ; FreHD PORT Interface defines
 ; ----------------------------------------------------------------------
-DATA2	  	EQU	0c2h		; 194
-SIZE2     	EQU	0c3h		; 195
-COMMAND2  	EQU	0c4h
-ERROR2    	EQU	0c5h		; 197 read only
-STATUS    	EQU	0cfh		; 207 read only
+; $C0 - $C1 HDC Write Protect and Command Registers
+; $C8 - $CE HDC Data Error Sector Cylindr Registers
+DATA2	  	EQU	$C2		; 194 R/W - Primary Data Register
+SIZE2     	EQU	$C3		; 195 R/W - Size of Data Register
+COMMAND2  	EQU	$C4		; 196 WRITE ONLY - Command
+ERROR2    	EQU	$C5		; 197 READ ONLY - Error
+FILE2		EQU	$C6		; 198 R/W  - File ID (new) Register
+STATUS    	EQU	$CF		; 207 READ ONLY - Status of last CMD
 ;
 ; COMMAND ID's
 ; ----------------------------------------------------------------------
@@ -263,10 +269,11 @@ TRS_NEW_PWD	EQU	1Eh
 ; $20 - $27 File API Commands
 TRS_FILE_READ	EQU	$20
 TRS_FILE_WRITE	EQU	$21
-TRS_FILE_SOF	EQU	$22
-TRS_FILE_POS	EQU	$23
-TRS_FILE_BACK	EQU	$24
-TRS_FILE_EOF	EQU	$25
+TRS_FILE_SOF	EQU	$22	; Move File Pointer
+TRS_FILE_POS	EQU	$23	; Move File Pointer
+TRS_FILE_BACK	EQU	$24	; Move File Pointer
+TRS_FILE_EOF	EQU	$25	; Move File Pointer
+TRS_FILE_FCB	EQU	$26	; Get FCB for Identified File
 ;
 ; ======================================================================
 ; PICO API (including FATFS) attributes
@@ -368,7 +375,7 @@ PAGE_USRN	EQU	221
 ; ----------------------------------------------------------------------
 
 ; Callable Routine that Returns
-pageCall macro label, pagenum
+VIRTUAL_ROUTINE macro label, pagenum
 	assert pagenum>=0 && pagenum<$100	; Parameter validation
 	ORG  	$3000 + (pagenum * 4)		; Trampoline address
 label	EQU	$		; Define a program label for Entry
@@ -376,14 +383,15 @@ label	EQU	$		; Define a program label for Entry
 	ORG  	$3400		; All code sits in the 512-byte window
 endm
 
-; NON Returnging routine, just ump into it
-pageJump macro label, pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
-	ORG  	$3000 + (pagenum * 4)		; Trampoline address
-label	EQU	$		; Define a program label for Entry
-	DEFB 	$C3		; Write JP opcode to Offset $0
-	ORG  	$3400		; All code sits in the 512-byte window
-endm
+; DISABLED - As not supportive of good outcome.
+; NON Returning routine, just ump into it
+;pageJump macro label, pagenum
+;	assert pagenum>=0 && pagenum<$100	; Parameter validation
+;	ORG  	$3000 + (pagenum * 4)		; Trampoline address
+;label	EQU	$		; Define a program label for Entry
+;	DEFB 	$C3		; Write JP opcode to Offset $0
+;	ORG  	$3400		; All code sits in the 512-byte window
+;endm
 
 pageEnd macro
 	assert $ <= $3600
