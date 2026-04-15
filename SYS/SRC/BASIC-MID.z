@@ -12,7 +12,8 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-VIRTUAL_ROUTINE midollar, PAGE_MIDOLLAR
+; this code is doing stack manipulation so use PAGE
+VIRTUAL_PAGE midollar, PAGE_MIDOLLAR
 ;
 	; actual code entry point for MID$
 	jr	dlhsmd

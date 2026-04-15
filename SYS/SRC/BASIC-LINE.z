@@ -12,14 +12,14 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-VIRTUAL_ROUTINE basiclineinput, PAGE_LINEINP
+; There are no RETS in this Code
+VIRTUAL_PAGE basiclineinput, PAGE_LINEINP
 ;
 ; ------------------------------
 ; Code Required Starts Here
 ; Copied From TRS DOS 2.3
 ; ------------------------------
 ;
-
 	rst	$0008        ; 5786:
 	DEFB	$89	     ; 5787:     INPUT
 	call	$2828        ; 5788:

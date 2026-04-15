@@ -173,6 +173,17 @@ GET_STRING:
 	ld	d,(hl)		; string pointer in DE
 	ret
 ;
+; init the write of bytes to a file
+; C the number of bytes 0=256
+fhd_WRITE:
+	ld	a,WRITEFILE	; command
+	out	(COMMAND2),a	; send command
+	;
+	ld	a,c
+	out	(SIZE2),a	; Set the FreHD Size register
+	;
+	ret
+;
 ; ======================================================================
 ; 4700 - End Of Overlay
 ; ======================================================================

@@ -12,7 +12,7 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-VIRTUAL_ROUTINE timedollar, PAGE_TIMEDOLL
+VIRTUAL_PAGE timedollar, PAGE_TIMEDOLL
 ;
 ; ------------------------------
 ; Code Required Starts Here

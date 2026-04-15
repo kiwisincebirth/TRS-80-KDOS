@@ -12,7 +12,7 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-VIRTUAL_ROUTINE basicdefine, PAGE_DEFINE
+VIRTUAL_PAGE basicdefine, PAGE_DEFINE
 ;
 ;  	DEF 	- $415B -> 5655
 ; 	FN  	- $4155 -> 558E
@@ -246,6 +246,7 @@ _56a4
 	ex	de,hl       ; 56a4:
 
 	ld	hl,PICOSCRDUSR    ; 56a5: Address of Jump Table for USR 0-9
+				; Stored in Non Paged RAM $3600 - $3800
 
 	add	hl,bc       ; 56a8:
 	ex	de,hl       ; 56a9:

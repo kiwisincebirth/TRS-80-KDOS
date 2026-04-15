@@ -12,14 +12,15 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-VIRTUAL_ROUTINE basicusr, PAGE_USRN
+; Page since first instruction manipulates the Stack.
+VIRTUAL_PAGE basicusr, PAGE_USRN
 ;
 ;  	DEF 	- $415B -> 5655
 ; 	FN  	- $4155 -> 558E
 ;	USR N	- $41A9 -> 5679
 ;
-	; entry point for DEF
-	jp	_5679
+;	; entry point for USR N
+;	jp	_5679
 ;
 ; ------------------------------
 ; Code Required Starts Here
@@ -28,7 +29,7 @@ VIRTUAL_ROUTINE basicusr, PAGE_USRN
 ;
 
 _5679
-	pop	af           ; 5679:
+	pop	af           ; 5679: clear the return address
 	call	_5699        ; 567a:
 	push	de           ; 567d:
 	call	$252c        ; 567e:
@@ -62,6 +63,7 @@ _56a4
 	ex	de,hl       ; 56a4:
 
 	ld	hl,PICOSCRDUSR    ; 56a5: Address of Jump Table for USR 0-9
+				; Stored in Non Paged RAM $3600 - $3800
 
 	add	hl,bc       ; 56a8:
 	ex	de,hl       ; 56a9:

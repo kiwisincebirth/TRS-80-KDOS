@@ -12,7 +12,9 @@ import	constants.z
 ; CODE STARTS HERE
 ; ------------------------------
 ;
-VIRTUAL_ROUTINE ampersand, PAGE_AMPERSAND
+; Set as Jump, een though we do have a RET Symtic happening.
+; there are quite a few escapes to OV err, etc
+VIRTUAL_PAGE ampersand, PAGE_AMPERSAND
 ;
 ; ------------------------------
 ; Code Required Starts Here
@@ -61,15 +63,15 @@ _5947
    jr	nc,_5964         ; 5949:
    cp	$38              ; 594b:
    jp	nc,$1997         ; 594d:
-   ld	bc,$07b2         ; 5950:
-   push	bc               ; 5953:
+   ld	bc,$07b2         ; 5950: Return address OV ERR
+   push	bc               ; 5953: pushed for rets below
    add	hl,hl            ; 5954:
-   ret	c                ; 5955:
+   ret	c                ; 5955: So effective JP
    add	hl,hl            ; 5956:
-   ret	c                ; 5957:
+   ret	c                ; 5957: So effective JP
    add	hl,hl            ; 5958:
-   ret	c                ; 5959:
-   pop	bc               ; 595a:
+   ret	c                ; 5959: So effective JP
+   pop	bc               ; 595a: Clear the ?OV ERROR address
    ld	b,$00            ; 595b:
    sub	$30              ; 595d:
    ld	c,a              ; 595f:
@@ -79,7 +81,7 @@ _5947
 _5964
    call	$0a9a            ; 5964:
    ex	de,hl            ; 5967:
-   ret                   ; 5968:
+   ret                   ; 5968: An actual RET
 
 ;
 ; ------------------------------

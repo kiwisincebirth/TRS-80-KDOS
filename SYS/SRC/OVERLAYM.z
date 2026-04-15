@@ -1,0 +1,102 @@
+; ======================================================================
+;       	MINI DOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     MISC Stuff -> @DATE @TIME
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4700h)
+; ======================================================================
+;
+
+; (446D) @TIME -> 4CB7 Get the time "23:59:59" into (HL)
+; (4470) @DATE -> 4CD2 Get the date "12/12/99" into (HL)
+
+4cb7:   ld	de,$4043
+4cba:   ld	c,$3a
+4cbc:   ld	b,$03
+4cbe:   ld	a,(de)
+4cbf:   dec	de
+4cc0:   ld	(hl),$2f
+4cc2:   inc	(hl)
+4cc3:   sub	$0a
+4cc5:   jr	nc,$4cc2
+4cc7:   add	a,$3a
+4cc9:   inc	hl
+4cca:   ld	(hl),a
+4ccb:   inc	hl
+4ccc:   dec	b
+4ccd:   ret	z
+4cce:   ld	(hl),c
+4ccf:   inc	hl
+4cd0:   jr	$4cbe
+
+4cd2:   ld	de,$4046
+4cd5:   ld	c,$2f
+4cd7:   jr	$4cbc
+
+;; ----------
+
+; Move into CMD processor Overlay, where it is most needed
+; ensure we pass in ther SUper ID, to distinguish with the existing command processor.
+; Also consider copying code to the basic Overlay, to enable /BAS extensions to be added.
+
+; (4473) @FEXT -> 4FC0 Insert a default extension into filename in FCB (NOTE PART OF SYS1 cmd processor)
+
+4fc0:   push	de
+4fc1:   push	hl
+4fc2:   ex	de,hl
+4fc3:   inc	hl
+4fc4:   ld	b,$09
+4fc6:   ld	a,(hl)
+4fc7:   cp	$2f
+4fc9:   jr	z,$4fd8
+4fcb:   jr	c,$4fdb
+4fcd:   cp	$3a
+4fcf:   jr	c,$4fd5
+4fd1:   cp	$41
+4fd3:   jr	c,$4fdb
+4fd5:   inc	hl
+4fd6:   djnz	$4fc6
+4fd8:   pop	hl
+4fd9:   pop	de
+4fda:   ret
+4fdb:   ld	bc,$000f
+4fde:   add	hl,bc
+4fdf:   ld	d,h
+4fe0:   ld	e,l
+4fe1:   inc	de
+4fe2:   inc	de
+4fe3:   inc	de
+4fe4:   inc	de
+4fe5:   inc	bc
+4fe6:   lddr
+4fe8:   pop	hl
+4fe9:   inc	hl
+4fea:   inc	hl
+4feb:   ld	c,$03
+4fed:   lddr
+4fef:   ld	a,$2f
+4ff1:   ld	(de),a
+4ff2:   pop	de
+4ff3:   ret
+
+;
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+FREE_OVERLAYL	EQU	OVERLY + $200 - $
+;
+	; FILL to end of REGION
+	DC	FREE_OVERLAYL,0
+;

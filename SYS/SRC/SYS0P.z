@@ -14,6 +14,9 @@
 ; We are compiling the Pico Enhanced ROM File
 @D_PICOENHANCED	EQU	1
 
+; Constants
+import constants.z
+
 ; include the main SYS0
 include sys0.z
 
@@ -23,50 +26,51 @@ include sys0.z
 
 ; Basic Load Save commands
 ; These are functions that JP back to dos
-VIRTUAL_ROUTINE _basic_overb, PAGE_OVERLAYB
+VIRTUAL_PAGE _basic_overb, PAGE_OVERLAYB
 include	overlayb.z
 pageEnd
 
 ; Command Processor Overlay
 ; it is a terminal service, no RETURN
-VIRTUAL_ROUTINE _basic_overc, PAGE_OVERLAYC
+VIRTUAL_PAGE _basic_overc, PAGE_OVERLAYC
 include	overlayc.z
 pageEnd
 
 ; DIR Command
 ; No ret from this, back to dos
-VIRTUAL_ROUTINE _basic_overd, PAGE_OVERLAYD
+VIRTUAL_PAGE _basic_overd, PAGE_OVERLAYD
 include	overlayd.z
 pageEnd
 
 ; Error Reporting for DOS
 ; These are routines that can either
 ; return or Jump out to Dos
-VIRTUAL_ROUTINE _basic_overe, PAGE_OVERLAYE
+VIRTUAL_PAGE _basic_overe, PAGE_OVERLAYE
 include	overlaye.z
 pageEnd
 
 ; DOS Routines for DISK File Open/Close Access
-; These are routines that return to caller
+; These are DOS routines that ALL return to caller
 VIRTUAL_ROUTINE _basic_overf, PAGE_OVERLAYF
 include	overlayf.z
 pageEnd
 
 ; DOS Routines for DISK File R/W Access
-; These are routines that return to caller
+; These are DOS routines that ALL return to caller
 VIRTUAL_ROUTINE _basic_overg, PAGE_OVERLAYG
 include	overlayg.z
 pageEnd
 
 ; CMD Loader and Runner
 ; For Loader API Call we have a RET path
-VIRTUAL_ROUTINE _basic_overl, PAGE_OVERLAYL
+; Loader Command has a Jump to DOS
+VIRTUAL_PAGE _basic_overl, PAGE_OVERLAYL
 include	overlayl.z
 pageEnd
 
 ; File System Command
 ; No ret from this, back to dos
-VIRTUAL_ROUTINE _basic_overs, PAGE_OVERLAYO
+VIRTUAL_PAGE _basic_overs, PAGE_OVERLAYO
 include	overlayo.z
 pageEnd
 

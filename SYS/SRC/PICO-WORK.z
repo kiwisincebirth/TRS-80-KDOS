@@ -24,8 +24,8 @@ import	constants.z
 ; ======================================================================
 ;
 pico_loader:
-	jp	_ploader
-	jp	_isr_service
+	jp	_ploader		; Redirected from SCR_LOADOADER
+	jp	_isr_service		; Redirected from SCR_INT_SERV
 ;
 ; ======================================================================
 
@@ -46,7 +46,7 @@ pico_loader:
 ;;;
 _ploader:
 	ld	a,(PICOPAGENUM)		; get current virtual page number
-	ld	(_pload1+1),a	; save it into instruction below
+	ld	(_pload1+1),a		; save it into instruction below
 	call	_loader
 	push	af
 _pload1:

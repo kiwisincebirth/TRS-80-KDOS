@@ -23,7 +23,7 @@ import	constants.z
 
 	push	af		; preserve the Super Call ID
 	call	enh_VER		; test if Enhanced Pico (NZ flag)
-	jr	z,_NOT_ENH	; Enhanced Fre Hd / Advanced Pico handling
+	jr	z,_NOT_ENH	; Only works on Enhanced - Escape Out
 	pop	af
 	;
 	cp	S_READFILE	; (4436) @READ API Function
@@ -85,11 +85,14 @@ _readfile
 	call	fhd_WAIT		; wait for status of OPEN
 	jr	nz,_read_out1		; error then out of here
 
-	; Receive the updated 16 byte FCB
-	ld	b,$10			; 16 byte FCB
-	ld	h,d			; fcb address into HL
-	ld	l,e
-	inir
+; todo seperate command to Read the FCB data back.
+; issue the command, WAIT
+; read the FCB 16 Bytes
+;	; Receive the updated 16 byte FCB
+;	ld	b,$10			; 16 byte FCB
+;	ld	h,d			; fcb address from DE -> HL
+;	ld	l,e
+;	inir
 
 	; receive the data buffer
 	pop	hl			; saved Hl buffer addr parameter
@@ -104,19 +107,19 @@ _read_out1:
 	pop	hl
 	ret				; and return
 
+; Entry HL, contains buffer address from caller
+; 	DE contains the FCB address
+; Return Updated HL address for targets data
 _LRL_FCB:
 	push	de			; Copy DE register
-	pop	ix			; IX conatins FCB
-	ld	a,(IX+9)		; get LRL fro FCB
+	pop	ix			; IX now conatins FCB
+	ld	a,(IX+9)		; get LRL from FCB
 	or	a			; flags
-	ret	nz			; LRL != 256
-	ld	l,(IX+3)		; HL from FCB buffer
-	ld	h,(IX+4)
+	ret	nz			; If LRL != 256 (0), the HL ok.
+	ld	l,(IX+3)
+	ld	h,(IX+4)		; HL from FCB buffer
 	ret
-
-
-
-
+;
 ;
 ; @WRITE WRITE (no verify) File ($4439)
 ; DE -> Pointer to FCB 32 byte Buffer
@@ -135,9 +138,14 @@ _writefile
 	; Return if any Error
 	; Receive the 16 byte FCB
 	; Return
-	; todo
-	JP	_ILLEGAL
 
+	; Send the Command
+	ld	a,TRS_FILE_WRITE	; API Write command
+	out	(COMMAND2),a		; send command to frehd
+
+	; todo how do we send size 2 the pico code will freak out.
+
+	ret
 ;
 ; @VER  Write and VERIFY File ($443C)
 ; Same as @WRITE

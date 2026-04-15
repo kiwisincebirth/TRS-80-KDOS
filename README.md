@@ -138,22 +138,26 @@ At startup holding the <CLEAR> key will :
 
 The effective Memory map
 
-| Address     | Contents               | For FreHD                 |
-|-------------|------------------------|---------------------------|
-| 3400 - 3600 | DOS Overlay Area       | Located at 4500-4700      |
-| 3600 - 37E0 | DOS Loader Utility     | resides into Overlay Code |
-| 4000 - 41E8 | As per Level 2 Basic   |                           |
-| 41E8 - 42E8 | String CMD Line Buffer |                           |
-| 42E0 - 43E0 | DOS Resident Code 1    |                           |
-| 43E0 - 4400 | System FCB Buffer      |                           |
-| 4400 - 4480 | DOS Entry Points       |                           |
-| 4480 - 4500 | DOS Resident Code 2    |                           |
-| 4500 -      | BASIC Program Start    | Raised to 4700            |
+| Address     | Contents               | For FreHD            |
+|-------------|------------------------|----------------------|
+| 3400 - 3600 | DOS Overlay Area       | Moved to 4500-4700   |
+| 3600 - 37E0 | DOS Loader Utility     | In Overlay Code      |
+|             | RTC Clock Interrupt    | Not Supported        |
+| 4000 - 41E8 | As per Level 2 Basic   |                      |
+| 41E8 - 42E8 | String CMD Line Buffer |                      |
+| 42E0 - 43E0 | DOS Resident Code 1    |                      |
+| 43E0 - 4400 | System FCB Buffer      |                      |
+| 4400 - 4480 | DOS Entry Points       |                      |
+| 4480 - 44D0 | DOS Resident Code 2    |                      |
+|             |                        | 4500 - 4700 Overlays |
+| 44D0        | BASIC Program Start    | 4700 - Basic Program |
+
+
 
 DOS Entry Points (4400-4480)
 
 ; todo should we insert these int table below
-; (400C) RST 28H Break Key; DOS Supervisor Call Dispatcher     
+; (400C) RST 28H todo investigate BREAK Break Key; DOS Supervisor Call Dispatcher     
 ; (400F) RST 30h (DOS DEBUG entry point) Vector.
 ; (4012) RST 38h (Interrupt Service) Vector.                                                                                                 
 ; (4033) DOS Char I/O Driver for Disk Files
@@ -212,7 +216,6 @@ See the separate Compatibility document for what is and isn't supported.
 * FIRMWARE - Reset Signal is not resetting the ROOT folder, left in sub folder.
 
 ### Issues
-* Typing #LOAD METEOR.CMD - causes a load and crash back to restart.
 * Typing something at command prompt and pressing <BREAK> does weird thing, 
   * Displays an FC error in FreHD Mode
   * Selects Page 225(unused) in the Page/Overlay - Doesnt Exist
@@ -222,7 +225,6 @@ See the separate Compatibility document for what is and isn't supported.
   * FreHD - drops on FC Error
 
 ### Improvement
-* Reset (NMI) - Return to Basic Prompt.
 * Improve the code addition of .CMD to a filename when executing from CMD processor.
   * When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
 * FreHD DIR should not display directories, since there is no #CD command.
@@ -231,7 +233,7 @@ See the separate Compatibility document for what is and isn't supported.
 * #RM BASIC - removing a directory (not empty) produced "FF Error 7" Access denied due to prohibited
   access or directory full -> Should provide better error.
 * #MKdir BASIC - FF Error 8 - Exists
-* Need "Access Dnied" and "Exists" messages - but maybe 
+* Need "Access Denied" and "Exists" messages - but maybe 
   * in RM we MAP the Access Denied to "Directory Not Empty"
   * in MKDIR we MAP the Exists     to "Directory Exists"
 
@@ -243,12 +245,11 @@ See the separate Compatibility document for what is and isn't supported.
 
 ### High Priority
 * Add a COMMAND # just (#) which drops to # prompt, enter returns
-* When Pressing RESET, ROM drops back to DOS Ready
-* #DIR {optional: wildcard}{optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
+  * Should re reentrant, so remember its state (held in $4200 RAM)
 
 ### DOS Entry Points
 These are only available on PICO enabled systems
-* FSPEC
+* FSPEC (could be added to Both)
 * InitFile / OpenFile
 * CloseFile
 * ReadFile / WriteFile / Verify
@@ -257,6 +258,8 @@ These are only available on PICO enabled systems
 ### Medium
 * Add a #COPY file.ext:N file.ext:N command
 * Add a KILL basic command, leveraging #DELETE
+* #DIR {optional: wildcard}{optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
+* When Pressing RESET (NMI), ROM drops back to DOS Ready, requires updated ROM.
 
 ### Features
 * Good Keyboard Driver e.g. LDOS, interrupt driven e.g. support typeahead
@@ -269,7 +272,7 @@ These are only available on PICO enabled systems
 * #AUTO - startup command execution
 * #APPEND - one file to another
 * #REBOOT 
-* #Status - display something about the Environment
+* #Status - display something about the Environment, implies some config to view/modify
 * #Ver - something about the DOS build # Pico Build #
 
 # Other Docs

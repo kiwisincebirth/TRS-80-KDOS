@@ -18,15 +18,16 @@ import	constants.z
 ; ======================================================================
 ;
 	ORG	$400C
-	jp	SUPER_EXEC	; (400C) RST 28H Supervisor Call Dispatcher
+	; todo investigate this vector as some docs state use as BREAK Key
+	jp	SUPER_EXEC	; (400C) RST 28H Supervisor Call Dispatcher;
 ;	ORG	$400F		; (400F) RST 30h (DOS DEBUG entry point) Vector.
 ;
 	ORG	$4012
 	jp	INTERRUP_SR	; (4012) RST 38h (Interrupt Service) Vector.
 ;
 	ORG	$402D
-	jp	WARMSTART	; (402D) No-Error Exit same as 4400
-	jp	WARMSTART	; (4030) Error-already-displayed DOS Error Exit.
+	jp	RESETR		; (402D) No-Error Exit same as 4400
+	jp	RESETR		; (4030) Error-already-displayed DOS Error Exit.
 ;
 	ORG	$4033		;
 	jp	CIODOS		; (4033) DOS Char I/O Driver for Disk Files
@@ -34,8 +35,8 @@ import	constants.z
 	; ORG	$403E
 	; todo on TRSDOS $403E holds a version number
 	; LDOS - Contains the operating system version Number
-	; In ND/80 v1, 4Ø3EH contained either 8Ø (5ØH) or 128 (8ØH).
-	; FOR New Dos 80 v2 this contains FF or 00 -> SEE 4427 442B
+	; In  ND80 V1, 4Ø3EH contained either 8Ø (5ØH) or 128 (8ØH).
+	; FOR ND80 V2 this contains FF or 00 -> SEE 4427 442B
 
 	ORG	TICKCNT
 	DB	0	; (4040H) Timer Tick
@@ -153,7 +154,7 @@ import	constants.z
 	RET3		; 41E2 SYSTEM command (potentially use this)
 ;
 ; ----------------------------------------------------------------------
-; L2 Basic String Buffer
+; 41E8 - L2 Basic String Buffer
 ; ----------------------------------------------------------------------
 	ORG	STRBUFF
 ;
@@ -164,20 +165,23 @@ import	constants.z
 ;
 ; ======================================================================
 ; ======================================================================
-; 4260 - Start of Main Routines
+; 42E0 - Start of Main Routines
 ; ======================================================================
 ; ======================================================================
 	ORG	CORE1
-
+;
+; Entry point for the DOS Exit just before READY Message -> PRGFIN
+; This allows the DOS to process commands via the L2 Basic Ready prompt
+;
 NEWREADY
-	; entry point is here for the DOS EDIT processing  -> PRGFIN
-	; first some required Tests to determine if not entering normal command processing
-	; we retun and let notmal basic handle these cases for us.
 	;
-	; SN Error
+	; first some tests to see if not entering normal Ready command processing
+	; if So we return and let l2 basic handle these cases for us.
+	;
+	; SN Error - with Line number
 	ld	a,(ERRFLG)	;1a2b - load A with the value of the current error code
 	cp	ERRSN		;1a2e - compare with SYNTAX ERROR
-	jr	nz,_newready1	;1a30 - If NOT an SN ERR, Skip forward
+	jr	nz,_NEWRDY1	;1a30 - If NOT an SN ERR, Skip forward
 	;
 	; AND Line number Involved
 	ld	hl,(ERRLIN)	;2e56 - what line number. $FFFF if a direct command
@@ -186,16 +190,18 @@ NEWREADY
 	inc	a		;2e5b - FF -> bump to 00 -> meaning Direct command
 	ret	nz		;2e5d - Found Line Num So Back so can EDIT <line>
 	;
-_newready1
+_NEWRDY1
 	;
-	; Auto Mode
+	; AUTO progarm entry Mode
 	ld	a,(AUTFLG)	;1a39 - Auto Flag NOT zero if in Auto Mode
 	or	a		;1a3c - set flags
 	ret	nz		;1a3d - NZ means we are in auto mode
 	;
+	; now we can process REDY in a standalone way.
 	; Wont use return from this point
 	pop	hl		; pop the (DOS EXIT) callers return address. Discard
 	;
+	; Jump to the main command processor
 	SUPERV	S_CMDPROC
 ;
 ; L2 Basic RUN command DOS Exit Extension (41C7)
@@ -207,47 +213,37 @@ RUNCMD:
 ;
 ; ----------------------------------------------------------------------
 ;
-; DOS Normal Entry Point (402D) and (4400)
-;
-WARMSTART:
-	jp	RESETR		; jump to Basic Ready
-;
-; DOS Error Entry Point (4409)
-;
-DOSERR:
-	ld	b,a		; put error into B, SUPERV uses A
-	SUPERV	S_ERRHAND	; handle displaying Disk Error Code
-;
 ; @DSPLY (4467) - DOS display string routine
+;   Code based on ND80 SYS0 (4BA6H)
 ;
 DISPSTR:
 	push	DE		; Save DE onto stack.
 	LD	DE,401DH	; Load DE with 401DH (video output DCB).
-	JR	DISPSTR1	; JUMP to common print loop.
+	JR	_DSPSTR1	; JUMP to common print loop.
 ;
 ; @PRINT (446A) - DOS Print String Routine
+;   Code based on ND80 SYS0 (4BA6H)
 ;
 PRINTSTR:
 	push	DE		; Save DE (alternate print entry).
 	LD	DE,4025H	; Load DE with 4025H (printer DCB).
-DISPSTR1:
+_DSPSTR1:
 	push 	HL		; Save string pointer.
-DISPSTR2:
+_DSPSTR2:
 	LD	A,(HL)		; Fetch character from string.
 	CP	00H		; Compare with 00 terminator
-	JR	Z,DISPSTR9	; finished
+	JR	Z,_DSPSTR9	; finished
 	CP	03H		; Compare with ETX (03H end marker).
-	JR	Z,DISPSTR9	; finished
+	JR	Z,_DSPSTR9	; finished
 	CALL	001BH		; display character
 	LD	A,(HL)		; re fetch character.
 	CP	0DH		; Compare with CR (carriage return).
 	INC 	HL		; string pointer.
-	JR	NZ,DISPSTR2	; not CR, LOOP for next character.
-DISPSTR9:
+	JR	NZ,_DSPSTR2	; not CR, LOOP for next character.
+_DSPSTR9:
 	POP	HL
 	POP	DE
 	ret
-
 ;
 ; ----------------------------------------------------------------------
 ;
@@ -315,6 +311,7 @@ frehd_READ:
 	ret
 ;
 ; Read a Single Byte
+; Note Only Used by Basic and Loader, not by Sys0 itself. - consider movng
 frehd_READBYTE:
 	push	hl
 	ld	hl,BYTEC
@@ -331,18 +328,6 @@ read2:
 ;
 BYTEC	DEFB	0		; num bytes before need another READ
 				; used by Read Block handler
-;
-; init the write of bytes to a file
-; C the number of bytes 0=256
-frehd_WRITE:
-	ld	a,WRITEFILE	; command
-	out	(COMMAND2),a	; send command
-	; call	frehd_WAIT	; wait for status
-	; ret	nz
-	;
-	ld	a,c
-	out	(SIZE2),a	; Set the FreHD Size register
-	ret
 ;
 ; wait until the interface is ready
 ; return Z is success
@@ -426,15 +411,15 @@ $FREE_CORE1	EQU	SYSFCB - $
 	ORG	DOSENTY
 	; Note * below denotes routines that are different in NewDOS 80 VS TRSDOS 2.3
 	;
-	jp	WARMSTART	; (4400) @CMD No-Error Exit same as 402D
+	jp	RESETR		; (4400) @CMD No-Error Exit same as 402D
 	NOP2			; and 44Ø3H - 44Ø4H contain the program's entry address. 4430
-	jp	WARMSTART	; (4405) @CMNDI todo Execute a DOS command and return to DOS ready.
+	jp	RESETR		; (4405) @CMNDI todo Execute a DOS command and return to DOS ready.
 	nop
-	jp	DOSERR		; (4409) @ERROR Error Exit - Display Error Messages
-	nop
+	ld	b,a		; (4409) @ERROR Error Exit - Display Error Messages
+	SUPERV	S_ERRHAND	; Put error code into B -> displaying Disk Error Code
 	RET3			; (440D) @DEBUG Enter Debug Mode from running program
-	RET3			; (4410) Add an address to the Interrupt Task List Vector
-	RET3			; (4413) Remove an address from the Interrupt Task List Vector
+	RET3			; (4410) @ADTSK Add an address to the Interrupt Task List Vector
+	RET3			; (4413) @RMTSK Remove an address from the Interrupt Task List Vector
 	RET3			; (4416) * LDOS Replace currently executing Task * ND80 Keep Drives Rotating
 	RET3			; (4419) * LDOS Remove currently executing task  * ND80 exec CMD and return
 	SUPERV	S_FILESPEC	; (441C) @FSPEC Extract / Fetch a file specification
@@ -442,9 +427,9 @@ $FREE_CORE1	EQU	SYSFCB - $
 	SUPERV	S_INITFILE	; (4420) @INIT (Create New or Open Existing File) Vector
 	nop
 	SUPERV	S_OPENFILE	; (4424) @OPEN (Open Existing File) Vector
-	defb	$00		; (4427) todo NEWDOS/8Ø Version 2 $82 identifying ND(8)0v(2)
+	defb	$00		; (4427) todo ND8Ø $82 identifying ND(8)0v(2)
 	SUPERV	S_CLOSEFILE	; (4428) @CLOSE Close an Open File
-        defb	$01		; (442B) NEWDOS/8Ø Version 2 $Ø1 if Model I and $Ø3 if Model III.
+        defb	$01		; (442B) ND8Ø V2 $Ø1 if Model I and $Ø3 if Model III.
 	SUPERV	S_KILLFILE	; (442C) @KILL Delete (Kill) FCB's associated file .
 	nop
 	SUPERV	S_LOADFILE	; (4430) @LOAD The LOAD CMD File Vector
@@ -458,16 +443,16 @@ $FREE_CORE1	EQU	SYSFCB - $
 	SUPERV	S_BKSPFILE	; (4445) @BKSP  BACKSPACE One Record
 	SUPERV	S_PEOFFILE	; (4448) @PEOF  SKIP TO EOF (End of File)
 
-	; todo there is a gap here which should be filled
+	; todo 28 byte gap here, investigate
 	assert	$ <= $444B
 	ORG	$4467
 
 	jp	DISPSTR		; (4467) @DSPLY display string routine.
 	jp	PRINTSTR	; (446A) @PRINT print string routine.
-	RET3			; (446D) todo The DISPLAY CLOCK ON VIDEO Vector - get time "23:59:59" into (HL)
-	RET3			; (4470) todo The DISPLAY DATE ON VIDEO Vector- get date "12/12/99" into (HL)
-	RET3			; (4473) * ND80 Insert a default extension into filename in FCB
-	RET3			; (4476) * JUMPs to 507DH to parse a command list
+	RET3			; (446D) @TIME todo Get the time "23:59:59" into (HL)
+	RET3			; (4470) @DATE todo Get the date "12/12/99" into (HL)
+	RET3			; (4473) @FEXT todo Insert a default extension into filename in FCB
+	RET3			; (4476) * LDOS JUMPs to 507DH to parse a command list
 	nop			; (4479)
 	nop			; (447A)
 	nop			; (447B)
@@ -475,7 +460,7 @@ $FREE_CORE1	EQU	SYSFCB - $
 	nop			; (447D)
 FREHDVER:
 	nop			; (447E) FREHD Major Version, inited at startup
-	nop			; (447F) FREHD Minor Version
+	nop			; (447F) FREHD Minor Version, inited at startup
 ;
 	assert	$ == CORE2
 ;
@@ -493,7 +478,6 @@ FREHDVER:
 	JP	frehd_CLOSE
 	JP	frehd_READ
 	JP	frehd_READBYTE
-	JP	frehd_WRITE
 	JP	frehd_WAIT
 ;
 ; ----------------------------------------------------------------------
@@ -509,7 +493,7 @@ ifdef	@D_PICOENHANCED
 ;
 	push	af
 	;
-; Overlay in range E0 (224) to FF (255)
+; DOS Overlay in range E0 (224) to FF (255)
 ; Which needs to Map to addresses $3380 to $33FC
 ;
 ; These Map 1:1 to the Overlay Identifiers. Given Super Call ID
@@ -517,15 +501,16 @@ ifdef	@D_PICOENHANCED
 ; * shift left < 2  -> xxxxxx11 1xxxxx00
 ; * or with $3000   -> 00110011 1xxxxx00
 ; This should resolve the Call Address
-; Tthe MSB is a constant $33
+; The MSB is *ALWAYS* a constant $33
+; The LSB is between $E0 thru $FC
 ;
 	OR	$E0		; Mask is 111xxxxx (top 3 bits as 0)
 	SLA	a		; then rotate to be 1xxxxx00
 	SLA	a		; LSB is $80 -> $FC
 	ld	(SUPER_EXEC2+1),a
 	;
-	ld	a,$33		; MSB is $33
-	ld	(SUPER_EXEC2+2),a
+;	ld	a,$33		; MSB is $33
+;	ld	(SUPER_EXEC2+2),a
 	;
 	pop	af		; restore registers
 SUPER_EXEC2:
@@ -573,6 +558,12 @@ SUPER_EXEC2:
 	pop	hl
 	;
 	jp	OVERLY		; jump into the overlay code at $4500
+;
+; Overlay File name to use.
+OVRNAM: 	DEFB	'/SYS/OVERLAYz.SYS'
+OVRCURR:	EQU	$ - 5		; address of overlay ID in file name
+OVRNAMLEN	EQU	$ - OVRNAM	; length of the overlay file name
+;
 endif
 ;
 ; ----------------------------------------------------------------------
@@ -584,41 +575,16 @@ endif
 enhance_VER:
 
 ifdef @D_PICOENHANCED
+	; if compiling for Paged Memory then by definiton we are advanced
 	ld	a,1		; FLAG TO INDICATE ON ENHANCED
 else
+	; otherwise we default to NO, and let the startup - modify this code
 	ld	a,0		; load the A register (SELF MODIFY CODE)
 endif
 	or	a		; 0 -> is set to 1 during INIT if enhanced firmware
 	ret			; set flags and return
 ;
 ; ----------------------------------------------------------------------
-;
-OVRNAM: 	DEFB	'/SYS/OVERLAYz.SYS'
-OVRCURR:	EQU	$ - 5		; address of overlay ID in file name
-OVRNAMLEN	EQU	$ - OVRNAM	; length of the overlay file name
-;
-;transtable:
-;	; TRS 80 DOS Error Codes Translated from FF error codes
-;	DB	UNKNOWN$ ;(0) NO ERROR
-;	DB	$03	; (1) A hard error occurred in the low level disk I/O layer
-;	DB	$04	; (2) Assertion failed
-;	DB	$08	; (3) The physical drive cannot work
-;	DB	$18	; (4) Could not find the file
-;	DB	$18	; (5) Could not find the path
-;	DB	$13	; (6) The path name format is invalid
-;	DB	$1A	; (7) Access denied due to prohibited access or directory full
-;	DB	$19	; (8) Access denied due to prohibited access
-;	DB	$10	; (9) The file/directory object is invalid -> 16 Illegal Logical File Number
-;	DB	$0F	; (10) The physical drive is write protected
-;	DB	$20	; (11) The logical drive number is invalid
-;	DB	$12	; (12) The volume has no work area
-;	DB	$05	; (13) There is no valid FAT volume
-;	DB	$0B	; (14) The f_mkfs() aborted due to any problem
-;	DB	$03	; (15) Could not get a grant to access the volume within defined period
-;	DB	$25	; (16) The operation is rejected according to the file sharing policy
-;	DB	$21	; (17) LFN working buffer could not be allocated
-;	DB	UNKNOWN$ ;(18) Number of open files > FF_FS_LOCK
-;	DB	UNKNOWN$ ;(19) Given parameter is invalid
 ;
 $FREE_CORE2	EQU	CORE2END - $
 ;
@@ -647,27 +613,33 @@ $FREE_TOTAL	EQU	$FREE_CORE1 + $FREE_CORE2
 ; ======================================================================
 	ORG	STARTUP
 	;
+	di			; initially disable interrupts
+	;
 	ld	hl,L2START	; starting address of user RAM (now $47E8)
 	ld	(hl),0
 	;
 	jp	$00AC		; Continue Init in Level 2 with Stack Pointer
 				; and Asking for upper HI MEMORY
 ;
+; ======================================================================
+; Then after L2 Basic has done some additional startup it hits the "READY"
+; DOS exit which is redirected to the following.
+;
 ; Continuation of DOS Initialisation After basic has completed
 ; Called Just Before the Ready> Prompt is displayed, first time ONLY
+; ======================================================================
 READY1:
-	;
-	di			; initially disable interrupts
 	;
 	ld	hl,(MEMSIZ)	; Get the Basic MEMORY SIZE? amount
 	ld	(MEMEND),hl	; Save in DOS High Memory pointer
 	;
-
 ifndef @D_PICOENHANCED
 	;
-	; todo we eed a good story for this.
-	; code executes to detect if running on enhanced hardware
-	; this is requied if the Advanced hardware boots t
+	; When booting User can hold Clear Key, which disables Paged
+	; memory, revers to standard Overlays (larger memory footprint)
+	; Then we need to detect if running on enhanced hardware
+	; so can set the enhanced_VER flag, even though not paged
+	;
 	ld	a,GETVER	; version information from FreHD
 	out	(COMMAND2),a
 	call	frehd_WAIT	; ignoring result
@@ -684,6 +656,7 @@ ifndef @D_PICOENHANCED
 	;
 	ld	a,1		; indicates running on Advanced Pico
         ld	(enhance_VER+1),a ; Modify Code to flag Advanced Pico
+        ;
 endif
 	;
 READYX:
@@ -691,6 +664,8 @@ READYX:
 	call	STROUT		; print the message
 	;
 	; update the DOS exit to the normal command processor
+	; this sets the Dos exit back to the DOS command processor
+	;
 	ld	hl,PRGFIN + 1		; Address of DOS Exit for READY Prompt
 	ld	(hl),NEWREADY & $FF	; store LSB of NEW READY into DOS vecor
 	inc	hl
@@ -698,6 +673,8 @@ READYX:
 	;
 	im	1		; interrupts via $0038->$4012
 	ei			; enable interrupts
+	;
+	; then jump to the (new) READY prompt
 	;
 	jp	NEWREADY	; jump to the normal ready processor
 	;

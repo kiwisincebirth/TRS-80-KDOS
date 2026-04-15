@@ -119,10 +119,7 @@ _FOUND2:
 
 ; ----------------------------------------------------------------------
 _NOTFND:
-	; todo review this code
-	; todo we have a OVERLAYL specifically for loading and running
-	; todo programs, we show defer to thi, or just use the API it exposes.
-
+	;
 	; parse the command line string as a file name
 	ld	hl,(SAVBUFF)	; get original address of command buffer
 	inc	hl		; buffer pointer so actual char (not prior)
@@ -135,15 +132,15 @@ _NOTFND:
 	; todo the following needs to be MUCH improved
 	; todo TrsDOS (4FC0H) and ND80 (4F2AH) SYS1 both have good implementations
 	; ensure it has cmd attached to it.
-	ld	hl,DOTCMD	; copy the ".CMD" suffex
+	ld	hl,DOTCMD	; copy the ".CMD" suffix
 	ld	bc,5		; five bytes incl terminator
-	ldir			; append to end of the filespec
+	ldir			; append to end of the file-spec
 	;
-	pop	de		; system FCB, containg name of file to run
+	pop	de		; system FCB, containing name of file to run
 	jp	@RUN		; $4433 - load a program file, and execute it
 	;
 ERROUT
-	ld	a,ILLFILNAM$	; typed an ilegal file name
+	ld	a,ILLFILNAM$	; typed an illegal file name
 	JP	@ERROR		; report error
 ;
 ; ----------------------------------------------------------------------

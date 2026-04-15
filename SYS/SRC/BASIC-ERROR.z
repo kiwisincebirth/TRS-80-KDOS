@@ -13,7 +13,7 @@ import	constants.z
 ; ------------------------------
 ;
 ; Non Returning Routine.
-VIRTUAL_ROUTINE L2ERRORHAND1, PAGE_DOSERROR1
+VIRTUAL_PAGE L2ERRORHAND1, PAGE_DOSERROR1
 ;
 ; ------------------------------
 ; Code Required Starts Here
@@ -23,26 +23,28 @@ VIRTUAL_ROUTINE L2ERRORHAND1, PAGE_DOSERROR1
 ; from call location 19EC in l2 Roms
 ; ------------------------------
 ;
-   pop	hl                   ; 57e6: - POP the Call off the Stack
-   ld	hl,L2ERRTAB          ; 57e7: error table 5203 - 54c3 ($2c0 bytes)
-   ld	a,e                  ; 57ea: error number is passed in E
-   cp	$2C + 1              ; $2C is largest handled by L2 Basic
-   jp	nc,L2ERRORHAND2      ; 57ed: ** PAGE JUMP ** an error code too big to display
-   ;
-   rrca                      ; 57fb: 0,2,4 -> 0,1,2
-   inc	a                    ; 57fc: 0,1,2 -> 1,2,3
-   ld	e,a                  ; 57fd:
+   	pop	hl                   ; 57e6: - POP the Call off the Stack
+   	ld	hl,L2ERRTAB          ; 57e7: error table 5203 - 54c3 ($2c0 bytes)
+   	ld	a,e                  ; 57ea: error number is passed in E
+   	cp	$2C + 1              ; $2C is largest handled by L2 Basic
+	;
+   	;			     ; ** ** PAGE JUMP ** **
+   	jp	nc,L2ERRORHAND2      ; 57ed: Error code too big to display
+   	;
+   	rrca                         ; 57fb: 0,2,4 -> 0,1,2
+   	inc	a                    ; 57fc: 0,1,2 -> 1,2,3
+   	ld	e,a                  ; 57fd:
 _errloop
-   call	$1f07                ; 57fe: routine skips forward (HL) looking for 0 term
-   				; todo 1f07 (NON STANDARD ENTRY) investigate and document its usage.
-   dec	e                    ; 5801: error count down
-   inc	hl                   ; 5802: inc past 0 terminator
-   jr	nz,_errloop          ; 5803: still more errors LOOP
-   call	$28a7                ; 5805: Here is where we display the message
-   ld	hl,($40a2)           ; 5808: current line number
+   	call	$1f07                ; 57fe: routine skips forward (HL) looking for 0 term
+   				     ; REM Basic statement looking for next program Line
+   	inc	hl                   ; 5802: inc past 0 terminator
+   	dec	e                    ; 5801: error count down
+   	jr	nz,_errloop          ; 5803: still more errors LOOP
+   	call	$28a7                ; 5805: Here is where we display the message
+   	ld	hl,($40a2)           ; 5808: current line number
 ;
-   jp	$1A0A		     ; entry point back into error handler.
-   			     ; slightly earlier than TRSDOS does it.
+   	jp	$1A0A		     ; entry point back into error handler.
+   				     ; slightly earlier than TRSDOS does it.
 ;   PREVIOUSLY
 ;   ld	de,$fffe             ; 580b: ???
 ;   rst	$0018                ; 580e: compare
@@ -51,31 +53,31 @@ _errloop
 ;   jp	$1a11                ; 5815: continue with error message " in line number"
 
 L2ERRTAB
-    ; The error table in range $00 to $2C (44)
-    DEFB $00
-    DEFB "NEXT without FOR", $00	; 00
-    DEFB "Syntax error", $00		; 02
-    DEFB "RETURN without GOSUB", $00	; 04
-    DEFB "Out of DATA", $00		; 06
-    DEFB "Illegal function call", $00	; 08
-    DEFB "Overflow", $00		; 0A
-    DEFB "Out of memory", $00		; 0C
-    DEFB "Undefined line number", $00	; 0E
-    DEFB "Subscript out of range", $00	; 10
-    DEFB "Redimensioned array", $00	; 12
-    DEFB "Division by zero", $00	; 14
-    DEFB "Illegal direct", $00		; 16
-    DEFB "Type mismatch", $00		; 18
-    DEFB "Out of string space", $00	; 1A
-    DEFB "String too long", $00		; 1C
-    DEFB "String formula too complex",0 ; 1E
-    DEFB "Can't continue", $00		; 20
-    DEFB "No RESUME", $00		; 22
-    DEFB "RESUME without error", $00	; 24
-    DEFB "Unprintable error", $00	; 26
-    DEFB "Missing operand", $00		; 28
-    DEFB "BAD FILE DATA", $00		; 2A
-    DEFB "DISK BASIC FEATURE", $00	; 2C
+    	; The error table in range $00 to $2C (44)
+    	DEFB $00
+    	DEFB "NEXT without FOR", 0		; 00
+    	DEFB "Syntax error", 0			; 02
+    	DEFB "RETURN without GOSUB", 0		; 04
+    	DEFB "Out of DATA", 0			; 06
+    	DEFB "Illegal function call", 0		; 08
+    	DEFB "Overflow", 0			; 0A
+    	DEFB "Out of memory", 0			; 0C
+    	DEFB "Undefined line number", 0		; 0E
+    	DEFB "Subscript out of range", 0	; 10
+    	DEFB "Redimensioned array", 0		; 12
+    	DEFB "Division by zero", 0		; 14
+    	DEFB "Illegal direct", 0		; 16
+    	DEFB "Type mismatch", 0			; 18
+    	DEFB "Out of string space", 0		; 1A
+    	DEFB "String too long", 0		; 1C
+    	DEFB "String formula too complex", 0 	; 1E
+    	DEFB "Can't continue", 0		; 20
+    	DEFB "No RESUME", 0			; 22
+    	DEFB "RESUME without error", 0		; 24
+    	DEFB "Unprintable error", 0		; 26
+    	DEFB "Missing operand", 0		; 28
+    	DEFB "BAD FILE DATA", 0			; 2A
+    	DEFB "DISK BASIC FEATURE", 0		; 2C
 ;
 ; ------------------------------
 ; End of Paged Routine
@@ -83,14 +85,19 @@ L2ERRTAB
 pageEnd
 ;
 ; ------------------------------
+; SECOND VIRTUAL PAGE STARTS HERE
+; ------------------------------
 ;
 ; Non Returning Routine.
-VIRTUAL_ROUTINE L2ERRORHAND2, PAGE_DOSERROR2
+VIRTUAL_PAGE L2ERRORHAND2, PAGE_DOSERROR2
 ;
 ; ------------------------------
 
+	; called from the prior routine to handle DISK BASIC errors
+
 	; TODO NOTE THIS CODE IS NOT COMPLETE
 	; TODO We HAVE NOT DIS BASIC CODE THAT GENERATES ERRORS
+	; TODO in future we can enable DISK BASIC errors
 
 	ld 	hl,UNPRINTABLE
 	call	$28a7                ; 5805: Here is where we display the message
@@ -98,12 +105,7 @@ VIRTUAL_ROUTINE L2ERRORHAND2, PAGE_DOSERROR2
 	jp	$1A0A		     ; entry point back into error handler.
 
 UNPRINTABLE
-    DEFB "Unprintable error", $00
-
-    ; in future we can enable the dos errors
-    ; called from the prior routine to handle
-    ; the disk basic errors
-
+    DEFB "Unprintable error", 0
 
    ld	hl,L3ERRTAB          ;
 ;  cp	$8b                  ; 57eb: 8BH (139) which is the highest error number.
@@ -131,32 +133,30 @@ _57fe
    ld	hl,($40a2)           ; 5808: current line number
    jp	$1A0A		     ; entry point back into error handler.
 
-
-
 L3ERRTAB
 	; Disk Errors Start Here (TRSDOS)
 	; Error 51 starts here - ending in 70
-	DEFB $00
-	DEFB "FIELD overflow", $00
-	DEFB "Internal error", $00
-	DEFB "Bad file number", $00
-	DEFB "File not found", $00
-	DEFB "Bad file mode", $00
-	DEFB "File already open", $00
-	DEFB "?", $00
-	DEFB "Disk I/O error", $00
-	DEFB "File already exists", $00
-	DEFB "?", $00
-	DEFB "?", $00
-	DEFB "Disk full", $00
-	DEFB "Input past end", $00
-	DEFB "Bad record number", $00
-	DEFB "Bad file name", $00
-	DEFB "Mode-mismatch", $00
-	DEFB "Direct statement in file", $00
-	DEFB "Too many files", $00
-	DEFB "Disk write protected", $00
-	DEFB "File access DENIED", $00
+	DEFB 0
+	DEFB "FIELD overflow", 0
+	DEFB "Internal error", 0
+	DEFB "Bad file number", 0
+	DEFB "File not found", 0
+	DEFB "Bad file mode", 0
+	DEFB "File already open", 0
+	DEFB "?", 0
+	DEFB "Disk I/O error", 0
+	DEFB "File already exists", 0
+	DEFB "?", 0
+	DEFB "?", 0
+	DEFB "Disk full", 0
+	DEFB "Input past end", 0
+	DEFB "Bad record number", 0
+	DEFB "Bad file name", 0
+	DEFB "Mode-mismatch", 0
+	DEFB "Direct statement in file", 0
+	DEFB "Too many files", 0
+	DEFB "Disk write protected", 0
+	DEFB "File access DENIED", 0
 	; And ending in Error 70
 	; Note NEWDOES 80 DEFINES up to 84 errors
 ;
