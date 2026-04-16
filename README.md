@@ -301,17 +301,24 @@ BASIC
 
 # Virtual Memory
 
-| Calling Code | Springboard  | Exit From VM | Notes                                                         | 
-|--------------|--------------|--------------|---------------------------------------------------------------|
-| JUMP         | JUMP         | JUMP         | MID. Any future ret will bypass spring, not unwind. Intent?   |
-| JUMP         | JUMP         | RET          | BAD. Bypass Spring and not unwind. Intent                     |
-| JUMP         | CALL (push)  | JUMP         | GOOD. Push VM left, a latter ret will hit Spring, and unwind. |
-| JUMP         | CALL (push)  | RET          | GOOD. Normal Ret from subroutine as final instruction         |
-| CALL         | JUMP         | JUMP         | BAD. A future ret will bypass the unwind                      |
-| CALL         | JUMP         | RET          | BAD. Bypasses the unwind of Memory                            |
-| CALL         | CALL (push)  | JUMP         | GOOD. Normal Call, future ret will unwind VM                  |
-| CALL         | CALL (push)  | RET          | GOOD. Normal Call/Ret pttern                                  |
+| Calling Code | Springboard  | Exit From VM | Unwind of the Virtual Page                   | Call Stack |     | 
+|--------------|--------------|--------------|----------------------------------------------|------------|-----|
+| JUMP         | JUMP         | JUMP         | GOOD. No expectation of unwind               | GOOD       | A   |
+| JUMP         | JUMP         | RET          | ** OK. Expectation of unwind                 | GOOD       | C - |
+| JUMP         | CALL (push)  | JUMP         | ** BAD **                                    | ** BAD **  | F-  |
+| JUMP         | CALL (push)  | RET          | GOOD. Normal Ret from routine as final line  | GOOD       | A # |
+| CALL         | JUMP         | JUMP         | ** OK. Future ret will bypass the unwind     | GOOD       | C   |
+| CALL         | JUMP         | RET          | ** OK. Bypass unwind of Virtual Memory       | OK         | C - |
+| CALL         | CALL (push)  | JUMP         | GOOD. Normal Call, future ret will unwind VM | GOOD       | A   |
+| CALL         | CALL (push)  | RET          | GOOD. Normal Call/Ret pttern                 | GOOD       | A # |
 
+Call to a Routine that Returns Only -> Make it a CALL
+Call to a routine that Jumps Only   -> Make it a CALL
+Call to a routine that RETs or JPs  -> Make it a CALL
+
+Jump to a Routine that Returns Only -> Make it a CALL
+Jump to a routine that jumps   Only -> Make it a Jump
+Jump to a routine that RETs or JPs  -> Make it a Jump
 
 # Filenames
 

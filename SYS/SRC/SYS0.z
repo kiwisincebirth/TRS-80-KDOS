@@ -339,11 +339,11 @@ frehd_WAIT:
 	ex 	(sp),hl		; settle the controller
 	;
 _wait1:	in 	a, (STATUS)	; read status from FreHD
-	bit	7,a		; BUSY status bit
+	bit	STATB_BUSY,a	; BUSY status bit
 	jr 	nz, _wait1	; loop while busy, for correct status
 	;
 	; in 	a, (STATUS)	; read status again
-	bit	0,a		; test the LSB bit (STATUS_ERR)
+	bit	STATB_ERR,a	; test the LSB bit (STATUS_ERR)
 	ret	z		; No error just return the status
 	;
 	in	a, (ERROR2)	; read the FF error code from frehd

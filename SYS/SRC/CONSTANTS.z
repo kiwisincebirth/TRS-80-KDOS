@@ -180,14 +180,22 @@ SUPERV 	macro	p1
 	rst	28h	; call supervisor
 	endm
 ;
+; ======================================================================
+;
+; FCB Byte Offsets in the TRS-80 File Control Block
 ; ----------------------------------------------------------------------
+FCB_BUFFLSB	EQU	3		; Byte 3 - Buffer Address LSB
+FCB_BUFFMSB	EQU	4		; Byte 4 - Buffer Address MSB
+FCB_NEXTLSB	EQU	5		; Byte 5 - Next IO Data Addr LSB
+FCB_FILEID	EQU	7		; Byte 7 - FileId
+FCB_LRL		EQU	9		; Byte 9 - Logical Rec Length 0=256
 ;
 ; BASIC Error Codes
-;
+; ----------------------------------------------------------------------
 ERRSN		EQU	02H	; Syntax Error
 ;
 ; DOS ERROR CODES
-;
+; ----------------------------------------------------------------------
 DEVNOTAVA$	EQU	08	; Device Not Avalable
 WRITEPROT$	EQU	15	; Write Protected Disk
 ILLLOGFIL$	EQU	15	; Illegal Logical File Number
@@ -208,6 +216,7 @@ ILLDOSFUN$	EQU	61 	; Illegal (Unsupported) DOS Functon.
 INTDOSERR$	EQU	62	; Internal DOS Error - Unexpected
 UNKNOWN$	EQU	63
 ;
+; ASCII
 ; ----------------------------------------------------------------------
 ;
 ETX         EQU     03H
@@ -217,7 +226,7 @@ SPC         EQU     20H
 ;
 ; ======================================================================
 ; FREHD
-; ----------------------------------------------------------------------
+; ======================================================================
 ;
 ; FreHD PORT Interface defines
 ; ----------------------------------------------------------------------
@@ -261,17 +270,17 @@ TRS_NEW_REN	EQU	1Dh
 TRS_NEW_PWD	EQU	1Eh
 ;
 ; $20 - $27 File API Commands
-TRS_FILE_READ	EQU	$20
-TRS_FILE_WRITE	EQU	$21
-TRS_FILE_SOF	EQU	$22	; Move File Pointer
-TRS_FILE_POS	EQU	$23	; Move File Pointer
-TRS_FILE_BACK	EQU	$24	; Move File Pointer
-TRS_FILE_EOF	EQU	$25	; Move File Pointer
+TRS_FILE_READ	EQU	$20	; Read Command
+TRS_FILE_WRITE	EQU	$21	; Write command
+TRS_FILE_SOF	EQU	$22	; Move File Pointer - Start of File
+TRS_FILE_POS	EQU	$23	; Move File Pointer - Position
+TRS_FILE_BACK	EQU	$24	; Move File Pointer - Back 1 record
+TRS_FILE_EOF	EQU	$25	; Move File Pointer - End of File
 TRS_FILE_FCB	EQU	$26	; Get FCB for Identified File
 ;
 ; ======================================================================
 ; PICO API (including FATFS) attributes
-; ----------------------------------------------------------------------
+; ======================================================================
 ;
 ; FatFS File Open flags
 FA_READ		EQU	01h	; Data can be read from the file.
@@ -291,15 +300,21 @@ AM_VOL		EQU     008H            ; Volume label
 AM_DIR		EQU     010H            ; Directory
 AM_ARC		EQU     020H            ; Archive
 ;
-; API Status Codes
-STATUS_BUSY     EQU	0x80		; interface is BUSY, must wait for completion
+; FreHD Status Bits
+; ----------------------------------------------------------------------
+STATUS_BUSY     EQU	0x80		; Interface is BUSY, must wait for completion
 STATUS_READY    EQU	0x40		; interface is READY, to accept a new command
-STATUS_WRERR    EQU	0x20		; ?
-STATUS_SEEKDONE EQU	0x10		; same as READY
-STATUS_DRQ	EQU	0x08		; indicator DATA is available.
-STATUS_ECC	EQU	0x04		; ?
-STATUS_CIP	EQU	0x02		; ?
-STATUS_ERR	EQU	0x01		; indicator ERROR occurred in last operation
+STATUS_WRERR    EQU	0x20		; ? Error
+STATUS_SEEKDONE EQU	0x10		; ? Same as READY
+STATUS_DRQ	EQU	0x08		; Indicator DATA is available.
+STATUS_ECC	EQU	0x04		; ? Error
+STATUS_CIP	EQU	0x02		; ? Error
+STATUS_ERR	EQU	0x01		; i=Indicator ERROR occurred in last operation
+;
+STATB_BUSY	EQU	7		; 1 = Interface is Busy
+STATB_READY	EQU	6		; 1 = Interface is Ready
+STATB_DRQ	EQU	3		; 1 = Data Available
+STATB_ERR	EQU	0		; 1 = Error
 ;
 ; NOTE: STATUS_ERR means (ERROR2) exposes the error Code
 ;

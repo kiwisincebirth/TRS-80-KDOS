@@ -101,10 +101,11 @@ _init_open:
 	ld	a,FA_OPEN_EXIST|FA_RW	; Default to Open Existing file @OPEN
 	jr	nz, _open_skip1		; skip IF NOT an INIT, is OPEN
 	ld	a,FA_OPEN_ALWAYS|FA_RW	; Open Existing or Create a new @INIT
+;
 _open_skip1
+	; byte 0 : open options
 	ld	c,DATA2			; the data port
 	out	(c),a			; send it.
-;
  	; byte 1 : logical record lenght 0=256 (B)
  	out	(c),b
  	; byte 2,3 : location of Buffer in TRS memory (DE)
@@ -121,7 +122,7 @@ _open_open:
 ;
 	pop	hl			; pop the FCB address
 	push	hl			; saving it back
-	ld	b,$20			; FCB is 32 bytes
+	ld	b,32			; FCB is 32 bytes
 	inir				; transfer the data back to HL
 ;
 	xor	a			; success
@@ -143,14 +144,19 @@ _open_out1:
 ; FCB now contain the original full file name.
 ;
 _closefile
-	; todo
-	; Send the Command
-	; Send the 16 byte FCB
-	; Wait
-	; Return if any Error
-	; Receive the 32 byte FCB
-	; Return
-	JP	_ILLEGAL
+	push	de
+	pop	ix			; get fcb into IX
+	ld	a,(ix+FCB_FILEID)	; file id from the FCB
+	out	(FILE2),a		; write file id to pico
+	;
+	ld	a,(TRS_FILE_CLOSE)	; close command
+	out	(COMMAND2),a		; send the command
+	;
+	call	fhd_WAIT		; wait for status
+	jr	nz,_close_out1		; error then out of here
+
+_close_out1:
+	ret
 
 ;
 ; @KILL Kill FCB's associated file. ($442C)
@@ -159,6 +165,7 @@ _closefile
 ; Ret Z - No Error ; NZ - Error (A error Code)
 ; The original Filename placed back in the FCB (LDOS)
 ; The FCB is set to all zero's (NewDos80)
+; The FCB is set to the original filename (LDOS)
 ;
 _killfile
 	; todo

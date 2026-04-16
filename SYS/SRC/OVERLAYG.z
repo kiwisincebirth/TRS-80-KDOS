@@ -21,37 +21,48 @@ import	constants.z
 ;
 	ORG	OVERLY
 
-	push	af		; preserve the Super Call ID
-	call	enh_VER		; test if Enhanced Pico (NZ flag)
+	; Check if running enhanced - Error Out if not running on Pico
+	push	af		; preserve the Super CALL ID
+	CALL	enh_VER		; test if Enhanced Pico (NZ flag)
 	jr	z,_NOT_ENH	; Only works on Enhanced - Escape Out
-	pop	af
+	;
+	; Generic Code all Routines to Set FCB into IX
+	push	de		; get fcb into IX for use
+	pop	ix		; in most functons
+	;
+	; And Pass the File ID to The PICO
+       	ld     	a,(ix+FCB_FILEID)
+       	out    	(FILE2),a	; set file ID from FCB into Pico
+	;
+	; Now decode which function to call
+	pop	af		; Get the call id back
 	;
 	cp	S_READFILE	; (4436) @READ API Function
-	jr	z,_readfile
+	jp	z,_readfile
 	;
 	cp	S_WRITEFILE	; (4439) @WRITE API Function
-	jr	z,_writefile
+	jp	z,_writefile
 	;
 	cp	S_VERIFYFILE	; (443C) @VER API Function
-	jr	z,_verifyfile
+	jp	z,_verifyfile
 	;
 	cp	S_REWFILE	; (443F) @REW API Function
-	jr	z,_rewindfile
+	jp	z,_rewindfile
 	;
 	cp	S_POSNFILE	; (4442) @POSN API Function
-	jr	z,_positionfile
+	jp	z,_positionfile
 	;
 	cp	S_BKSPFILE	; (4445) @BKSP API Function
-	jr	z,_backspacefile
+	jp	z,_backspacefile
 	;
 	cp	S_PEOFFILE	; (4448) @PEOF API Function
-	jr	z,_eoffile
+	jp	z,_eoffile
  	;
 	ld	a, INTDOSERR$	; Internal Failure
 	jp	@ERROR
 	;
 _NOT_ENH
-	pop	af
+	pop	af		; restore the stack
 _ILLEGAL
 	ld	a, ILLDOSFUN$	; (NOT enhanced) so illegal Dos Function
 	or	a		; set the flags
@@ -64,62 +75,38 @@ _ILLEGAL
 ; If LRL = 256 (0) record will be placed in the IO buffer (held in FCB)
 ; If LRL < 256 record will be placed in buffer specified in Argument
 ; DE -> Pointer to FCB 32 byte Buffer
-; HL -> User Record Buffer address for LRL <256
+; HL -> User Record Buffer address for LRL <256, ignored for LRL=256
 ; Ret Z - No Error ; NZ - Error (A error Code)
 ; FCB Next Record num - increased by number of bytes Read
 ;
 _readfile
-	push	hl			; save the input buffer address
-
 	; Send the Command
 	ld	a,TRS_FILE_READ		; API READ command
 	out	(COMMAND2),a		; send command to frehd
 
-	; Send the 16 byte FCB
-	ld	bc, $1000 + DATA2	; b = 16 bytes + C the data port
-	ld	h,d			; fcb adress into HL
-	ld	l,e
-	otir				; send data from (hl) to port (C)
-
 	; Wait and return if error
-	call	fhd_WAIT		; wait for status of OPEN
-	jr	nz,_read_out1		; error then out of here
-
-; todo seperate command to Read the FCB data back.
-; issue the command, WAIT
-; read the FCB 16 Bytes
-;	; Receive the updated 16 byte FCB
-;	ld	b,$10			; 16 byte FCB
-;	ld	h,d			; fcb address from DE -> HL
-;	ld	l,e
-;	inir
+	CALL	fhd_WAIT		; wait for status
+	ret	nz			; error then out of here
 
 	; receive the data buffer
-	pop	hl			; saved Hl buffer addr parameter
-	call	_LRL_FCB		; update HL from FCB for LRL=0
+	CALL	_LRL_FCB		; Set A = files LRL, and If 256 (0)
+					; then overwrite HL from FCB
 	ld	b,a			; LRL record length from A
-	inir				; load N bytes into Buffer
+	ld	c,DATA2			; read block from PORT
+	INIR				; load N bytes into Buffer
 	;
-	xor	a			; success
-	ret
-
-_read_out1:
-	pop	hl
-	ret				; and return
-
-; Entry HL, contains buffer address from caller
-; 	DE contains the FCB address
-; Return Updated HL address for targets data
-_LRL_FCB:
-	push	de			; Copy DE register
-	pop	ix			; IX now conatins FCB
-	ld	a,(IX+9)		; get LRL from FCB
-	or	a			; flags
-	ret	nz			; If LRL != 256 (0), the HL ok.
-	ld	l,(IX+3)
-	ld	h,(IX+4)		; HL from FCB buffer
-	ret
+	; Sync Files FCB Metadata - RETURNING to caller
+	JP	_sync_META		; Sync Metadata into FCB
 ;
+; ----------------------------------------------------------------------
+;
+; @VER  Write and VERIFY File ($443C)
+; Same as @WRITE
+; Noting the documentation states that it re-reads the sector,
+; it doesnt talk about Updateing the Directory with Current EOF
+;
+_verifyfile
+	; FALL Through to _writefile
 ;
 ; @WRITE WRITE (no verify) File ($4439)
 ; DE -> Pointer to FCB 32 byte Buffer
@@ -132,42 +119,54 @@ _LRL_FCB:
 ;
 _writefile
 	; Send the Command
-	; Send the 16 byte FCB
-	; Send the 256 or lower data to write
-	; Wait
-	; Return if any Error
-	; Receive the 16 byte FCB
-	; Return
-
-	; Send the Command
-	ld	a,TRS_FILE_WRITE	; API Write command
+	ld	a,TRS_FILE_WRITE	; API WRITE command
 	out	(COMMAND2),a		; send command to frehd
+	;
+	; write the data buffer
+	CALL	_LRL_FCB		; Set A = files LRL, and If 256 (0)
+					; then overwrite HL from FCB
+	ld	b,a			; LRL record length from A
+	ld	c,DATA2			; write block to PORT
+	OTIR				; write N bytes to Pico
 
-	; todo how do we send size 2 the pico code will freak out.
+	; Wait and return if error
+	CALL	fhd_WAIT		; wait for status
+	ret	nz			; error then out of here
 
-	ret
+	; Sync Files FCB Metadata - RETURNING to caller
+	JP	_sync_META		; Sync Metadata into FCB
 ;
-; @VER  Write and VERIFY File ($443C)
-; Same as @WRITE
-;
-_verifyfile
-	jr	_writefile
+; ----------------------------------------------------------------------
 ;
 ; @REW  Position to start of file SOF ($443F)
 ; DE -> Pointer to FCB 32 byte Buffer
 ; Ret Z - No Error ; NZ - Error (A error Code)
 ; FCB Next Record num - will be set to 0
 ;
-_rewindfile
-	; todo
-	; Send the Command
-	; Send the 16 byte FCB
-	; Wait
-	; Return if any Error
-	; Receive the 16 byte FCB
-	; Return
-	JP	_ILLEGAL
-
+_rewindfile:
+	ld     	a,TRS_FILE_SOF		; command to execute
+	out    	(COMMAND2),a         	; Write the File Seek command
+	jr	_position_finish
+;
+; @BKSP Backspace One Record ($4445)
+; DE -> Pointer to FCB 32 byte Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB Next Record num - decreased by LRL
+;
+_backspacefile
+	ld     	a,TRS_FILE_BACK		; command to execute
+	out    	(COMMAND2),a         	; Write the File Seek command
+	jr	_position_finish
+;
+; @PEOF Position to End Of File  EOF ($4448)
+; DE -> Pointer to FCB 32 byte Buffer
+; Ret Z - No Error ; NZ - Error (A error Code)
+; FCB Next Record num - Set to EOF
+;
+_eoffile
+	ld     	a,TRS_FILE_EOF		; command to execute
+	out    	(COMMAND2),a         	; Write the File Seek command
+	jr	_position_finish
 ;
 ; @POSN Position to a specified record ($4442)
 ; DE -> Pointer to FCB 32 byte Buffer
@@ -176,49 +175,69 @@ _rewindfile
 ; FCB Next Record Num = LogRecLength * LogRecNumber
 ;
 _positionfile
-	; todo
-	; Send the Command
-	; Send the 16 byte FCB
-	; Send the 2 byte LRN
-	; Wait
-	; Return if any Error
-	; Receive the 16 byte FCB
-	; Return
-	JP	_ILLEGAL
+	ld     	a,TRS_FILE_POS		; command to execute
+       	out    	(COMMAND2),a         	; Write the File Seek command
+	;
+	; Send the 2-byte Record Number (BC)
+	ld     a,c
+	out    (DATA2),a            ; LSB
+	ld     a,b
+	out    (DATA2),a            ; MSB (This triggers Step 2 on Pico)
+	;
+_position_finish
+       	call   	fhd_WAIT             	; Wait for Pico to complete seek
+       	ret     nz			; if error then exit out
+       	;
+	JP	_sync_META_POS		; NOW sync the local FCB -> and RET
+;
+; ----------------------------------------------------------------------
+;
+; Routine to get File FCB data back updated from last operation
+;
+_sync_META
+	ld	a, TRS_FILE_FCB		; send command to
+	out  	(COMMAND2), a		; Ask for the 9-byte update
+	;
+_sync_META_POS
+	; Calculate local FCB offset 5
+	push 	hl                 	; Save current data pointer
+	;
+	ld	a,FCB_NEXTLSB		; Byte 5 of FCB is start of update
+	add	e			; add to the FCB LSB
+	ld	l,a			; write LSB to L
+	ld	h,d			; get MSB into H (16 bit address
+	jr	nc, _sync_m1		; skip
+	inc	h			; if Carry, then bump MSB
+_sync_m1
+	;
+	ld   	b, 9			; expecting exactly 9 bytes
+	ld   	c, DATA2		; from register
+	INIR                    	; Update bytes 5-13
+	;
+	pop  	hl                 	; Restore saved pointer
+	ret
+;
+; ======================================================================
+;
+; GET LRL and Buffer Address
+; Entry  HL, contains buffer address from CALLer
+; 	 IX contains the FCB address
+; Return HL address for targets data, updated if LRL = 256
+;        A The LRL
+;
+_LRL_FCB:
+	ld	a,(IX+FCB_LRL)		; get LRL from FCB
+	;
+    	; Pico has set SIZE2 to LRL (e.g., 0 for 256)
+    	; IN   A, (SIZE2)		; get bytes from Pico
+	;
+	or	a			; set flags based on LRL
+	ret	nz			; Ret If LRL != 256 (0) -> HL passed in is OK
+cost2    equ     t($)-t(_LRL_FCB)
+	ld	l,(IX+FCB_BUFFLSB)	; otherwise LRL=0 so get Buff Address from FCB
+	ld	h,(IX+FCB_BUFFMSB)	; defined when the file was opened -> Set HL
+	ret
 
-;
-; @BKSP Backspace One Record ($4445)
-; DE -> Pointer to FCB 32 byte Buffer
-; Ret Z - No Error ; NZ - Error (A error Code)
-; FCB Next Record num - decreased by LRL
-;
-_backspacefile
-	; todo
-	; Send the Command
-	; Send the 16 byte FCB
-	; Wait
-	; Return if any Error
-	; Receive the 16 byte FCB
-	; Return
-	JP	_ILLEGAL
-
-;
-; @PEOF Position to End Of File  EOF ($4448)
-; DE -> Pointer to FCB 32 byte Buffer
-; Ret Z - No Error ; NZ - Error (A error Code)
-; FCB Next Record num - Set to EOF
-;
-_eoffile
-	; todo
-	; Send the Command
-	; Send the 16 byte FCB
-	; Wait
-	; Return if any Error
-	; Receive the 16 byte FCB
-	; Return
-	JP	_ILLEGAL
-
-;
 ; ======================================================================
 ; 4700 - End Of Overlay
 ; ======================================================================
