@@ -75,6 +75,11 @@ echo TRS80GP
 open -a trs80gp --args -m1 \
   -frehd -frehd_dir ~/Documents/FreHD \
   -rom ~/GITHUB/TRS-80-ROMS/MDL1REV4.bin \
+  -b 441C -b 452a \
+
+
+
+#  -b 443C -b 4428 -b 44420 \
 
 #  -frehd_patch \
 #  -b 4420 \
@@ -84,4 +89,3 @@ open -a trs80gp --args -m1 \
 #  -rom ~/GITHUB/TRS-80/MDL1REV3F.bin \
 #  -i 'OPEN "OUTHOUS1.CMD"\r' \
 #  -i '#DIR\r' \
-# -b 4600 -b 024f

@@ -123,11 +123,13 @@ _NOTFND:
 	; parse the command line string as a file name
 	ld	hl,(SAVBUFF)	; get original address of command buffer
 	inc	hl		; buffer pointer so actual char (not prior)
-	ld	de,SYSFCB	; system FCB
-	push	de		; save for latter
+	ld	de,SYSFCB	; system FCB, where we store filename to exec
+	push	de		; save system FCB for latter use
 	ld	b,16		; max bytes in command name (could be 31?)
-	call	CHPARSE		; parse chars, from source to target
+	call	_CHPARSE	; parse chars, from source to target
 	jr	nz,ERROUT	; error out if NZ
+	;
+	push	hl		; save the buffer "arguments" after #COMMAND
 	;
 	; todo the following needs to be MUCH improved
 	; todo TrsDOS (4FC0H) and ND80 (4F2AH) SYS1 both have good implementations
@@ -136,6 +138,7 @@ _NOTFND:
 	ld	bc,5		; five bytes incl terminator
 	ldir			; append to end of the file-spec
 	;
+	pop	hl		; pointer to buffer "arguments" to pass into command
 	pop	de		; system FCB, containing name of file to run
 	jp	@RUN		; $4433 - load a program file, and execute it
 	;
@@ -206,45 +209,54 @@ LOOKUPTAB
 ;
 ; ----------------------------------------------------------------------
 ;
-; below is copied from newdos 80 SYS 01 command parser
+; Purspose pass a command string in the form
+; below WAS ADAPTED (simplified) from newdos 80 SYS 01 command parser
 ; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm#513DH
 ; HL command line Input buffer
 ; DE Filespec target buffer
 ;
 ; Z Success - NZ Failure
 ;
-CHPARSE:
+_CHPARSE:
+	ld	b,$10		; num chars to process
 	push	hl		; save source pointer
-CHLOOP:
-	call	ALPHCHECK	; check if the character is alphabetic (if not a digit). Returns CARRY if valid .
+_CHLOOP:
+	call	_ALPHACHECK	; check if the character is alphabetic (if not a digit). Returns CARRY if valid .
 
-	jr	c,WASVALID	; if valid then all good
+	jr	c,_WASVALID	; if valid then all good
 
 	; check for valid terminator
 	ld	a,(hl)		; get character (again)
-	cp	' '		; look for space
-	jr	z,CHEND		; then end it
+	cp	SPACE		; look for space
+	jr	z,_CHENDSPC	; then end it, but if space we need to skip past all Spaces
 	CP	CR		; or carriage return. This marks the end of the command line input.
-	JR	Z,CHEND
+	JR	Z,_CHEND
 	cp	ETX		; ETX
-	jr	z,CHEND		; then end it
+	jr	z,_CHEND	; then end it
 	;
 	or	a		; check for 0 terminator
-	jr	nz,INVALID	; not a valid character a-Z ; a-z ; 0-9 or a space ternminator
+	jr	nz,_INVALID	; not a valid character a-Z ; a-z ; 0-9 or a space ternminator
 
-CHEND:
+_CHEND:
 	pop	af		; discard saved HL
 	xor	a		; Z flag indicates success, and NULL terminator
 	ld	(de),a		; put into dest buffer
 	ret			; Z flag Set
-WASVALID:
+_CHENDSPC:
+	inc	hl		; if terminator is space
+	ld	a,(hl)		; inc to nexxt char
+	cp	SPACE		; and if a space as well
+	jr	z,_CHENDSPC	; keep skipping
+	jr	_CHEND		; then finish as normal
+
+_WASVALID:
 	ld	a,(hl)
 	ld	(de),a
 	inc	de
 	inc	hl
-	djnz	CHLOOP
+	djnz	_CHLOOP
 				; fall thru if nmore than N chars
-INVALID:
+_INVALID:
 	pop	hl		; restore saved HL pointer
 	ld	a,(hl)		; get original char
 	ret			; With NZ flag set
@@ -253,7 +265,7 @@ INVALID:
 ; C Char is Valid Alphabetic character (a-z) (A-Z) (0-9)
 ; NC was invalid
 ;
-ALPHCHECK:
+_ALPHACHECK:
 	ld	a,(hl)		; get character (again)
 	sub	$30		; '0' converts ASCII digits '0'-'9' to values 0-9.
 	cp	10		; If carry the original char was '0'-'9'.

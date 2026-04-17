@@ -210,8 +210,7 @@ _sync_META_POS
 	inc	h			; if Carry, then bump MSB
 _sync_m1
 	;
-	ld   	b, 9			; expecting exactly 9 bytes
-	ld   	c, DATA2		; from register
+	ld   	bc, $900 + DATA2	; Get 9 bytes from IN (DATA2)
 	INIR                    	; Update bytes 5-13
 	;
 	pop  	hl                 	; Restore saved pointer
@@ -226,18 +225,19 @@ _sync_m1
 ;        A The LRL
 ;
 _LRL_FCB:
-	ld	a,(IX+FCB_LRL)		; get LRL from FCB
 	;
     	; Pico has set SIZE2 to LRL (e.g., 0 for 256)
     	; IN   A, (SIZE2)		; get bytes from Pico
 	;
+	ld	a,(IX+FCB_LRL)		; get LRL from FCB
 	or	a			; set flags based on LRL
 	ret	nz			; Ret If LRL != 256 (0) -> HL passed in is OK
-cost2    equ     t($)-t(_LRL_FCB)
+	;
 	ld	l,(IX+FCB_BUFFLSB)	; otherwise LRL=0 so get Buff Address from FCB
 	ld	h,(IX+FCB_BUFFMSB)	; defined when the file was opened -> Set HL
+	;
 	ret
-
+;
 ; ======================================================================
 ; 4700 - End Of Overlay
 ; ======================================================================

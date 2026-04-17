@@ -21,27 +21,7 @@ import	constants.z
 ; todo We should ideally handle issue with loading a File to protected memory
 ; todo e.g. $0000 - $3000 (ROM) - which is illegal, the is a DOS error for this.
 ; todo Error 36 ( 24H ) - Attempt to load read only memory
-;
-; Handles 4430 - Load Program File
-;
-; On Entry
-;    DE -> points to the Filespec
-; On Exit
-;    HL <- has the execution address
-;    Z <- if load was successful
-;    A <- error code, or presumably Zero
-;    BC is also altered
-;
-; Handles 4433 - Load and Execute
-;    If this routine is CALL'd then return address will be on the
-;    stack in the traget program, if issue JP to this routine
-;    If can find program Exit to 4409 displaying error.
-;
-; On Entry
-;    DE -> points to the Filespec
-; On Exit
-;    HL <- (command buffer) is passed onto the program
-;    AF and BC are Altered
+
 
 	ORG	OVERLY
 	;
@@ -59,6 +39,8 @@ import	constants.z
 ;
 ; ======================================================================
 ;
+; DOS #LOAD Command
+;
 LOAD_CMD
 	ld	d,h		; In the cmd processor HL points to the buffer
 	ld	e,l		; In the cmd processor HL points to the buffer
@@ -69,6 +51,16 @@ LOAD_CMD
 	jp	@EXIT		; return to DOS
 
 	;
+;
+; Handles 4430 - Load Program File
+; On Entry
+;    DE -> points to the Filespec
+; On Exit
+;    HL <- has the execution address
+;    Z <- if load was successful
+;    A <- error code, or presumably Zero
+;    BC is also altered
+;
 LOAD_FIL
 	call	_STR_LEN	; count the length of the string
 	;
@@ -77,13 +69,27 @@ LOAD_FIL
 	ret			; (to caller) with NZ if error occurred.
 				; no error. HL contains transfer address
 ;
+; Handles 4433 - Load and Execute
+;    Normally this routine is Jumped to. otherwise if called then the
+;    return address will be on the stack in the target program.
+; Routine will Exit by invoking the program loaded from Disk
+;    If cant find program Exit to @ERROR 4409 displaying error.
+; On Entry
+;    DE -> points to the Filespec
+; On Exit
+;    HL -> pointer to command buffer (arguments)
+;    AF and BC are Altered
+;
 RUN_FIL:
-	call	_STR_LEN	; count the length of the string
+	push	hl		; save the string pointer passed in
 	;
+	call	_STR_LEN	; count the length of the DE string -> B
 	call	file_loader	; attempt to load the file
 	jr	nz,RUN_FAIL	; error handler and exit to @ERROR
 	;
-	jp	(hl)		; RUN the loaded program
+	ex	(sp),hl		; put HL -> jump address on stack
+				; and restore HL pointer passed in
+	ret			; RUN the loaded program
 ;
 RUN_FAIL:
 	cp	FILNOTFND$	; was it a file not found
@@ -91,8 +97,6 @@ RUN_FAIL:
 	ld	a,PRGNOTFND$	; change to program not found
 RUN_ER2:
 	jp	@ERROR		; DOS ERROR
-
-
 ;
 ; Get the length of the string.
 ; Also in OverlayD
@@ -129,6 +133,7 @@ else
 ;;; - B  : filename length
 ;;;
 ;;; Return:
+;;; - HL : The Load address, execution address.
 ;;; - Z  : no error. HL contains transfer address
 ;;; - NZ : error occurred, file not or partially loaded
 ;;;

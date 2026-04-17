@@ -2,100 +2,79 @@
 
 
 
+METEOR
 
+b277:   ld	hl,$7300	256 byte buffer
+b27a:   ld	de,$b312	fcb pointer
+b27d:   ld	b,$00		lrl = 256
+b27f:   call	$4420 		@INIT
+b282:   jr	nz,$b2cc	->A error
+b284:   jr	c,$b290		-> VERIFY
+b286:   ld	de,$b312	fcb pointer
+b289:   call	$4436		@READ
+b28c:   jr	nz,$b2cc	->A error including EOF
+b28e:   jr	$b298
 
+VERIFY
+b290:   ld	de,$b312	fcb pointer B <-
+b293:   call	$443c		@VERIFY
+b296:   jr	nz,$b2cc	->A error
+b298:   ld	de,$b312	fcb pointer
+b29b:   call	$4428		@CLOSE
+b29e:   jr	nz,$b2cc	->A error
+b2a0:   ld	hl,$b2ae
+b2a3:   ld	($a584),hl
+b2a6:   ld	a,$cd
+b2a8:   ld	($a583),a
+b2ab:   jp	$8500
 
+WRITE
+b2ae:   ld	hl,$7300	256 byte buffer
+b2b1:   ld	de,$b312	fcb pointer
+b2b4:   ld	b,$00		lrl = 256
+b2b6:   call	$4424		@OPEN
+b2b9:   jr	nz,$b2cc	->A error
+b2bb:   ld	de,$b312	fcb pointer
+b2be:   call	$4439		@WRITE
+b2c1:   jr	nz,$b2cc	->A error
+b2c3:   ld	de,$b312	fcb pointer
+b2c6:   call	$4428		@CLOSE
+b2c9:   jr	nz,$b2cc	->A error
+b2cb:   ret
 
+A
 
+; BEFORE CALL to DOS
+; 48 49 53 43  4F 52 45 53  2F 4D 45 54  3A 30 0D 4D |HISCORES/MET:0.M|
+; 45 54 45 4F  52 20 4D 49  53 53 49 4F  4E 20 49 49 |ETEOR MISSION II|
 
-; Below is From NewDos 80 v2 SYS 1
-; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm
-' supports extracting a filename from a string.
+; $B277 - Calls Open File 4420
 
-5163
-PUSH HL
-Save the current source pointer onto the stack.
-5164
-LD A,(HL)
-Load Register A with the current character.
-5165
-SUB 30H
-Subtract 30H (ASCII '0') from the character. This converts ASCII digits '0'-'9' to values 0-9.
-5167
-CP 0AH
-Compare against 0AH (10 decimal). If the result is less than 10, the original character was a digit '0'-'9'.
-5169
-CALL 5189H
-GOSUB to 5189H to check if the character is alphabetic (if not a digit). Returns CARRY if valid alphanumeric.
-516C
-JR NC,5184H
-If NO CARRY (character is not alphanumeric), JUMP to 5184H to finish with an error/end condition.
-Character passed the digit test or was confirmed alphabetic. Now check for special delimiters.
+; LDOS - Open Existing File
+; 80 20 00 00  73 00 00 0B  00 00 00 00  01 00 0F 40 |. ..s..........@|
+; FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF |................|
 
-516E
-LD A,(HL)
-Reload the original character from the source.
-516F
-SUB 2EH
-Subtract 2EH (ASCII '.') from the character. Testing for period (filename/extension separator).
-5171
-CP 0DH
-Compare against 0DH. If the original character was between 2EH ('.') and 3AH (':'), this checks range.
-5173
-CALL 5189H
-GOSUB to 5189H for additional character validation.
-5176
-JR C,517EH
-If CARRY is set (character is a valid part of filename), JUMP to 517EH to copy it.
-Character is a delimiter (like period) - mark end of filename portion.
+; NEWDOS/80 - Open Existing File
+; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
+; FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF |................|
 
-5178
-LD A,03H
-Load Register A with 03H (end-of-text marker).
-517A
-LD (DE),A
-Store the end-of-text marker into the destination buffer.
-517B
-POP AF
-Discard the saved HL (stored at 5163H) by popping into AF.
-517C
-XOR A
-Set Register A to zero and clear flags (Z FLAG set, indicating success).
-517D
-RET
-Return to the caller with Z FLAG set indicating successful parse.
-Character is valid - copy it to destination and continue loop.
+; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
+; FF FF FF 48  49 53 43 4F  52 45 53 2F  4D 45 54 00 |...HISCORES.MET.|
 
-517E
-LD A,(HL)
-Load the valid character from the source.
-517F
-LD (DE),A
-Store the character into the destination buffer.
-5180
-INC DE
-Advance the destination pointer.
-5181
-INC HL
-Advance the source pointer.
-5182
-DJNZ 516EH
-[LOOP] Decrement B and if not zero, LOOP BACK to 516EH to process the next character.
-Reached end of loop (maximum characters processed) or hit invalid character.
+; M1ZVM
+; =====
 
-5184
-OR 01H
-OR Register A with 01H to ensure NZ FLAG is set (indicating we didn't end cleanly on a delimiter).
-5186
-POP HL
-Restore the source pointer from the stack.
-5187
-LD A,(HL)
-Load the current character into Register A (the character that caused loop exit).
-5188
-RET
-Return with NZ FLAG set and the terminating character in A.
+;@FSPEC	EQU	441CH	;4EH
+;@INIT	EQU	4420H	;3AH in progress
+;@OPEN	EQU	4424H	;3BH in progress
+;@CLOSE	EQU	4428H	;3CH
 
+;@READ	EQU	4436H	;43H	;Read a file record
+;@WRITE	EQU	4439H	;4BH	;Write a file record
+;@VER	EQU	$443c   ; (METEOR MISSION)
+
+;@REW	EQU	443FH	; This SVC will rewind a file to its beginning and reset the 3-byte NRN pointer to 0.
+;@POSN	EQU	4442H	; Position file to record BC
 
 
 
@@ -198,77 +177,6 @@ const char *FRESULT_str(FRESULT i) {
 }
 
 
-
-
-Partially existing code found in OVERLAY C
-
-; below is copied from newdos 80 SYS 01 command parser
-; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm#513DH
-; HL command line Input buffer
-; DE Filespec target buffer
-;
-FILEPARSE:
-   	push	de
-	ld	b,32		; max bytes
-	call	CHPARSE		; parse chars
-	pop	de
-	ld	b,$00		; success
-	ret
-;
-; Z Success - NZ Faliure
-;
-CHPARSE:
-	ld	a,(hl)		; First Character
-	cp	'*'		; compare with wildcard * as first character
-	jr	nz,CHNORM	; not wildcard process normal
-	ld	(de),a		; copy "*" it to target,
-	inc	de		; next char in both buffers
-	inc	hl		; next char in both buffers
-	dec	b		; reduce count; fall through next char
-CHNORM:
-	push	hl		; save source pointer
-	ld	a,(hl)		; get character (again)
-	sub	'0'		; converts ASCII digits '0'-'9' to values 0-9.
-	cp	10		; If carry the original char was '0'-'9'.
-	call	ALPHCHECK	; check if the character is alphabetic (if not a digit). Returns CARRY if valid .
-	jr	nc,INVALID	; not a valid character a-Z ; a-z ; 0-9
-CHLOOP:
-	ld	a,(hl)		; get character (again)
-	sub	'.'		; check starting at "."
-	cp	$0d		; Char between '.' and ':', incldes 0-9 and '/'
-	call	ALPHCHECK
-	jr	c,WASVALID	; if valid then all good
-CHEND:
-	ld	a,0		; end of text marker
-	ld	(de),a		; put into dest buffer
-	pop	af		; discard saved HL
-	xor	a		; Z flag indicates success
-	ret
-WASVALID:
-	ld	a,(hl)
-	ld	(de),a
-	inc	de
-	inc	hl
-	djnz	CHLOOP
-INVALID:
-	or	1		; ensure NZ flag
-	pop	hl		; restore
-	ld	a,(hl)		; get original char
-	ret
-;
-; Based on Character at HL
-; C Char is Valid Alphabetic character (a-z) (A-Z)
-; NC was invalid
-;
-ALPHCHECK:
-	ret	c		; if already valid then nothing to do
-	ld	a,(hl)		; get char again
-	sub	'A'		;
-	cp	26		; compare with upper case Z
-	ret	c		; if was a-Z then C so is valid
-	sub	$20		; make it lower case check
-	cp	26		; compare with lower case Z
-	ret			; returning the C result
 
 ; Originally from TRS DOS 2.3 SYS1
 ; 4FF4H - Character Extraction Subroutine📋

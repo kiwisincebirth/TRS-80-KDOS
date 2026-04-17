@@ -20,14 +20,18 @@ import	constants.z
 ; ======================================================================
 ;
 	ORG	OVERLY
-
+	;
+	; First Test Normal
+	;
+	cp	S_FILESPEC	; (441C) @FSPEC API Function
+	jp	z,_513d
+	;
+	; ENHANCED
+	;
 	push	af		; preserve the Super Call ID
 	call	enh_VER		; test if Enhanced Pico (NZ flag)
 	jr	z,_NOT_ENH	; Only works on Enhanced - Escape Out
 	pop	af
-	;
-	cp	S_FILESPEC	; (441C) @FSPEC API Function
-	jp	z,_filespec
 	;
 	cp	S_INITFILE	; (4420) @INIT API Function
  	jp	z,_init_open
@@ -50,7 +54,8 @@ _ILLEGAL
 	ld	a, ILLDOSFUN$	; (NOT enhanced) so illegal Dos Function
 	or	a		; set the flags
 	ret			; return failure
-
+;
+; ======================================================================
 ;
 ; @FSPEC API Function (441C)
 ;
@@ -62,12 +67,84 @@ _ILLEGAL
 ; HL <- Terminating character in the Buffer
 ; A <- terminating character
 ;
-_filespec
-	push	de
-	; todo
+; below is copied from newdos 80 SYS 01 command parser
+; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm#513DH
+;
+_513d
+	call	_5150           ; 513d:
+	push	af              ; 5140:
+	ld	a,(hl)          ; 5141:
+	sub	$03             ; 5142:
+	jr	z,_5148         ; 5144:
+	sub	$0a             ; 5146:
+_5148
+	jr	z,_514b         ; 5148:
+	inc	hl              ; 514a:
+_514b
+	pop	af              ; 514b:
+	ret                  	; 514c:
+_5150:
+   	push	de
+	ld	b,32		; max bytes
+	call	_515A		; parse chars
 	pop	de
-	JP	_ILLEGAL
+	ld	b,$00		; success
 	ret
+;
+; Z Success - NZ Faliure
+;
+_515A:
+	ld	a,(hl)		; First Character
+	cp	'*'		; compare with wildcard * as first character
+	jr	nz,_5163	; not wildcard process normal
+	ld	(de),a		; copy "*" it to target,
+	inc	de		; next char in both buffers
+	inc	hl		; next char in both buffers
+	dec	b		; reduce count; fall through next char
+_5163:
+	push	hl		; save source pointer
+	ld	a,(hl)		; get character (again)
+	sub	'0'		; converts ASCII digits '0'-'9' to values 0-9.
+	cp	10		; If carry the original char was '0'-'9'.
+	call	_5189		; check if the character is alphabetic (if not a digit). Returns CARRY if valid .
+	jr	nc,_5184	; not a valid character a-Z ; a-z ; 0-9
+_516e:
+	ld	a,(hl)		; get character (again)
+	sub	'.'		; check starting at "."
+	cp	$0d		; Char between '.' and ':', incldes 0-9 and '/'
+	call	_5189
+	jr	c,_517E		; if valid then all good
+_5178:
+	ld	a,3		; end of text marker
+	ld	(de),a		; put into dest buffer
+	pop	af		; discard saved HL
+	xor	a		; Z flag indicates success
+	ret
+_517E:
+	ld	a,(hl)
+	ld	(de),a
+	inc	de
+	inc	hl
+	djnz	_516e
+_5184:
+	or	1		; ensure NZ flag
+	pop	hl		; restore
+	ld	a,(hl)		; get original char
+	ret
+;
+; Based on Character at HL
+; C Char is Valid Alphabetic character (a-z) (A-Z)
+; NC was invalid
+;
+_5189:
+	ret	c		; if already valid then nothing to do
+	ld	a,(hl)		; get char again
+	sub	'A'		;
+	cp	26		; compare with upper case Z
+	ret	c		; if was a-Z then C so is valid
+	sub	$20		; make it lower case check
+	cp	26		; compare with lower case Z
+	ret			; returning the C result
 
 ;
 ; @INIT New or Open Existing File ($4420)
@@ -106,11 +183,11 @@ _open_skip1
 	; byte 0 : open options
 	ld	c,DATA2			; the data port
 	out	(c),a			; send it.
- 	; byte 1 : logical record lenght 0=256 (B)
+ 	; byte 1 : logical record length 0=256 (B)
  	out	(c),b
- 	; byte 2,3 : location of Buffer in TRS memory (DE)
- 	out	(c),e
- 	out	(c),d
+ 	; byte 2,3 : location of Buffer in TRS memory (HL)
+ 	out	(c),l
+ 	out	(c),h
  	; bytes 4..36 : fcb data from TRS (HL)
 	ld	b,$20			; b=0 "256" bytes
 	ex	de,hl			; swap FCB into HL
@@ -120,12 +197,20 @@ _open_open:
 	call	fhd_WAIT		; wait for status of OPEN
 	jr	nz,_open_out1		; error then out of here
 ;
+	; copy the FCB data back to ram.
 	pop	hl			; pop the FCB address
 	push	hl			; saving it back
 	ld	b,32			; FCB is 32 bytes
 	inir				; transfer the data back to HL
 ;
-	xor	a			; success
+	BIT	STATB_ZERO, A		; check status (from fhd_wait) for FileLen = 0
+	JR	NZ, _new_file		; If Zero length (flag) then => New file
+_existing_file:
+    	XOR	A                	; set Zero flag (Success),
+	jr	_open_out1		; CLEAR CARRY = Existing File
+_new_file:
+	XOR	A                	; set Zero flag (Success)
+	SCF                     	; SET CARRY = New File Created
 ;
 _open_out1:
 	pop	de			; restore the pointers
@@ -149,15 +234,11 @@ _closefile
 	ld	a,(ix+FCB_FILEID)	; file id from the FCB
 	out	(FILE2),a		; write file id to pico
 	;
-	ld	a,(TRS_FILE_CLOSE)	; close command
+	ld	a,TRS_FILE_CLOSE	; close command
 	out	(COMMAND2),a		; send the command
 	;
 	call	fhd_WAIT		; wait for status
-	jr	nz,_close_out1		; error then out of here
-
-_close_out1:
 	ret
-
 ;
 ; @KILL Kill FCB's associated file. ($442C)
 ; If a file is to be killed, the FCB must be in an open condition.
@@ -188,54 +269,4 @@ FREE_OVERLAYF	EQU	OVERLY + $200 - $
 	DC	FREE_OVERLAYF - 1,0
 	DB	$0F
 ;
-
-; OPEN
-; * Send the 32 byte FCB block to PICO, OPEN command
-; * PICO
-;   * extracts the parameters
-;   * Parses the FIlename
-;   * Opens the FIle
-;   * Return Block  0-31 - As defined
-; * PICO ALternate
-;   Pass filemode, and parsed filename, responds with EOF, and File 16 bit ID
-; * Receive back 32 bytes which override the existing FCB
-; * Return
-
-; Other Operations
-;   Pass the 16bit File Identifier,
-;   For Read need to pass the LRL
-;   Always respond with the 16 byte updated FCB
-;   For reads the LRL data follows this.
-
-; BEFORE CALL to DOS
-; 48 49 53 43  4F 52 45 53  2F 4D 45 54  3A 30 0D 4D |HISCORES/MET:0.M|
-; 45 54 45 4F  52 20 4D 49  53 53 49 4F  4E 20 49 49 |ETEOR MISSION II|
-
-; $B277 - Calls Open File 4420
-
-; LDOS - Open Existing File
-; 80 20 00 00  73 00 00 0B  00 00 00 00  01 00 0F 40 |. ..s..........@|
-; FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF |................|
-
-; NEWDOS/80 - Open Existing File
-; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
-; FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF |................|
-
-; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
-; FF FF FF 48  49 53 43 4F  52 45 53 2F  4D 45 54 00 |...HISCORES.MET.|
-
-; M1ZVM
-; =====
-
-;@FSPEC	EQU	441CH	;4EH
-;@INIT	EQU	4420H	;3AH in progress
-;@OPEN	EQU	4424H	;3BH in progress
-;@CLOSE	EQU	4428H	;3CH
-
-;@READ	EQU	4436H	;43H	;Read a file record
-;@WRITE	EQU	4439H	;4BH	;Write a file record
-;@VER	EQU	$443c   ; (METEOR MISSION)
-
-;@REW	EQU	443FH	; This SVC will rewind a file to its beginning and reset the 3-byte NRN pointer to 0.
-;@POSN	EQU	4442H	; Position file to record BC
 

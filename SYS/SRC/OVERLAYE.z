@@ -56,7 +56,7 @@ STANDARD
 	jp	nz,_FATFS	; if Bit 6 set then handle FF error
 	;
 _STD0
-				; B now in range 0-63
+	res	6,b		; B now in range 0-63
 	ld	hl,lookupt	; message lookup table
 _STD1:
 	ld	a,(hl)
@@ -79,7 +79,7 @@ _STD3:
 ;
 _STD4:
 ;	call	CRDONZ		; print CR if needed
-	ld	hl,_ERR_MSG	; "Error " messaage
+	ld	hl,_ERR_MSG	; "Error " message
 _STD8:
 	call	@DSPLY		; display it
 	ld	h,0
@@ -121,6 +121,7 @@ lookupt:
 ;	defb	ACCESSDEN$ , "Access Denied"		,ETX	; 25
 	defb	DIRSPCFUL$ , "Directory Space Full"	,ETX	; 26
 	defb	DSCSPCFUL$ , "Disk Space Full"		,ETX	; 27
+	defb	ENDOFFILE$ , "End of File Encountered"	,ETX	; 28
 	defb	PRGNOTFND$ , "Program Not Found"	,ETX	; 31
 	defb	ILLDRINUM$ , "Illegal Drive Number"	,ETX	; 32
 	defb	LOAFILFMT$ , "Load File Format Error"	,ETX	; 34
@@ -135,7 +136,7 @@ lookupt:
 ;	defb	26 ,"Full or Write Protected",ETX
 ;
 _FF_MSG:
-	defb 'FF '		; FF Error merges into next Error
+	defb 'FatFs '		; FF Error merges into next Error
 _ERR_MSG:
 	defb 'Error ', ETX
 

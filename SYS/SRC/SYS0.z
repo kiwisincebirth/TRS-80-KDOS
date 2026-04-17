@@ -330,9 +330,11 @@ BYTEC	DEFB	0		; num bytes before need another READ
 				; used by Read Block handler
 ;
 ; wait until the interface is ready
-; return Z is success
-; return NZ if there was an error
-; return Register A : Status code with all bits
+; return
+; Z is success, Status Bit for Error is 0
+; 	Register A : Status code with all bits
+; NZ if there was an error
+;	Register A : The Dos Error Code
 ;
 frehd_WAIT:
 	ex 	(sp),hl		; small delay to

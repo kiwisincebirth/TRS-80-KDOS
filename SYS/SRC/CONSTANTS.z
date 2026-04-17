@@ -196,14 +196,15 @@ ERRSN		EQU	02H	; Syntax Error
 ;
 ; DOS ERROR CODES
 ; ----------------------------------------------------------------------
-DEVNOTAVA$	EQU	08	; Device Not Avalable
+DEVNOTAVA$	EQU	08	; Device Not Available
 WRITEPROT$	EQU	15	; Write Protected Disk
-ILLLOGFIL$	EQU	15	; Illegal Logical File Number
+ILLLOGFIL$	EQU	16	; Illegal Logical File Number
 ILLFILNAM$	EQU	19	; Illegal Filename
 FILNOTFND$	EQU	24	; File Not Found
 ACCESSDEN$	EQU	25	; Access Denied
 DIRSPCFUL$	EQU	26	; Directory Space Full
 DSCSPCFUL$	EQU	27	; Disk Space Full
+ENDOFFILE$	EQU	28	; End of File Encountered
 PRGNOTFND$	EQU	31	; Program not found
 ILLDRINUM$	EQU	32	; Illegal Drive Number
 LOAFILFMT$	EQU	34 	; Load file format error
@@ -222,7 +223,7 @@ UNKNOWN$	EQU	63
 ETX         EQU     03H
 CR          EQU     0DH
 LF          EQU     0AH
-SPC         EQU     20H
+SPACE         EQU     20H
 ;
 ; ======================================================================
 ; FREHD
@@ -285,7 +286,7 @@ TRS_FILE_FCB	EQU	$26	; Get FCB for Identified File
 ; FatFS File Open flags
 FA_READ		EQU	01h	; Data can be read from the file.
 FA_WRITE        EQU	02h	; Data can be written to the file.
-FA_RW		EQU	03h	; Read Write
+FA_RW		EQU	03h	; Read / Write
 ;
 FA_OPEN_EXIST	EQU	00h	; Open existing file only. Fails if the file does NOT Exist
 FA_CREATE_NEW   EQU	04h	; Creates a new file. Fails if the file DOES Exist
@@ -307,13 +308,14 @@ STATUS_READY    EQU	0x40		; interface is READY, to accept a new command
 STATUS_WRERR    EQU	0x20		; ? Error
 STATUS_SEEKDONE EQU	0x10		; ? Same as READY
 STATUS_DRQ	EQU	0x08		; Indicator DATA is available.
-STATUS_ECC	EQU	0x04		; ? Error
+STATUS_ZERO	EQU	0x04		; Zero Length File - Open command
 STATUS_CIP	EQU	0x02		; ? Error
 STATUS_ERR	EQU	0x01		; i=Indicator ERROR occurred in last operation
 ;
 STATB_BUSY	EQU	7		; 1 = Interface is Busy
 STATB_READY	EQU	6		; 1 = Interface is Ready
 STATB_DRQ	EQU	3		; 1 = Data Available
+STATB_ZERO	EQU	2		; 1 = Zero Length File
 STATB_ERR	EQU	0		; 1 = Error
 ;
 ; NOTE: STATUS_ERR means (ERROR2) exposes the error Code

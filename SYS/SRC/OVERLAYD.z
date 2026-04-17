@@ -130,14 +130,14 @@ PROCESS2
 	ld      hl,BUFFER+25    ; ETX at the end to make printing easy
 	ld      (hl),ETX        ; 4 bytes after the 8.3 filename = 16 chars, 4 columns
 	;
-	ld      hl,BUFFER+8     ; Find first 00h and then make all characters SPC until ETX
+	ld      hl,BUFFER+8     ; Find first 00h and then make all characters SPACE until ETX
 PROCES3
 	inc	hl		; starting at 9th byte
 	ld      a,(HL)
 	or	a
 	jr      nz,PROCES3	; not a 0, get next char
 PROCES4
-	ld      (hl),SPC        ; Replace 0 with SPC
+	ld      (hl),SPACE        ; Replace 0 with SPACE
 	inc     hl              ; and keep going to next char
 	ld      a,(HL)		; get next char
 	CP      ETX		; until we get to ETX
