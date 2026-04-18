@@ -238,6 +238,13 @@ _closefile
 	out	(COMMAND2),a		; send the command
 	;
 	call	fhd_WAIT		; wait for status
+
+	; copy the FCB data back overiting the FCB
+	ld	h,d			; copy fcb into HL
+	ld	l,e
+	ld	bc,$2000+DATA2		; copy B=$20 bytes from Port C=DATA2
+	inir				; transfer the data back to HL
+
 	ret
 ;
 ; @KILL Kill FCB's associated file. ($442C)

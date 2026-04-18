@@ -28,11 +28,11 @@ import	constants.z
 	;
 	; Generic Code all Routines to Set FCB into IX
 	push	de		; get fcb into IX for use
-	pop	ix		; in most functons
+	pop	ix		; in ALL functions
 	;
 	; And Pass the File ID to The PICO
-       	ld     	a,(ix+FCB_FILEID)
-       	out    	(FILE2),a	; set file ID from FCB into Pico
+       	ld     	a,(ix+FCB_FILEID) ; file id from FCB
+       	out    	(FILE2),a	; set file ID into Pico
 	;
 	; Now decode which function to call
 	pop	af		; Get the call id back
