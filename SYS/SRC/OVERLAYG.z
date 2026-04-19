@@ -103,7 +103,7 @@ _readfile
 ; @VER  Write and VERIFY File ($443C)
 ; Same as @WRITE
 ; Noting the documentation states that it re-reads the sector,
-; it doesnt talk about Updateing the Directory with Current EOF
+; it doesnt talk about Updating the Directory with Current EOF
 ;
 _verifyfile
 	; FALL Through to _writefile

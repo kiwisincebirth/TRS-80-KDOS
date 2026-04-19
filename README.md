@@ -164,39 +164,39 @@ DOS Entry Points (4400-4480)
 ; (4427) * ND8Ø $82 identifying ND(8)0v(2)                                        
 ; (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
 
-| Address |        | Contents                   | Issues         |
-|---------|--------|----------------------------|----------------|
-| 402D    |        | No Error DOS Exit (44400)  |                |
-| 4400    | @CMD   | No Error DOS Exit          |                |
-| 4405    | @CMNDI | Execute CMD and Exit       | (Same as 4400) |
-| 4409    | @ERROR | Exit and Display Error     |                |
+| Address |        | Contents                   | Issues          |
+|---------|--------|----------------------------|-----------------|
+| 402D    |        | No Error DOS Exit (44400)  |                 |
+| 4400    | @CMD   | No Error DOS Exit          |                 |
+| 4405    | @CMNDI | Execute CMD and Exit       | (Same as 4400)  |
+| 4409    | @ERROR | Exit and Display Error     |                 |
 | 440D    | @DEBUG | Debug Mode                 | Not Implemented |
 | 4410    | @ADTSK | Add Interrupt Task         | Not Implemented |
 | 4413    | @RMTSK | Remove Interrupt Task      | Not Implemented |
-| 441C    | @FSPEC | Extract File Spec          | todo           |
-| 4420    | @INIT  | Create or Open File        | todo           |
-| 4424    | @OPEN  | Open Existing File         | todo           |
-| 4428    | @CLOSE | Close a File               | todo           |
-| 442C    | @KILL  | Delete an Open File        | todo           |
-| 4430    | @LOAD  | Load Program               |                |
-| 4433    | @RUN   | Load and Run Program       |                |
-| 4436    | @READ  | Read from Disk File        | todo           |
-| 4439    | @WRITE | Write to Disk File         | todo           |
-| 443C    | @VER   | Write and Verify           | (Same as 4339) |
-| 443F    | @REW   | Position File to Start     | todo           |
-| 4442    | @POSN  | Position File              | todo           |
-| 4445    | @BKSP  | Backspace Fle 1 Record     | todo           |
-| 4448    | @PEOF  | Position File to EOF       | todo           |
-| 4467    | @DSPLY | Display a String           |                |
-| 446A    | @PRINT | Print a String             |                |
-| 446D    | @TIME  | Time into (HL) buffer      | todo           |
-| 4470    | @DATE  | Date into (HL) buffer      | todo           |
-| 4473    | @FEXT  | Default Filename extension | todo           |
-| 44      | @      |                            |                |
-| 44      | @      | - tbc -                    |                |
-| 44      | @      |                            |                |
-| 447E    |        | DOS Major Version          |                |
-| 447F    |        | DOS Minor Version          |                | 
+| 441C    | @FSPEC | Extract File Spec          |                 |
+| 4420    | @INIT  | Create or Open File        |                 |
+| 4424    | @OPEN  | Open Existing File         |                 |
+| 4428    | @CLOSE | Close a File               |                 |
+| 442C    | @KILL  | Delete an Open File        |                 |
+| 4430    | @LOAD  | Load Program               |                 |
+| 4433    | @RUN   | Load and Run Program       |                 |
+| 4436    | @READ  | Read from Disk File        |                 |
+| 4439    | @WRITE | Write to Disk File         |                 |
+| 443C    | @VER   | Write and Verify           | (Same as 4339)  |
+| 443F    | @REW   | Position File to Start     |                 |
+| 4442    | @POSN  | Position File              |                 |
+| 4445    | @BKSP  | Backspace Fle 1 Record     |                 |
+| 4448    | @PEOF  | Position File to EOF       |                 |
+| 4467    | @DSPLY | Display a String           |                 |
+| 446A    | @PRINT | Print a String             |                 |
+| 446D    | @TIME  | Time into (HL) buffer      | todo            |
+| 4470    | @DATE  | Date into (HL) buffer      | todo            |
+| 4473    | @FEXT  | Default Filename extension | todo            |
+| 44      | @      |                            |                 |
+| 44      | @      | - tbc -                    |                 |
+| 44      | @      |                            |                 |
+| 447E    |        | DOS Major Version          |                 |
+| 447F    |        | DOS Minor Version          |                 | 
 
 ## Caveats
 
@@ -212,10 +212,12 @@ See the separate Compatibility document for what is and isn't supported.
 # DEV NOTES
 
 ## Todo 
-* FIRMWARE - STAatus command display Paging Info
+* FIRMWARE - STAatus command display Virtual Paging Info
+* FIRMWARE - STAatus command display Heap size remaining
 * FIRMWARE - Reset Signal is not resetting the ROOT folder, left in sub folder.
 
 ### Issues
+* Pico DIR command on directories to  Apple resource extensions e.g. INFO
 * Typing something at command prompt and pressing <BREAK> does weird thing, 
   * Displays an FC error in FreHD Mode
   * Selects Page 225(unused) in the Page/Overlay - Doesnt Exist
@@ -249,23 +251,25 @@ See the separate Compatibility document for what is and isn't supported.
 
 ### DOS Entry Points
 These are only available on PICO enabled systems
-* FSPEC (could be added to Both)
-* InitFile / OpenFile
-* CloseFile
-* ReadFile / WriteFile / Verify
-* Rewind / BackSpace / Skip / EOF
+* Date Time
+* Filename Extension
 
 ### Medium
 * Add a #COPY file.ext:N file.ext:N command
-* Add a KILL basic command, leveraging #DELETE
+* Add a KILL basic statement, leveraging #DELETE
+* Add BASIC FILE IO statements
 * #DIR {optional: wildcard}{optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
-* When Pressing RESET (NMI), ROM drops back to DOS Ready, requires updated ROM.
 
 ### Features
 * Good Keyboard Driver e.g. LDOS, interrupt driven e.g. support typeahead
 * Add ability for search paths when looking for file.
 * Add ability for named directories :1 to :9
-* NewDos 80 #System like command to store configuration
+* NewDos 80 #System like command to store configuration parameters
+* When Pressing RESET (NMI), ROM drops back to DOS Ready, requires updated ROM.
+  * Boot loader cold detect existing install, looking for a clue in $3600
+  * rather than start running in >$5000 it could be located in Virtual RAM? (FreHD?)
+  * Not load the full O/S - Paged Ram doesnt need to be touched.
+  * 
 
 ### Low Priority Commands
 * #HELP command
@@ -274,6 +278,7 @@ These are only available on PICO enabled systems
 * #REBOOT 
 * #Status - display something about the Environment, implies some config to view/modify
 * #Ver - something about the DOS build # Pico Build #
+* #CLOSEALL - to close open file handles
 
 # Other Docs
 

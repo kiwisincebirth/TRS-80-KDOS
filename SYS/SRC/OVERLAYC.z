@@ -25,8 +25,11 @@ import	constants.z
 	; not the comments below indicate the original source code
 	; this is done because we need to trap before tokenisation.
 
+	; todo we should consider an alternate # Dos prompt
+
 	; **** Print the READY message
 	call	CRDONZ		;1a22 - display a carriage return if necessary
+				; todo dont hisnk this always works, issue with detection.
 	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
 	call	STROUT		;1a28 - Display the word “READY”
 

@@ -48,61 +48,33 @@ import	constants.z
 	DB	4	; (4046H) Month counter (binary, 1-12)
 	DW	DOSEND	; (4047H) Utility load address (normally $5200).
 	DW	$FFFF	; (4049H) DOS highest RAM address (MEMEND)
-
-	;  and the memory size is computed by the loop at 4E0F-4E1B.
-        ;  When the highest RAM address is found,
-        ;  the system's detected RAM top pointer.
+			; Updated by init, after L2 MEM Size? Check
 ;
 ; ----------------------------------------------------------------------
-; Below was copied here from Level 2 ROM -> 18F7-1904
-; Normally It is moved here during non-disk initial setup. (0075)
+; Specific Values (to our DOS) that need to be Loaded
+; Previously copied here from Level 2 ROM -> 18F7-1904, by code at $0075
 ; ----------------------------------------------------------------------
-	ORG	$4080
+	ORG	$40A0
 ;
-; Single Point Division Routine (4080 - 408D)
-	sub	0		;4080 (FDIVC) - Note Argument is set into working RAM
-	ld	l,a		;4082
-	ld	a,h		;4083
-	sbc	a,0		;4084 (FDIVB) - Note Argument is set into worikng RAM
-	ld	h,a		;4086
-	ld	a,b		;4087
-	sbc	a,0		;4088 (FDIVA) - Note Argument is set into working RAM
-	ld	b,a		;408A
-	ld	a,0		;408B (FDIVG) - Note Argument is set into working RAM
-	ret			;408D
-; Vector
-	DEFW	FCERR		;408E (USRTAB) - Vector for to USR(0) routine
-; Random Number
-	DEFB	$40, $E6, $4D	;4090 (MULTR) - Random number Multipliers 3x 1byte numbers
-; Input and Output Port Routines
-	in	a,($00)		;4093 (STAINP) - Input Port Routine. Arg Set in RAM
-	ret			;4095
-	out	($00),a		;4096 (OUTWRD) - Output port routine. Arg Set in RAM
-	ret			;4098
-	DEFB	0		;4099 (CHARC) - Inkey $ Storage
-	DEFB	0		;409A (ERRFLG) - current error flag
-	DEFB	0		;409B (LPTPOS) - current tab position
-	DEFB	0		;409C (PRTFLG) - device output flag
-	DEFB	64		;409D (LINLEN) - max chars on video disp line
-	DEFB	48		;409E (CLMLST) - Size of print line
-	DEFB	0		;409F (PARQTD) - Reserved for Model 3
 	DEFW	L2START+$64	;40A0 (STKTOP) - BASIC String Storage Area (was $434C)
 	DEFW	$FFFE		;40A2 (CURLIN) - Current BASIC Line Number
 	DEFW	L2START+1	;40A4 (TXTTAB) - BASIC Program Statement Table (was $41E9)
+	DEFB	0		;40A6 (TTYPOS) - Cursor pos on VDU line. See POS function.
+	DEFW	STRBUFF+3	;40A7 (BUFPNT) - Main command line (KB) Input buffer.
 ;
 ; ----------------------------------------------------------------------
-	ORG	$40A7
-; This loads 40A7H with the I/O buffer location address 41E8H.
-	DEFW	STRBUFF + 3
+; (4152-41A5) DOS BASIC commands
 ;
+; MOST of these are set separately. as part of the loading of each function.
+; As they dont use the supervisor Overlay call mechanism,
+; Instead they are loaded as Direct Paged memory Calls.
 ; ----------------------------------------------------------------------
 	ORG	$4152
-; Fills the RAM locations pointing to all 28 DOS BASIC commands,
-; set them to point to ?L3 ERROR, (4152-41A5)
+;
 	jp	L3ERR		; CVI - $4152
-	jp	L3ERR		; FN  - $4155
+	jp	L3ERR		; FN  - $4155 - Done
 	jp	L3ERR		; CVS - $4158
-	jp	L3ERR		; DEF - $415B
+	jp	L3ERR		; DEF - $415B - Done
 	jp	L3ERR		; CVD - $415E
 	jp	L3ERR		; EOF - $4161
 	jp	L3ERR		; LOC - $4164
@@ -110,31 +82,33 @@ import	constants.z
 	jp	L3ERR		; MKI - $416A
 	jp	L3ERR		; MKS - $417D
 	jp	L3ERR		; MKD - $4170
-	jp	L3ERR		; CMD . $4173
-	jp	L3ERR		; TIME$ $4176
+	jp	L3ERR		; CMD - $4173 - ? User Definable ?
+	jp	L3ERR		; TIME$ $4176 - Done
 	jp	L3ERR		; OPEN  $4179
 	jp	L3ERR		; FIELD $417C
 	jp	L3ERR		; GET - $417F
 	jp	L3ERR		; PUT - $4182
 	jp	L3ERR		; CLOSE $4185
 	SUPERV	S_BASICLOAD	; LOAD  $4188
-	jp	L3ERR		; MERGE $418B
+	jp	L3ERR		; MERGE $418B - todo similar to LOAD
 	jp	L3ERR		; NAME  $418E
 	jp	L3ERR		; KILL  $4191 - todo same as #DELETE
-	jp	L3ERR		; &   - $4194 - done in BASIC overlay
+	jp	L3ERR		; &   - $4194 - Done
 	jp	L3ERR		; LSET  $4197
 	jp	L3ERR		; RSET  $419A
-	jp	L3ERR		; INSTR $419D - done in BASIC overlay
+	jp	L3ERR		; INSTR $419D - Done
 	SUPERV	S_BASICSAVE	; SAVE  $41A0
-	jp	L3ERR		; LINE  $41A3
+	jp	L3ERR		; LINE  $41A3 - Done
 ;
 ; ----------------------------------------------------------------------
+; (41A6-41E2) DOS Exit links
+; ----------------------------------------------------------------------
 	ORG	$41A6
-; Set DOS Exit links (21 exits) to RET instructions (41A6-41E2)
-	RET3		; 41A6
-	RET3		; 41A9
-	jp	READY1  ; 41AC Basic StartUp just before READY> used Once for INIT
-	RET3		; 41AF At start of keyboard input
+;
+	RET3		; 41A6 - Done - Extended Disk Basic Errors
+	RET3		; 41A9 - Done - USR N extended processing
+	jp	READY1  ; 41AC - Command Processor. Just before READY>
+	RET3		; 41AF
 	RET3		; 41B2
 	RET3		; 41B5
 	RET3		; 41B8
@@ -142,26 +116,16 @@ import	constants.z
 	RET3		; 41BE
 	RET3		; 41C1
 	RET3		; 41C4
-	jp	RUNCMD	; 41C7 RUN NNN processing to handle RUN "x.BAS"
+	jp	RUNCMD	; 41C7 - RUN NNN processing to handle RUN "x.BAS"
 	RET3		; 41CA
 	RET3		; 41CD
 	RET3		; 41D0
 	RET3		; 41D3
 	RET3		; 41D6
-	RET3		; 41D9
-	RET3
-	RET3
-	RET3		; 41E2 SYSTEM command (potentially use this)
-;
-; ----------------------------------------------------------------------
-; 41E8 - L2 Basic String Buffer
-; ----------------------------------------------------------------------
-	ORG	STRBUFF
-;
-; Initialises String Buffer Area in RAM (Historically 41E5H)
-	DEFB	':'
-	DEFB	0
-	DEFB	','
+	RET3		; 41D9 - Done - MID$() Does exit for extended use
+	RET3		; 41DC
+	RET3		; 41DF
+	RET3		; 41E2 - SYSTEM command (potentially use this)
 ;
 ; ======================================================================
 ; ======================================================================
@@ -454,7 +418,7 @@ $FREE_CORE1	EQU	SYSFCB - $
 	RET3			; (446D) @TIME todo Get the time "23:59:59" into (HL)
 	RET3			; (4470) @DATE todo Get the date "12/12/99" into (HL)
 	RET3			; (4473) @FEXT todo Insert a default extension into filename in FCB
-	RET3			; (4476) * LDOS JUMPs to 507DH to parse a command list
+	RET3			; (4476) * Ldos and Trsdos have a function defined here
 	nop			; (4479)
 	nop			; (447A)
 	nop			; (447B)
@@ -609,16 +573,49 @@ $FREE_TOTAL	EQU	$FREE_CORE1 + $FREE_CORE2
 ; 5200 - Startup Code is Located Here
 ;
 ; Called by the loader once load complete
-; resumes the Level 2 rom startup after Most of 4000-4200 coms region
-; has been established (loaded) as part of loading this file.
-; so we pick up after this has occured, when memory and stack is inited
+; Resumes the Level 2 rom startup ensuring 4000-4200 coms region
+; is established excluding the code loaded as part of loading this file.
+; This ensure L2 Basic routines are full established.
 ; ======================================================================
+;
 	ORG	STARTUP
 	;
 	di			; initially disable interrupts
 	;
-	ld	hl,L2START	; starting address of user RAM (now $47E8)
-	ld	(hl),0
+; ----------------------------------------------------------------------
+; 0075H-0104H – INITIALIZATION ROUTINE – "INIT2"
+;  This is part of the Level II initialization procedure. It moves
+;  several support routine from 18F7H to 191EH up to 4080H to 40A7H.
+;
+	ld	de,FDIVC	;0075 - Ram location - of Level II BASIC support routines.
+	ld	hl,CONSTR	;0078 - Rom Location - of Level II BASIC support routines.
+	ld  	bc,$21 		;007b - Size of the code block to move
+				; Note in original Code we moved $27 bytes. But addresses
+				; $40A0 - $40A5 (6 bytes) need different values.
+	ldir			;007e - Move the routines into $4040 thru $4060
+;
+;  Initialises String Buffer
+	ld	hl,STRBUFF	;0080 - String Buffer Area in RAM (historically 41E5H)
+	ld	(hl),':'	;0083 - save a colon
+	inc	hl		;0085 - next location
+	ld	(hl),b		;0086 - write a 0, B reg should be zero
+	inc	hl		;0087 - next location
+	ld	(hl),','	;0088 - save a comma
+	inc	hl		;008a - next location
+;
+; This loads 40A7H with the I/O buffer location address 41E8H.
+; NOTE : We directly load this as part of CODE load
+; (40A7H is the I/O buffer pointer and contents be changed to relocate the buffer.)
+;	ld	(BUFPNT),hl	;008b
+;
+; ----------------------------------------------------------------------
+	; Then this code is excluded Since we inited in our Load
+	;008e - 009d - Dos Basic Int to L3 Err
+	;009f - 00a6 - Load the DOS Exits with RET
+; ----------------------------------------------------------------------
+;
+	ld	hl,L2START	;00a8 - starting address of user RAM (now $47E8)
+	ld	(hl),0		;00ab - Zero is basic program terminator
 	;
 	jp	$00AC		; Continue Init in Level 2 with Stack Pointer
 				; and Asking for upper HI MEMORY
@@ -659,6 +656,9 @@ ifndef @D_PICOENHANCED
 	ld	a,1		; indicates running on Advanced Pico
         ld	(enhance_VER+1),a ; Modify Code to flag Advanced Pico
         ;
+else
+	; Noting that if PICO enhanced this flag is implictly TRUE. Detection
+	; does not need to occur, as hardcoded (see enhance_VER) to TRUE
 endif
 	;
 READYX:

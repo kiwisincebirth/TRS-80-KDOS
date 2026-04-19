@@ -26,6 +26,7 @@ OUTDO	EQU	$032A
 INLIN	EQU	$0361
 RESETR	EQU	$06CC
 LINPRT	EQU	$0FAF
+CONSTR	EQU	$18F7	; address of L2 basic Math support routines
 m_REDDY	EQU	$1929	; "READY" Message
 ERROR:	EQU	$19A2	; Display basic error
 READYC	EQU	$1A88	; Continue Normal READY process loop
@@ -68,9 +69,11 @@ TICKCNT	EQU	$4040	; storage location for the RTC master Tick
 XTIME	EQU	$4041	; storage location for the current time and date
 ;
 MEMEND	EQU	$4049	; DOS High Memory
+FDIVC	EQU	$4080	; Subtraction routine used by division code...
 ERRFLG	EQU	$409A	; Current Error Code. See ERR function
 CURLIN	EQU	$40A2	; Current Line Number in a BASIC Program
 TXTTAB	EQU	$40A4
+BUFPNT	EQU	$40A7	; pointer to Keyboard Input buffer
 MEMSIZ	EQU	$40B1	; Basic - MEMORY SIZE ?
 
 AUTFLG	EQU	$40E1	; AUTO on or off flag. 0=AUTO is off.

@@ -169,7 +169,7 @@ pageEnd
 ; DOS ENTRY VECTOR
 ; ------------------------------
 ;
-	ORG	$41a6
+	ORG	$41A6
 	jp	L2ERRORHAND1
 ;
 ; ------------------------------

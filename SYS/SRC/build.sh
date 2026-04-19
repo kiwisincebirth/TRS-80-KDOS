@@ -75,7 +75,7 @@ echo TRS80GP
 open -a trs80gp --args -m1 \
   -frehd -frehd_dir ~/Documents/FreHD \
   -rom ~/GITHUB/TRS-80-ROMS/MDL1REV4.bin \
-  -b 441C -b 452a \
+  -b 441C -b 42e0 -b 4492 \
 
 
 

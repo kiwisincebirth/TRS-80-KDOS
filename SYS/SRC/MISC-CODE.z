@@ -309,3 +309,39 @@ DEF_FCB_BLK:
 	DEFB	$00		; 13 EOF High Order Byte (from file length)
 	DEFW	$FFFF		; 14 15 File Directory Extent
 				; 16-31 File Directory Extent's
+
+
+
+	; Addresses that Are not currently supported
+	;
+	; 444B LDOS @CKEOF - Check EOF
+	; 444B ND80 - Allocate File Space
+	; 444E LDOS @WEOF - Write EOF
+	; 444E ND80 - Position FCB
+	; 4451 LDOS - Reserved
+	; 4451 ND80 - Write EOF
+	; 4454 LDOS @RREAD - Re-Read
+	; 4457 LDOS @RWRITE - Re-Write
+	; 445A LDOS @LOC - Calculate current LRL
+	; 445B ND80 - Power up Drive
+	; 445D LDOS @LOF - Calculate EOF LRL
+	; 445E ND80 - Tst for Diskette
+	; 4460 LDOS @SKIP - Skip next record
+	; 4461 ND80 - Routine Enqueue
+	; 4463 LDOS @DODIR - Display Directory Buffer
+	; 4464 ND80 - Routine Dequeue
+
+
+
+TRSDOS
+4448:   jp	$475f
+;
+4467:   jp	$44cf
+446a:   jp	$44df
+446d:   jp	$4cb7
+4470:   jp	$4cd2
+;
+4473:   ld	a,$d3
+4475:   rst	$0028
+4476:   ld	a,$e3
+4478:   rst	$0028
