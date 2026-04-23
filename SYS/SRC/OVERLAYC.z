@@ -30,8 +30,18 @@ import	constants.z
 	; **** Print the READY message
 	call	CRDONZ		;1a22 - display a carriage return if necessary
 				; todo dont hisnk this always works, issue with detection.
+	;
+	ld	a,($447D)	; check the saved flag for DOS prompt
+	or	a
+	jr	nz,_promptDOS	; if flag is set jp fwd and DOS prompt
+	;
 	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
 	call	STROUT		;1a28 - Display the word “READY”
+	;
+_basicMode
+	xor	a
+	ld	($447D),a	; ensure the DOS flag off
+	;
 
 	; **** Prompt the User
 _MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
@@ -48,7 +58,7 @@ _MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
 	GETCHR			;1a81 - rst 10h
 	inc	a		;1a82 - sets the status flags but saves the carry flag
 	dec	a		;1a83 - so we can test for an end of statement
-	jp	z,_MAIN		;1a84 - if we have an end of (or blank) statement
+	jp	z,_promptDOS	;1a84 - if we have an end of (or blank) statement
 	push	af		;1a87 - save for latter -> 1A9D if jumping back to ROM code
 
 	; now we need to detect the "#" symbol, and if found process locally.
@@ -63,6 +73,25 @@ _MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
 ; ----------------------------------------------------------------------
 
 	pop	af		; pop AF fom above as not using it
+	jr	_processDos
+
+_promptDOS
+	ld	a,CMD_PROMPT_CHR ; # prompt
+	call	OUTDO		; Display the # Prompt
+	;
+	; **** Get User Command
+	call	INLIN		; Actually read a Line of input
+
+	jr	c,_promptdos	; loop back if BREAK pressed
+
+	GETCHR			;
+	cp	0		; test for an end of statement
+	jr	z,_basicMode	; if terminator then back to BASIC mode
+	dec	hl		; need to back track the char just read
+
+_processDos
+	ld	a,1
+	ld	($447D),a	; ensure the the DOS flag is set ON
 
 	; hl has pointer to the command buffer noting this is a l2 BASIC (-1) pointer.
 	; which is currently the '#' character
@@ -80,6 +109,10 @@ _LOOK1
 	ld	b,a		; save lookup char for compare
 	;
 	RST	10h		; consume the next command char (A)
+
+	cp	0		; was it a terminator, meaning just typefd a '#'
+	jr	z,_promptDOS	; loop back
+
 	cp	'a'		; lower case check
 	jr	c,_LOOKU	; if less than `a` then skip
 	sub	$20		; make lower case into uppercase

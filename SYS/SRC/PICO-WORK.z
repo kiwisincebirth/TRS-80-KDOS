@@ -116,6 +116,11 @@ _getadr:
 ;;; Interrupt Service Routine
 ;;;
 _isr_service
+	;
+	push	hl
+	push	de
+	push	bc		; Main Interrupt Handler
+	;
 	ld	hl,TICKCNT	; timer tick
 	inc	(hl)		; increment the timer tick
 	;
@@ -125,6 +130,10 @@ _isr_service
 	ld	(hl),40		; countdown from 40
 	;
 	call	_trs80_time	; update the time
+	;
+	pop	bc
+	pop	de
+	pop	hl
 	;
 	ret
 _counter

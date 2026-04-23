@@ -11,14 +11,11 @@
 ;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
 ;
-import	constants.z
-;
 ; ======================================================================
 ; Level 2 Communication Region (4000h - 4200h)
 ; ======================================================================
 ;
 	ORG	$400C
-	; todo investigate this vector as some docs state use as BREAK Key
 	jp	SUPER_EXEC	; (400C) RST 28H Supervisor Call Dispatcher;
 ;	ORG	$400F		; (400F) RST 30h (DOS DEBUG entry point) Vector.
 ;
@@ -40,6 +37,7 @@ import	constants.z
 
 	ORG	TICKCNT
 	DB	0	; (4040H) Timer Tick
+	; todo the following should not be overridden on warm start
 	DB	59	; (4041H) Seconds counter (binary, 0-59) XTIME
 	DB	59	; (4042H) Minutes counter (binary, 0-59)
 	DB	11	; (4043H) Hours counter (binary, 0-23)
@@ -239,7 +237,7 @@ frehd_OPEN:
 	out	(COMMAND2),a	; send command to frehd
 	;
 	ld	a,$FF		; Set as though we have just read last (255) byte
-	ld	(BYTEC),a	; so next readbyte will force a read of 256 bytes
+	ld	(FHDBYTE),a	; so next readbyte will force a read of 256 bytes
 	;
 	; call	frehd_WAIT	; ignore result
 	;
@@ -266,7 +264,7 @@ frehd_CLOSE:
 frehd_READ:
 	xor	a		; request 256 bytes from FreHD File
 	out	(SIZE2),a	; Set the FreHD Size register
-	ld	(BYTEC),a	; reset the byte counter, 0 bytes used
+	ld	(FHDBYTE),a	; reset the byte counter, 0 bytes used
 	;
 	ld	a,READFILE	; command
 	out	(COMMAND2),a	; send command
@@ -278,7 +276,7 @@ frehd_READ:
 ; Note Only Used by Basic and Loader, not by Sys0 itself. - consider movng
 frehd_READBYTE:
 	push	hl
-	ld	hl,BYTEC
+	ld	hl,FHDBYTE	; byte counter
 	inc	(hl)		; we are reading next byte, byte counter++
 	pop	hl
 	jr	nz,read2	; skip over BLOCK read if not required
@@ -290,8 +288,8 @@ read2:
 	in	a,(DATA2)	; get a byte from FreHD, leaving flags alone
 	ret
 ;
-BYTEC	DEFB	0		; num bytes before need another READ
-				; used by Read Block handler
+;BYTEC	DEFB	0		; num bytes before need another READ
+;				; used by Read Block handler
 ;
 ; wait until the interface is ready
 ; return
@@ -337,6 +335,7 @@ INTERRUP_SR:
 	ld	a,($37e0) 	; clear the RTC interrupt latch
 	rlca			; mve bit 7 into the CARRY regster
 	jr	nc,INTERRUP_EXIT ; If NO timer interrupt, skip
+;
 ifdef @D_PICOENHANCED
 	push	hl
 	push	de
@@ -346,6 +345,7 @@ ifdef @D_PICOENHANCED
 	pop	de
 	pop	hl
 else
+;
 	; SIMPLE Interrupt Handler
 	push	hl
 	ld	hl,TICKCNT	; timer tick
@@ -424,9 +424,8 @@ $FREE_CORE1	EQU	SYSFCB - $
 	nop			; (447B)
 	nop			; (447C)
 	nop			; (447D)
-FREHDVER:
-	nop			; (447E) FREHD Major Version, inited at startup
-	nop			; (447F) FREHD Minor Version, inited at startup
+	nop			; (447E)
+	nop			; (447F)
 ;
 	assert	$ == CORE2
 ;
@@ -452,6 +451,10 @@ FREHDVER:
 ; Supervisor Execution based on RST Vector
 ;
 SUPER_EXEC:
+	;
+	cp	BREAK_SUPERID	; we will get an 01 if BREAK key pressed during KB input.
+	ret	z		; this short circuits and returns to the KB routine.
+	;
 	inc	sp		; discard the RST 28 return address
 	inc	sp
 	;
@@ -492,7 +495,8 @@ else
 	;
 	; check for existing overlay, and skip if loaded
 	and	$1F		; mask the sup call id - lower 5 bits
-	add	'@'		; make it ascii 'A-Z'
+	add	SUP_OFF		; make it ascii 'A-Z'
+	;
 	ld	hl,OVRCURR	; pointer to the overlay number in file name
 	cp	a,(hl)		; compare with current number
 	jr	z,SUPER_EXEC2	; if already loaded then skip load
@@ -569,150 +573,3 @@ $FREE_CORE2	EQU	CORE2END - $
 ;
 $FREE_TOTAL	EQU	$FREE_CORE1 + $FREE_CORE2
 
-; ======================================================================
-; 5200 - Startup Code is Located Here
-;
-; Called by the loader once load complete
-; Resumes the Level 2 rom startup ensuring 4000-4200 coms region
-; is established excluding the code loaded as part of loading this file.
-; This ensure L2 Basic routines are full established.
-; ======================================================================
-;
-	ORG	STARTUP
-	;
-	di			; initially disable interrupts
-	;
-; ----------------------------------------------------------------------
-; 0075H-0104H – INITIALIZATION ROUTINE – "INIT2"
-;  This is part of the Level II initialization procedure. It moves
-;  several support routine from 18F7H to 191EH up to 4080H to 40A7H.
-;
-	ld	de,FDIVC	;0075 - Ram location - of Level II BASIC support routines.
-	ld	hl,CONSTR	;0078 - Rom Location - of Level II BASIC support routines.
-	ld  	bc,$21 		;007b - Size of the code block to move
-				; Note in original Code we moved $27 bytes. But addresses
-				; $40A0 - $40A5 (6 bytes) need different values.
-	ldir			;007e - Move the routines into $4040 thru $4060
-;
-;  Initialises String Buffer
-	ld	hl,STRBUFF	;0080 - String Buffer Area in RAM (historically 41E5H)
-	ld	(hl),':'	;0083 - save a colon
-	inc	hl		;0085 - next location
-	ld	(hl),b		;0086 - write a 0, B reg should be zero
-	inc	hl		;0087 - next location
-	ld	(hl),','	;0088 - save a comma
-	inc	hl		;008a - next location
-;
-; This loads 40A7H with the I/O buffer location address 41E8H.
-; NOTE : We directly load this as part of CODE load
-; (40A7H is the I/O buffer pointer and contents be changed to relocate the buffer.)
-;	ld	(BUFPNT),hl	;008b
-;
-; ----------------------------------------------------------------------
-	; Then this code is excluded Since we inited in our Load
-	;008e - 009d - Dos Basic Int to L3 Err
-	;009f - 00a6 - Load the DOS Exits with RET
-; ----------------------------------------------------------------------
-;
-	ld	hl,L2START	;00a8 - starting address of user RAM (now $47E8)
-	ld	(hl),0		;00ab - Zero is basic program terminator
-	;
-	jp	$00AC		; Continue Init in Level 2 with Stack Pointer
-				; and Asking for upper HI MEMORY
-;
-; ======================================================================
-; Then after L2 Basic has done some additional startup it hits the "READY"
-; DOS exit which is redirected to the following.
-;
-; Continuation of DOS Initialisation After basic has completed
-; Called Just Before the Ready> Prompt is displayed, first time ONLY
-; ======================================================================
-READY1:
-	;
-	ld	hl,(MEMSIZ)	; Get the Basic MEMORY SIZE? amount
-	ld	(MEMEND),hl	; Save in DOS High Memory pointer
-	;
-ifndef @D_PICOENHANCED
-	;
-	; When booting User can hold Clear Key, which disables Paged
-	; memory, revers to standard Overlays (larger memory footprint)
-	; Then we need to detect if running on enhanced hardware
-	; so can set the enhanced_VER flag, even though not paged
-	;
-	ld	a,GETVER	; version information from FreHD
-	out	(COMMAND2),a
-	call	frehd_WAIT	; ignoring result
-	;
-	ld	hl,FREHDVER 	; major and minor versions $447E
-	ld	bc, $200+DATA2	; 2 bytes from version
-	inir			; store the version
-	;
-	in	d,(c)		; first half of version stamp - byte 3
-	in	a,(c)		; second half of version stamp - byte 4
-	xor	d		; xor them together -> $FF if Advanced Pico
-	inc	a		; Advanced = 0
-	jr	nz,READYX	; not 0 means not Advanced Pico, skip update
-	;
-	ld	a,1		; indicates running on Advanced Pico
-        ld	(enhance_VER+1),a ; Modify Code to flag Advanced Pico
-        ;
-else
-	; Noting that if PICO enhanced this flag is implictly TRUE. Detection
-	; does not need to occur, as hardcoded (see enhance_VER) to TRUE
-endif
-	;
-READYX:
-	ld	hl,WELCOMSG	; Free Bytes Message
-	call	STROUT		; print the message
-	;
-	; update the DOS exit to the normal command processor
-	; this sets the Dos exit back to the DOS command processor
-	;
-	ld	hl,PRGFIN + 1		; Address of DOS Exit for READY Prompt
-	ld	(hl),NEWREADY & $FF	; store LSB of NEW READY into DOS vecor
-	inc	hl
- 	ld	(hl),NEWREADY / $100	; store MSB of NEW READY into DOS vecor
-	;
-	im	1		; interrupts via $0038->$4012
-	ei			; enable interrupts
-	;
-	; then jump to the (new) READY prompt
-	;
-	jp	NEWREADY	; jump to the normal ready processor
-	;
-;
-WELCOMSG	DEFB	'kDOS Loaded',CR,0
-
-; TRSDOS 2.3
-
-; The code from 4E20-4E55 initializes the device address table (43B8-43BF) and the device mnemonic table (43C0-43CC).
-;   These tables are used by the DEVICE command to report the device configuration and the driver addresses for all devices listed in the table.
-; Starting at 4E20, the address of the replacement keyboard driver (43D8 - 43FB) replaces the address of the ROM driver in the keyboard DCB,
-;   as well as being stored in both device tables. Next, the keyboard RAM buffer address is saved in the device driver table.
-; Continuing at 4E2F, the video driver address and the video RAM buffer are both copied to the device tables.
-;   Next, the printer driver address and its buffer address are copied to the device tables.
-;   Finally, the list of driver and buffer addresses is terminated with a zero byte.
-; Beginning at 4E57, the keyboard DCB is copied to 4358 - 435F, then a loop is executed which zeros the 8 bytes after the DCB.
-; Starting at 4E79, 4015 (the first byte of the keyboard DCB) is set to zero, and the interrupt mask control byte is zeroed.
-;   Zeroing the interrupt mask byte will cause any interrupts which might slip in (very unlikely since interrupts are inhibited) to be discarded.
-; Continuing at 4E81, a JP 4518 instruction is synthesized and stored into 4012.
-;   This replaces a DI/RET sequence placed there by the LEVEL II ROM code prior to the loading of the nucleus.
-;   This causes control to pass to 4518 when an interrupt is recieved.
-;   Next, the address of the clock interrupt routine (4560), and the disk interrupt routine 45F7 are stored in the interrupt scan list at 405B and 4059, respectively.
-; Following that, the interrupt mask control byte at 404C is updated to indicate interrupt routines exist for both clock and disk interrupts.
-; At 4E9F, the DEBUG control byte is initialized to a positive value (DEBUG not active),
-;   and 45AF (address of the clock maintenance code) is stored in the interrupt task list by calling a system service routine at 4410.
-;   The maintenance routine will be executed evey 200 milliseconds under the control of the interrupt processor.
-;   It updates the binary clock values maintained in 4041 - 4043; however, the clock value will only be displayed if the CLOCK ON command is executed.
-; Upon return, the message 'TRSDOS 2.3 .... 'is displayed by the loop from 4EAF - 4EB8.
-; This code is followed by a call to scan the keyboard. If the carriage return key is active, the AUTO procedure test is skipped,
-;   and control passes immediately to 4400, where a call to load and execute SYSl is performed.
-;   If the carriage return key is not active, the code at 4EC2 -4ECB is executed to read sector 1 of track 11 into the buffer at 4200.
-;   If an error occurs during the read, control goes to 4409, where SYS4 is called to display an error message.
-; Assuming no read error, the buffer is examined to determine if an AUTO procedure has been defined.
-; A carriage return at 42EO (the EO'th byte of the sector) means no AUTO procedure file exists.
-;   In this case also, control passes to 4400, which causes SYSl (the command line processor) to be loaded and executed.
-; If 42E0 does not contain a carriage return, it is assumed to hold a 20-character command to be executed.
-;   This command is copied to the commmand line buffer by the code at 4ED9 - 4EE2, displayed on the video, and then SYSl is called to process the command.
-;
-; ======================================================================

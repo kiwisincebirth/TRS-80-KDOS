@@ -49,7 +49,20 @@ RELOADED:
 ; Now we need to
 ; ----------------------------------------------------------------------
 START:
+	; Detection of warm start
+	ld	hl,KBROWCLR	; location of saved value
+	ld	a,(14400)	; CLEAR Keyboard Row value
+	;
+	;ld	b,(hl)		; get saved val from last boot.
+	;cp	b		; compare values
+	;jp	z,$402D		; Currently Disabled, as $4000 - 405C wipd out
+	;
+	ld	(hl),a		; not warm boot remember it for next time.
+	;
 	; Detection of Advancded PICO hardware
+	;
+	; Potentially simplify this code, just read and check STATUS bit,
+	; or new File-Id register (write read back), or a new command
 	;
 	ld	a,GETVER	; version information from FreHD
 	out	(COMMAND2),a
@@ -69,6 +82,7 @@ START:
 	;
 	jr	nz,START1	; NZ If NOT Advanced Pico, skip over
 	;
+	; CLEAR KEY - Detection.
 	ld	a,(14400)	; CLEAR Keyboard Row
 	and	2		; CLEAR KEY Pressed
 	jr	NZ, START1	; Then Use Traditional, not Paged
@@ -198,7 +212,9 @@ fhdwait1:
 	; The file name is located on a 16 byte page boundary,
 	; after all code to make it easy to change in C code
 	; FILL to end of REGION
-	DC	BOOTSYSLOC + $E0 - $,0
+	FREE_BOOT	EQU	BOOTSYSLOC + $E0 - $
+	assert	$ <= BOOTSYSLOC + $E0
+	DC	FREE_BOOT,0
 ; ----------------------------------------------------------------------
 ;
 	assert $ = BOOTSYSLOC + $E0

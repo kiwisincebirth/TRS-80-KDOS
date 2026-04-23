@@ -117,14 +117,17 @@ PROCESSDIR:
 	and     AM_DIR		; if directory - todo for frehd exclude these
 	jr   	z,PROCESS2      ; No So skip down
 	;
-	ld	de,BUFFER+24	; Mark a DIR name with leading ">"
+	call	enh_VER		; call the Enhanced Pico check
+	ret	z		; non enhanced, so skip directory altogether
+
+	ld	de,BUFFER+24	; Mark a DIR name with leading CHAR
 	push	de		; move to
 	pop	hl
 	dec	hl		; move from HL
 	ld	bc,15		; 15 chars
 	lddr			; move right
 	ex	de,hl
-	ld	(hl),128+1+4	; and place leading character
+	ld	(hl),128+1+4	; and place leading character (|) left 2 graphic blocks
 	;
 PROCESS2
 	ld      hl,BUFFER+25    ; ETX at the end to make printing easy

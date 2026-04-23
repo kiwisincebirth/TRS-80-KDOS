@@ -4,7 +4,7 @@
 ;
 
 ; The character used on the command prompt
-CMD_PROMPT_CHR	EQU	'#'
+CMD_PROMPT_CHR	EQU	':'
 
 ;
 ; ----------------------------------------------------------------------
@@ -59,15 +59,12 @@ GETCHR	macro
 SCR_LOADOADER	EQU PICOSCRATCH + 0	; entry point for Standalone Binary Loader
 SCR_INT_SERV	EQU PICOSCRATCH + 3	; entry point for Interrupt Service
 ;
-;
 ; Level 2 Basic Communications region
-;
 ;
 @EXIT	EQU	$402D	; Exit program normally return to DOS
 @ABORT	EQU	$4030	; Abort program DONT display error message, dont continue JCL
 TICKCNT	EQU	$4040	; storage location for the RTC master Tick
 XTIME	EQU	$4041	; storage location for the current time and date
-;
 MEMEND	EQU	$4049	; DOS High Memory
 FDIVC	EQU	$4080	; Subtraction routine used by division code...
 ERRFLG	EQU	$409A	; Current Error Code. See ERR function
@@ -75,11 +72,16 @@ CURLIN	EQU	$40A2	; Current Line Number in a BASIC Program
 TXTTAB	EQU	$40A4
 BUFPNT	EQU	$40A7	; pointer to Keyboard Input buffer
 MEMSIZ	EQU	$40B1	; Basic - MEMORY SIZE ?
-
 AUTFLG	EQU	$40E1	; AUTO on or off flag. 0=AUTO is off.
+ERRLIN	EQU	$40EA	; Line no. In which error occurred
 VARTAB	EQU	$40F9
 PRGFIN	EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
-ERRLIN	EQU	$40EA	; Line no. In which error occurred
+;
+; KDOS specific data held at these Hi locations (41E5-41F7)
+;
+KBROWCLR EQU	$41E5	; State of Clear KB Row at boot.
+FHDBYTE	 EQU	$41E6	; FHD byte counter - num bytes before full READ
+FREHDVER EQU	$41F5	; 2 bytes Fre HD Version number
 ;
 ; DOS Entry Points Routines
 ;
@@ -106,19 +108,19 @@ fhd_READBYTE	equ	(4*3) + $4480
 fhd_WAIT	equ	(5*3) + $4480
 ;
 ; ======================================================================
+; MAIN MEMORY MAP - LAYOUT
 ; Memory Locations for Regions
-; ----------------------------------------------------------------------
+; ======================================================================
 ;
 PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
 PICOSCRDUSR	EQU	$37C8		; Holds Def USR 0-9 jump Addresses 20 bytes
 					; 37E0 - 37EF Gap Here
 PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
 ;
-STRBUFF		EQU	$41E8		; L2 Basic String Buffer
-					; L2 Basic Starts Buffer from 41E5H
+STRBUFF		EQU	$41F8		; L2 Basic String Buffer (formally 41E5H)
 					; L2 Basic Assigns $103 bytes to this buffer
 ;
-CORE1		EQU	$42E0		; DOS Core Resident Code Block
+CORE1		EQU	$4300		; DOS Core Resident Code Block
 SYSFCB  	EQU	$43E0		; DOS System FCB BUFFER
 DOSENTY 	EQU	$4400		; TRS-DOS Entry Points
 CORE2		EQU	$4480		; Second Core Resident Code Block
@@ -145,38 +147,43 @@ STARTUP		EQU	$5400		; Startup Code Block is loaded here
 ; Noting the A translates to an ID of $xxx00001
 ; ----------------------------------------------------------------------
 ;
-S_BASICLOAD	EQU	'B' - '@' + $20	; LOAD basic command
-S_BASICSAVE	EQU	'B' - '@' + $40	; SAVE basic command
-S_BASICRUN	EQU	'B' - '@' + $80	; RUN  basic command
+; for the time being avoid Overlay A as it conflict with BREAK KEY
+BREAK_SUPERID	EQU	$01	; passed by L2 when Break Key pressed
 ;
-S_CMDPROC	EQU	'C' - '@' 	; Command Interpreter READY>
-S_DIRCMD	EQU	'D' - '@'	; #DIR command
-S_ERRHAND	EQU	'E' - '@'	; (4409) DOS Error Handler
+SUP_OFF		EQU	'@'			; Offset ID -> Ascii translation
 ;
-S_FILESPEC	EQU	'F' - '@' + $20	; (441C) @FSPEC API Function
-S_INITFILE	EQU	'F' - '@' + $40	; (4420) @INIT API Function
-S_OPENFILE	EQU	'F' - '@' + $60	; (4424) @OPEN API Function
-S_CLOSEFILE	EQU	'F' - '@' + $80	; (4428) @CLOSE API Function
-S_KILLFILE	EQU	'F' - '@' + $A0	; (4428) @KILL API Function
+S_BASICLOAD	EQU	'B' - SUP_OFF + $20	; LOAD basic command
+S_BASICSAVE	EQU	'B' - SUP_OFF + $40	; SAVE basic command
+S_BASICRUN	EQU	'B' - SUP_OFF + $80	; RUN  basic command
 ;
-S_READFILE	EQU	'G' - '@' + $20	; (4436) @READ API Function
-S_WRITEFILE	EQU	'G' - '@' + $40	; (4439) @WRITE API Function
-S_VERIFYFILE	EQU	'G' - '@' + $60	; (443C) @VER API Function
-S_REWFILE	EQU	'G' - '@' + $80	; (443F) @REW API Function
-S_POSNFILE	EQU	'G' - '@' + $A0	; (4442) @POSN API Function
-S_BKSPFILE	EQU	'G' - '@' + $C0	; (4445) @BKSP API Function
-S_PEOFFILE	EQU	'G' - '@' + $E0	; (4448) @PEOF API Function
+S_CMDPROC	EQU	'C' - SUP_OFF 		; Command Interpreter READY>
+S_DIRCMD	EQU	'D' - SUP_OFF		; #DIR command
+S_ERRHAND	EQU	'E' - SUP_OFF		; (4409) DOS Error Handler
 ;
-S_LOADFILE	EQU	'L' - '@' + $20	; (4430) @LOAD DOS Function
-S_RUNFILE	EQU	'L' - '@' + $40	; (4433) @RUN  DOS Function
-S_LOADCMD	EQU	'L' - '@' + $A0	; #LOAD command
+S_FILESPEC	EQU	'F' - SUP_OFF + $20	; (441C) @FSPEC API Function
+S_INITFILE	EQU	'F' - SUP_OFF + $40	; (4420) @INIT API Function
+S_OPENFILE	EQU	'F' - SUP_OFF + $60	; (4424) @OPEN API Function
+S_CLOSEFILE	EQU	'F' - SUP_OFF + $80	; (4428) @CLOSE API Function
+S_KILLFILE	EQU	'F' - SUP_OFF + $A0	; (4428) @KILL API Function
 ;
-S_CDCMD		EQU	'O' - '@' + $20	; #CD command
-S_COPYCMD	EQU	'O' - '@' + $40	; #COPY #CP command
-S_DELCMD	EQU	'O' - '@' + $60	; #DEL #DELETE #KILL #RM command
-S_MDCMD		EQU	'O' - '@' + $80	; #MKDIR command
-S_RENCMD	EQU	'O' - '@' + $A0	; #REN #RENAME #MV #MOVE command
-S_PWDCMD	EQU	'O' - '@' + $C0	; #PWD command
+S_READFILE	EQU	'G' - SUP_OFF + $20	; (4436) @READ API Function
+S_WRITEFILE	EQU	'G' - SUP_OFF + $40	; (4439) @WRITE API Function
+S_VERIFYFILE	EQU	'G' - SUP_OFF + $60	; (443C) @VER API Function
+S_REWFILE	EQU	'G' - SUP_OFF + $80	; (443F) @REW API Function
+S_POSNFILE	EQU	'G' - SUP_OFF + $A0	; (4442) @POSN API Function
+S_BKSPFILE	EQU	'G' - SUP_OFF + $C0	; (4445) @BKSP API Function
+S_PEOFFILE	EQU	'G' - SUP_OFF + $E0	; (4448) @PEOF API Function
+;
+S_LOADFILE	EQU	'L' - SUP_OFF + $20	; (4430) @LOAD DOS Function
+S_RUNFILE	EQU	'L' - SUP_OFF + $40	; (4433) @RUN  DOS Function
+S_LOADCMD	EQU	'L' - SUP_OFF + $A0	; #LOAD command
+;
+S_CDCMD		EQU	'O' - SUP_OFF + $20	; #CD command
+S_COPYCMD	EQU	'O' - SUP_OFF + $40	; #COPY #CP command
+S_DELCMD	EQU	'O' - SUP_OFF + $60	; #DEL #DELETE #KILL #RM command
+S_MDCMD		EQU	'O' - SUP_OFF + $80	; #MKDIR command
+S_RENCMD	EQU	'O' - SUP_OFF + $A0	; #REN #RENAME #MV #MOVE command
+S_PWDCMD	EQU	'O' - SUP_OFF + $C0	; #PWD command
 ;
 SUPERV 	macro	p1
 	ld	a,p1	; load supervisor id

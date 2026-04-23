@@ -205,9 +205,11 @@ This is a work in progress not all features are implemented at this time.
 See the separate Compatibility document for what is and isn't supported.
 
 ### FreHD solution
-* Only provides a small sub set of functions as he frehd firmware has not been evolved.
-* Consumes more RAM (512KB) for overlays as doesnt have paged memory.
-* Doesnt support Disk Basic functions.
+* Only provides a small sub set of functions (frehd limited firmware)
+* Consumes 512 bytes more RAM for overlays (no paged ram)
+* file management, and sub-Directories are not supported
+* Many DOS API's (support File IO) are not supported
+* Doesn't support Disk Basic extensions.
 
 # DEV NOTES
 
@@ -217,19 +219,17 @@ See the separate Compatibility document for what is and isn't supported.
 * FIRMWARE - Reset Signal is not resetting the ROOT folder, left in sub folder.
 
 ### Issues
-* Pico DIR command on directories to  Apple resource extensions e.g. INFO
-* Typing something at command prompt and pressing <BREAK> does weird thing, 
-  * Displays an FC error in FreHD Mode
-  * Selects Page 225(unused) in the Page/Overlay - Doesnt Exist
-  * weeird openFile(+Memory Size messages in Pico CLI
-* Pressing BREAK during basic program does not stop the program
-  * Pico - Doest stop the program
-  * FreHD - drops on FC Error
 
 ### Improvement
 * Improve the code addition of .CMD to a filename when executing from CMD processor.
   * When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
-* FreHD DIR should not display directories, since there is no #CD command.
+* Full reboot should not wipe out Clock, needs secondary storage.
+  * maybe keep copy in pico ram, and somehow make copy one a minute
+  * on Startup copy correct values, from Pico ram
+  * existing SYS 0 static defines should be removed
+  * code that updates time could be moved into virtual RAM page
+  * backup data could also be in virtual page.
+  * or implement  more comprehensive TIME api in PICO
 
 ### Improvement - Error handling
 * #RM BASIC - removing a directory (not empty) produced "FF Error 7" Access denied due to prohibited
@@ -246,11 +246,10 @@ See the separate Compatibility document for what is and isn't supported.
 * Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
 
 ### High Priority
-* Add a COMMAND # just (#) which drops to # prompt, enter returns
-  * Should re reentrant, so remember its state (held in $4200 RAM)
+Disk Basic FILO IO Functions
 
 ### DOS Entry Points
-These are only available on PICO enabled systems
+Need to add these
 * Date Time
 * Filename Extension
 
@@ -265,9 +264,11 @@ These are only available on PICO enabled systems
 * Add ability for search paths when looking for file.
 * Add ability for named directories :1 to :9
 * NewDos 80 #System like command to store configuration parameters
-* When Pressing RESET (NMI), ROM drops back to DOS Ready, requires updated ROM.
-  * Boot loader cold detect existing install, looking for a clue in $3600
-  * rather than start running in >$5000 it could be located in Virtual RAM? (FreHD?)
+* When Pressing RESET (NMI), ROM drops back to DOS Ready, 
+  * Probably requires updated ROM, since cold start immediately overites $4000 - $405D
+  * these addresses contan the clock and 402d dos reentry.
+  * Updated Rom could check for Flag and drop to 402D
+  * Boot loader cold detect existing install, look for BYTE in (KBROWCLR EQU $41E5)
   * Not load the full O/S - Paged Ram doesnt need to be touched.
   * 
 
