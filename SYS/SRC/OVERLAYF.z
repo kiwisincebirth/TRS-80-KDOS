@@ -24,7 +24,10 @@ import	constants.z
 	; First Test Normal
 	;
 	cp	S_FILESPEC	; (441C) @FSPEC API Function
-	jp	z,_513d
+	jp	z,_fspec
+	;
+	cp	S_FILEEXTNT	; (4473) @FEXT API Function
+	jp	z,_fext
 	;
 	; ENHANCED
 	;
@@ -57,6 +60,61 @@ _ILLEGAL
 ;
 ; ======================================================================
 ;
+; @FEXT API Function (4473)
+;
+; DE -> Pointer to FCB 32 byte Buffer.
+; HL -> Pointer to default extension, 3 chars
+; BC is destroyed
+; DE <- Unchanged, pointer to FCB
+; HL <- Unchanged
+
+; below is copied from trs dos SYS 01
+; https://www.trs-80.com/sub-disassem-dos-td23-sys-1.htm
+
+_fext
+	push	de                   ; 4fc0:
+	push	hl                   ; 4fc1:
+	ex	de,hl                ; 4fc2:
+	inc	hl                   ; 4fc3:
+	ld	b,$09                ; 4fc4:
+_4fc6:
+	ld	a,(hl)               ; 4fc6:
+	cp	$2f                  ; 4fc7:
+	jr	z,_4fd8              ; 4fc9:
+	jr	c,_4fdb              ; 4fcb:
+	cp	$3a                  ; 4fcd:
+	jr	c,_4fd5              ; 4fcf:
+	cp	$41                  ; 4fd1:
+	jr	c,_4fdb              ; 4fd3:
+_4fd5:
+	inc	hl                   ; 4fd5:
+	djnz	_4fc6                ; 4fd6:
+_4fd8:
+	pop	hl                   ; 4fd8:
+	pop	de                   ; 4fd9:
+	ret                          ; 4fda:
+_4fdb:
+	ld	bc,$000f             ; 4fdb:
+	add	hl,bc                ; 4fde:
+	ld	d,h                  ; 4fdf:
+	ld	e,l                  ; 4fe0:
+	inc	de                   ; 4fe1:
+	inc	de                   ; 4fe2:
+	inc	de                   ; 4fe3:
+	inc	de                   ; 4fe4:
+	inc	bc                   ; 4fe5:
+	lddr                         ; 4fe6:
+	pop	hl                   ; 4fe8:
+	inc	hl                   ; 4fe9:
+	inc	hl                   ; 4fea:
+	ld	c,$03                ; 4feb:
+	lddr                         ; 4fed:
+	ld	a,$2f                ; 4fef:
+	ld	(de),a               ; 4ff1:
+	pop	de                   ; 4ff2:
+	ret                          ; 4ff3:
+
+;
 ; @FSPEC API Function (441C)
 ;
 ; DE -> Pointer to FCB 32 byte Buffer.
@@ -70,7 +128,7 @@ _ILLEGAL
 ; below is copied from newdos 80 SYS 01 command parser
 ; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm#513DH
 ;
-_513d
+_fspec
 	call	_5150           ; 513d:
 	push	af              ; 5140:
 	ld	a,(hl)          ; 5141:

@@ -25,13 +25,12 @@ import	constants.z
 	; not the comments below indicate the original source code
 	; this is done because we need to trap before tokenisation.
 
-	; todo we should consider an alternate # Dos prompt
-
 	; **** Print the READY message
 	call	CRDONZ		;1a22 - display a carriage return if necessary
-				; todo dont hisnk this always works, issue with detection.
+				; todo dont think this always works,
+				; todo issue with detection based on column
 	;
-	ld	a,($447D)	; check the saved flag for DOS prompt
+	ld	a,($447D)	; check the saved flag for DOS prompt todo 447d hardcoded needs fixing.
 	or	a
 	jr	nz,_promptDOS	; if flag is set jp fwd and DOS prompt
 	;
@@ -91,7 +90,7 @@ _promptDOS
 
 _processDos
 	ld	a,1
-	ld	($447D),a	; ensure the the DOS flag is set ON
+	ld	($447D),a	; ensure the the DOS flag is set ON todo replace with constant
 
 	; hl has pointer to the command buffer noting this is a l2 BASIC (-1) pointer.
 	; which is currently the '#' character
@@ -110,8 +109,8 @@ _LOOK1
 	;
 	RST	10h		; consume the next command char (A)
 
-	cp	0		; was it a terminator, meaning just typefd a '#'
-	jr	z,_promptDOS	; loop back
+	cp	0		; was next command char a terminator
+	jr	z,_LOOK2	; we havent matched a cmd in our lookup tabe
 
 	cp	'a'		; lower case check
 	jr	c,_LOOKU	; if less than `a` then skip
@@ -126,7 +125,7 @@ _LOOK2:
 	or	a		; checking the byte for 0 terminator
 	jr	nz,_LOOK2	; not zero, keep skipping
 	; skipped to 0 terminator
-	inc	de		; then skip past the 3 byte commnad
+	inc	de		; then skip past the 3 byte command
 	inc	de		;
 	inc	de		;
 	ld	a,(de)		; examine table Char after the address
@@ -192,6 +191,7 @@ SAVBUFF
 	;
 LOOKUPTAB
 	; internal command lookup table, with three byte instruction
+	; Ordering is important! Longer names "DIR" should appear before shorter "DI"
 	DB	'CD',0
 	SUPERV	S_CDCMD
 	;
@@ -209,6 +209,12 @@ LOOKUPTAB
 	;
 	DB	'DIR',0
 	SUPERV	S_DIRCMD
+	;
+	DB	'DI',0
+	JP	_int_disable
+	;
+	DB	'EI',0
+	JP	_int_enable
 	;
 	DB	'KILL',0
 	SUPERV	S_DELCMD
@@ -245,7 +251,7 @@ LOOKUPTAB
 ;
 ; ----------------------------------------------------------------------
 ;
-; Purspose pass a command string in the form
+; Purpose pass a command string in the form
 ; below WAS ADAPTED (simplified) from newdos 80 SYS 01 command parser
 ; https://www.trs-80.com/sub-disassem-dos-nd80-m1-sys01.htm#513DH
 ; HL command line Input buffer
@@ -265,7 +271,7 @@ _CHLOOP:
 	ld	a,(hl)		; get character (again)
 	cp	SPACE		; look for space
 	jr	z,_CHENDSPC	; then end it, but if space we need to skip past all Spaces
-	CP	CR		; or carriage return. This marks the end of the command line input.
+	CP	ENTER		; or carriage return. This marks the end of the command line input.
 	JR	Z,_CHEND
 	cp	ETX		; ETX
 	jr	z,_CHEND	; then end it
@@ -291,7 +297,7 @@ _WASVALID:
 	inc	de
 	inc	hl
 	djnz	_CHLOOP
-				; fall thru if nmore than N chars
+				; fall thru if more than N chars
 _INVALID:
 	pop	hl		; restore saved HL pointer
 	ld	a,(hl)		; get original char
@@ -312,6 +318,16 @@ _ALPHACHECK:
 	sub	$20		; 'a' make it lower case check
 	cp	26		; compare with lower case Z
 	ret			; returning the C result
+;
+; ======================================================================
+;
+_int_disable
+	DI
+	JP	@EXIT
+;
+_int_enable
+	EI
+	JP	@EXIT
 ;
 ; ======================================================================
 ; 4700 - End Of Overlay

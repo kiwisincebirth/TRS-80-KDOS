@@ -20,6 +20,7 @@ OPRET	EQU	$C9	; RET (Opcode)
 ;
 _WHERE	EQU	$000B	; Used for Code relocation.
 KBWAIT	EQU	$0049
+DELAY	EQU	$0060	; delay routine
 INIT2	EQU	$0075	; L2 Basic Non Disk Init
 L3ERR	EQU	$012D
 OUTDO	EQU	$032A
@@ -154,17 +155,20 @@ SUP_OFF		EQU	'@'			; Offset ID -> Ascii translation
 ;
 S_BASICLOAD	EQU	'B' - SUP_OFF + $20	; LOAD basic command
 S_BASICSAVE	EQU	'B' - SUP_OFF + $40	; SAVE basic command
+S_BASICMERGE	EQU	'B' - SUP_OFF + $60	; MERGE basic command
 S_BASICRUN	EQU	'B' - SUP_OFF + $80	; RUN  basic command
+S_BASICKILL	EQU	'B' - SUP_OFF + $A0	; KILL basic command
 ;
 S_CMDPROC	EQU	'C' - SUP_OFF 		; Command Interpreter READY>
 S_DIRCMD	EQU	'D' - SUP_OFF		; #DIR command
 S_ERRHAND	EQU	'E' - SUP_OFF		; (4409) DOS Error Handler
 ;
-S_FILESPEC	EQU	'F' - SUP_OFF + $20	; (441C) @FSPEC API Function
-S_INITFILE	EQU	'F' - SUP_OFF + $40	; (4420) @INIT API Function
-S_OPENFILE	EQU	'F' - SUP_OFF + $60	; (4424) @OPEN API Function
-S_CLOSEFILE	EQU	'F' - SUP_OFF + $80	; (4428) @CLOSE API Function
-S_KILLFILE	EQU	'F' - SUP_OFF + $A0	; (4428) @KILL API Function
+S_FILEEXTNT	EQU	'F' - SUP_OFF + $20	; (4473) @FEXT API Function
+S_FILESPEC	EQU	'F' - SUP_OFF + $40	; (441C) @FSPEC API Function
+S_INITFILE	EQU	'F' - SUP_OFF + $60	; (4420) @INIT API Function
+S_OPENFILE	EQU	'F' - SUP_OFF + $80	; (4424) @OPEN API Function
+S_CLOSEFILE	EQU	'F' - SUP_OFF + $A0	; (4428) @CLOSE API Function
+S_KILLFILE	EQU	'F' - SUP_OFF + $C0	; (4428) @KILL API Function
 ;
 S_READFILE	EQU	'G' - SUP_OFF + $20	; (4436) @READ API Function
 S_WRITEFILE	EQU	'G' - SUP_OFF + $40	; (4439) @WRITE API Function
@@ -224,16 +228,45 @@ LOAFILFMT$	EQU	34 	; Load file format error
 ;
 PATNOTFOU$	EQU	60	; Path Not Found, (like File Not Found)
 ILLDOSFUN$	EQU	61 	; Illegal (Unsupported) DOS Functon.
-INTDOSERR$	EQU	62	; Internal DOS Error - Unexpected
+INTDOSERR$	EQU	62	; Internal DOS Error - Super call id issue - overlay not found - Unexpected
 UNKNOWN$	EQU	63
 ;
-; ASCII
 ; ----------------------------------------------------------------------
+; ASCII
+;   ASCII Codes for Keyboard and Display
+; Comments (In Brackets) are the Keyboard mappings,
+; ----------------------------------------------------------------------
+BREAK	EQU	$01	; (BREAK Key)
+ETX	EQU	$03	; End Of Text (Ascii)
 ;
-ETX         EQU     03H
-CR          EQU     0DH
-LF          EQU     0AH
-SPACE         EQU     20H
+BACKS	EQU	$08	; (LEFT  Arrow) - Backspace
+TAB	EQU	$09	; (RIGHT Arrow) - Tab
+LINEF	EQU	$0A	; (DOWN  Arrow)
+VERTAB	EQU	$0B	; Vertical Tab (Ascii)
+FORMF	EQU	$0C	; Form Feed (Ascii)
+ENTER	EQU	$0D	; (ENTER Key) - Return
+;
+; Following are special meaning CHR codes, not ASCII standard
+CURON	EQU	$0E	; turn on cursor.
+CUROFF	EQU	$0F 	; turn off cursor.
+TOGTAB	EQU	$15 	; (M3) toggles TAB and Alternate characters
+MODE32	EQU	$17	; select line size of 32 char/line.
+ARLEFT	EQU	$18	; (Shift-LEFT Arrow) backspace one character
+ARIGHT	EQU	$19	; (Shift-RIGHT Arrow) skip forward one character
+ARDOWN	EQU	$1A	; (Shift-DOWN Arrow) skip down one line
+ARUP	EQU	$1B	; (Shift-UP  Arrow) skip up one line
+CHOME	EQU	$1C	; home cursor. select 64 char/line.
+CLINE	EQU	$1D	; position cursor to Start of current line
+ELINE	EQU	$1E	; erase from cursor to end of line
+CLRKEY	EQU	$1F	; (CLEAR Key) erase from Cursor to end of frame
+;
+SPACE	EQU	$20	; A space character
+DQUOTE	EQU	$22	; A Double Quote ( " )
+SQUOTE	EQU	$27	; A Single Quote ( ' )
+SEMICO	EQU	$3B	; Note ';' in code; was breaking some assemblers
+UPARRW	EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
+BQUOTE	EQU	$60	; A Back Quote ( ` )
+BSLASH	EQU	$5C	; A Back Slash ( \ )
 ;
 ; ======================================================================
 ; FREHD

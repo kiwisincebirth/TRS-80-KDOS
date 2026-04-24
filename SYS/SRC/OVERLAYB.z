@@ -19,15 +19,20 @@ import	constants.z
 ;
 	ORG	OVERLY
 	;
-ENTRY:
 	cp	S_BASICSAVE
-	jr	z,BASIC_SAVE	; SAVE
+	jr	z,_BAS_SAVE	; SAVE
 	;
 	cp	S_BASICRUN
-	jr	z,BASIC_RUN	; RUN
+	jr	z,_BAS_RUN	; RUN
 	;
 	cp	S_BASICLOAD
-	jr	z,BASIC_LOAD	; LOAD
+	jr	z,_BAS_LOAD	; LOAD
+	;
+	cp	S_BASICMERGE
+	jr	z,_BAS_MERGE	; MERGE
+	;
+	cp	S_BASICKILL
+	jr	z,_BAS_KILL	; KILL
 	;
 	ld	a, INTDOSERR$	; Internal Failure
 	jp	@ERROR
@@ -35,15 +40,15 @@ ENTRY:
 ; ----------------------------------------------------------------------
 ; SAVE "XXXXX.BAS" - Save a Basic program to Disk
 ; ----------------------------------------------------------------------
-BASIC_SAVE:
-	call	GET_STRING	; de points to string, B is the lenght non-zero
+_BAS_SAVE:
+	call	_GET_STRING	; de points to string, B is the lenght non-zero
 ;
 	ld	c,FA_CREATE_ALWAYS|FA_WRITE	; create with over-write
 	call	fhd_OPEN	; open file command
 	jp	nz,@ERROR	; file not opened.
 ;
 	ld	c,1		; write 1 byte
-	call	fhd_WRITE	; setup the write command for 1 byte
+	call	_fhd_WRITE	; setup the write command for 1 byte
 	jp	nz,@ERROR	; file not opened.
 ;
 	ld	a,$FF
@@ -53,9 +58,9 @@ BASIC_SAVE:
 ;
 	ld	hl,(TXTTAB)	; get the start basic pointer
 	ld	de,(VARTAB)	; get the  end  basic pointer
-save2:
+_save2:
 	ld	c,0		; write 256 bytes
-	call	fhd_WRITE	; setup the write command for 1 byte
+	call	_fhd_WRITE	; setup the write command for 1 byte
 	jp	nz,@ERROR	; file not opened.
 ;
 ; this is a bit of a simple approach, will always write
@@ -67,11 +72,11 @@ save2:
 	otir			; send data from (hl) to port (C)
 	call	fhd_WAIT
 	jp	nz,@ERROR	; file not opened.
-save3:
+_save3:
 	RST	18H		; CARRY SET=HL<DE; NO CARRY=HL>DE; NZ=Unequal; Z=Equal).
-	jr	c,save2		; more bytes so loop back.
+	jr	c,_save2	; more bytes so loop back.
 ;
-save9:
+_save9:
 	call	fhd_CLOSE
 	jp	@EXIT		; exit to DOS
 ;
@@ -79,21 +84,39 @@ save9:
 ; RUN "XXXXX.BAS" - LOAD and RUN a Basic program from Disk
 ; or if no parameter then simply return
 ; ----------------------------------------------------------------------
-BASIC_RUN:
+_BAS_RUN:
 	pop 	af		; get rid of the return address that we no longer need
 	ld	a,1		; flag for LOAD and RUN
-	ld	(RUNFLAG),a
-	jr	LOADER		; skip to LOAD
+	ld	(_RUNFLAG),a
+	jr	_LOADER		; skip to LOAD
+;
+; ----------------------------------------------------------------------
+; KILL "XXXXX.BAS" - Delete a program from disk
+; ----------------------------------------------------------------------
+_BAS_KILL:
+
+	; TODO this needs to be implemented
+	; Overlay O has the structure for this operation.
+
+	jp	L3ERR
+;
+; ----------------------------------------------------------------------
+; MERGE "XXXXX.BAS" - Merge a Basic program from Disk
+; ----------------------------------------------------------------------
+_BAS_MERGE:
+
+	; TODO this needs to be implemented
+
+	jp	L3ERR
 ;
 ; ----------------------------------------------------------------------
 ; LOAD "XXXXX.BAS" - Load a Basic program from Disk
 ; ----------------------------------------------------------------------
-;
-BASIC_LOAD:
+_BAS_LOAD:
 	ld	a,0		; flag for LOAD Only
-	ld	(RUNFLAG),a
-LOADER:
-	call	GET_STRING	; de points to string, B is the length non-zero
+	ld	(_RUNFLAG),a
+_LOADER:
+	call	_GET_STRING	; de points to string, B is the length non-zero
 
 	ld	c,FA_OPEN_EXIST|FA_READ
 	call	fhd_OPEN	; open file command
@@ -103,18 +126,18 @@ LOADER:
 	jp	nz,@ERROR	; error if dont find another byte
 	;
 	cp	$FF		; check first byte is $FF - meaning basic program.
-	jp	z,LOADER2	; Got $FF basic program - so skip down
+	jp	z,_LOADER2	; Got $FF basic program - so skip down
 	;
 	ld	a,LOAFILFMT$	; load file format error
 	jp	@ERROR		; goto the erro handler
 	;
-LOADER2:
+_LOADER2:
 	call	SCRTCH		; basic NEW, initialize system vars
 	ld	de,(TXTTAB)	; starting address of PST to load data to
-DLLOP3:
+_DLLOP3:
 	; start of loop - resetting zero counter
 	ld	b,3		; looking for 3 zeros for termination
-DLLOP4:
+_DLLOP4:
 	; start of loop
 	call	fhd_READBYTE; transfer a byte from source
 	jp	nz,@ERROR	; error if dont find another byte
@@ -123,12 +146,12 @@ DLLOP4:
 	inc	de		; inc the memory pointers
 	;
 	or	a		; was the byte a transferred a ZERO
-	jr	nz,DLLOP3	; if received a != 0, continue loop
+	jr	nz,_DLLOP3	; if received a != 0, continue loop
 	;
 	dec	b		; the zero counter 3->0
-	jr	nz,DLLOP4	; main loop not resetting zero counter
+	jr	nz,_DLLOP4	; main loop not resetting zero counter
 	;
-LD_FIN:
+_LOAD_FIN:
 	call	fhd_CLOSE	; received 3 $00 so finish here
 ;
 ; ORIGINAL FROM CLOAD
@@ -147,20 +170,20 @@ LD_FIN:
 	LD 	(VARTAB),HL	; Set the end of program location in RAM by storing HL into 40F9H.
 	CALL 	RUNC		; set up ARYTAB and STREND
 	;
-	ld	a,(RUNFLAG)	; Run or Load Only Flag
+	ld	a,(_RUNFLAG)	; Run or Load Only Flag
 	OR 	A		; non-zero if want to run
 	JP	Z,@EXIT		; If the Z FLAG (Zero) has been set, Return to the READY prompt
 	JP 	NEWSTT		; Otherwise Level II BASIC - RUN
 ;
 ; ----------------------------------------------------------------------
-RUNFLAG	DEFB	0	; non-zero if want to run
+_RUNFLAG	DEFB	0	; non-zero if want to run
 ; ----------------------------------------------------------------------
 ;
 ; ======================================================================
 ;
 ; todo also need the logic to insert the .BAS extension if not provided
 ;
-GET_STRING:
+_GET_STRING:
 	call	FRMEVL		; evaluates an expression based on BASIC pointer
 	call	FRESTR		; gets pointer to string in HL if string. TM Error if not string
 	LD	A,(HL)		; string length
@@ -175,7 +198,7 @@ GET_STRING:
 ;
 ; init the write of bytes to a file
 ; C the number of bytes 0=256
-fhd_WRITE:
+_fhd_WRITE:
 	ld	a,WRITEFILE	; command
 	out	(COMMAND2),a	; send command
 	;

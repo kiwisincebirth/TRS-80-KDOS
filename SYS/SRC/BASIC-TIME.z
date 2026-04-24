@@ -23,8 +23,8 @@ VIRTUAL_PAGE timedollar, PAGE_TIMEDOLL
 	rst	$0010                 ; 5745:
 	push	hl                    ; 5746:
 	ld	a,$11                 ; 5747:
-	call	STRINI                 ; 5749:
-	ld	hl,($40d4)            ; 574c: not entirely sure what tis address is
+	call	STRINI                ; 5749:
+	ld	hl,($40d4)            ; 574c: - todo $40d4 may not be initialised. appears to have $1929 (ROM)
 	ld	de,XTIME+5            ; 574f:
 	call	_5776                 ; 5752:
 	ld	(hl),'/'              ; 5755:
@@ -42,7 +42,7 @@ VIRTUAL_PAGE timedollar, PAGE_TIMEDOLL
 	ld	(hl),':'              ; 576d:
 	inc	hl                    ; 576f:
 	call	_5776                 ; 5770:
-	jp	PUTNEW                 ; 5773:
+	jp	PUTNEW                ; 5773:
 _5776:
 	ld	a,(de)                ; 5776:
 	dec	de                    ; 5777:
@@ -75,6 +75,6 @@ pageEnd
 ; CODE ENDS HERE
 ; ------------------------------
 	; After loading return to DOS
-	END	$402D
+	END	@EXIT
 ;
 

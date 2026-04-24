@@ -26,7 +26,7 @@ import	constants.z
 pico_loader:
 	jp	_ploader		; Redirected from SCR_LOADOADER
 	jp	_isr_service		; Redirected from SCR_INT_SERV
-;
+;F
 ; ======================================================================
 
 ; ----------------------------------------------------------------------
@@ -114,6 +114,7 @@ _getadr:
 ; ----------------------------------------------------------------------
 ;;;
 ;;; Interrupt Service Routine
+;;; todo consider moving this to virtual ram.
 ;;;
 _isr_service
 	;
@@ -124,27 +125,32 @@ _isr_service
 	ld	hl,TICKCNT	; timer tick
 	inc	(hl)		; increment the timer tick
 	;
-	ld	hl,_counter	; counter tick storage
-	dec	(hl)		; dec the counter
-	ret	nz		; not ready
-	ld	(hl),40		; countdown from 40
+	call	_trs80_time	; RTC Clock update
 	;
-	call	_trs80_time	; update the time
-	;
+
+_isr_exit:
 	pop	bc
 	pop	de
 	pop	hl
 	;
 	ret
-_counter
-	DB	40		; starting counter
 ;
+; ----------------------------------------------------------------------
+; RTC Clock Interrupt Routine
+; ----------------------------------------------------------------------
 ;
+_trs80_time:
+	ld	hl,_counter	; counter tick storage
+	dec	(hl)		; dec the counter
+	ret	nz		; not ready so return
+	;
+	ld	(hl),40		; reset countdown from 40 (HZ)
+	;
+; Now advance the clock by 1 second (will rollover)
 ; TRSDOS Routine to advance the time
 ; Original Code from TRS-DOS 2.3 See
 ; https://www.trs-80.com/sub-disassem-dos-td23-sys-0.htm
-;
-_trs80_time:
+	;
 	ld	b,$03            ; 45ba:
 	ld	hl,XTIME         ; 45bc:
 	ld	de,_cal_limit_45ef  ; 45bf:
@@ -188,6 +194,9 @@ _reset_dom:
 	dec	l                ; 45ec:
 	inc	(hl)             ; 45ed:
 	ret                      ; 45ee:
+;
+_counter
+	DB	40		; starting counter
 ;
 _cal_limit_45ef:
 	DB	3CH 	; Maximum number of 60 for SECONDS

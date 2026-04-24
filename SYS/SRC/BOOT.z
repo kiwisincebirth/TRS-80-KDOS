@@ -55,7 +55,7 @@ START:
 	;
 	;ld	b,(hl)		; get saved val from last boot.
 	;cp	b		; compare values
-	;jp	z,$402D		; Currently Disabled, as $4000 - 405C wipd out
+	;jp	z,@EXIT		; Currently Disabled, as $4000 - 405C wipd out
 	;
 	ld	(hl),a		; not warm boot remember it for next time.
 	;

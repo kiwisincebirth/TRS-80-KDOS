@@ -87,6 +87,9 @@ RUN_FIL:
 	call	file_loader	; attempt to load the file
 	jr	nz,RUN_FAIL	; error handler and exit to @ERROR
 	;
+	; todo BUG. If the cmd file doest define a transfer address, then
+	; todo HL is set based on the last load, so quite a problem
+	; todo ideally it should exit to DOS @EXIT
 	ex	(sp),hl		; put HL -> jump address on stack
 				; and restore HL pointer passed in
 	ret			; RUN the loaded program
@@ -151,7 +154,8 @@ _load:	call	fhd_READBYTE	; get type code
 _load1:	call	_getadr		; Type 1 get address; HL Addr and B Size
 	ret	nz
 	;
-_load1a:	call	fhd_READBYTE
+_load1a:
+	call	fhd_READBYTE
 	ret	nz
 	ld	(hl),a		; save that byte
 	inc	hl

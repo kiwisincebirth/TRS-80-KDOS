@@ -22,7 +22,7 @@
 	ORG	$4012
 	jp	INTERRUP_SR	; (4012) RST 38h (Interrupt Service) Vector.
 ;
-	ORG	$402D
+	ORG	@EXIT
 	jp	RESETR		; (402D) No-Error Exit same as 4400
 	jp	RESETR		; (4030) Error-already-displayed DOS Error Exit.
 ;
@@ -38,6 +38,7 @@
 	ORG	TICKCNT
 	DB	0	; (4040H) Timer Tick
 	; todo the following should not be overridden on warm start
+	; todo suggest removing it entirely and replace with PICO implementation
 	DB	59	; (4041H) Seconds counter (binary, 0-59) XTIME
 	DB	59	; (4042H) Minutes counter (binary, 0-59)
 	DB	11	; (4043H) Hours counter (binary, 0-23)
@@ -88,9 +89,9 @@
 	jp	L3ERR		; PUT - $4182
 	jp	L3ERR		; CLOSE $4185
 	SUPERV	S_BASICLOAD	; LOAD  $4188
-	jp	L3ERR		; MERGE $418B - todo similar to LOAD
+	SUPERV	S_BASICMERGE	; MERGE $418B
 	jp	L3ERR		; NAME  $418E
-	jp	L3ERR		; KILL  $4191 - todo same as #DELETE
+	SUPERV	S_BASICKILL	; KILL  $4191
 	jp	L3ERR		; &   - $4194 - Done
 	jp	L3ERR		; LSET  $4197
 	jp	L3ERR		; RSET  $419A
@@ -127,7 +128,7 @@
 ;
 ; ======================================================================
 ; ======================================================================
-; 42E0 - Start of Main Routines
+; 4300 - Start of Main Routines
 ; ======================================================================
 ; ======================================================================
 	ORG	CORE1
@@ -195,11 +196,11 @@ _DSPSTR2:
 	LD	A,(HL)		; Fetch character from string.
 	CP	00H		; Compare with 00 terminator
 	JR	Z,_DSPSTR9	; finished
-	CP	03H		; Compare with ETX (03H end marker).
+	CP	ETX		; Compare with ETX (03H end marker).
 	JR	Z,_DSPSTR9	; finished
 	CALL	001BH		; display character
 	LD	A,(HL)		; re fetch character.
-	CP	0DH		; Compare with CR (carriage return).
+	CP	ENTER		; Compare with CR (carriage return).
 	INC 	HL		; string pointer.
 	JR	NZ,_DSPSTR2	; not CR, LOOP for next character.
 _DSPSTR9:
@@ -337,13 +338,7 @@ INTERRUP_SR:
 	jr	nc,INTERRUP_EXIT ; If NO timer interrupt, skip
 ;
 ifdef @D_PICOENHANCED
-	push	hl
-	push	de
-	push	bc		; Main Interrupt Handler
 	call	SCR_INT_SERV	; call the main Service Routine
-	pop	bc
-	pop	de
-	pop	hl
 else
 ;
 	; SIMPLE Interrupt Handler
@@ -417,7 +412,7 @@ $FREE_CORE1	EQU	SYSFCB - $
 	jp	PRINTSTR	; (446A) @PRINT print string routine.
 	RET3			; (446D) @TIME todo Get the time "23:59:59" into (HL)
 	RET3			; (4470) @DATE todo Get the date "12/12/99" into (HL)
-	RET3			; (4473) @FEXT todo Insert a default extension into filename in FCB
+	SUPERV	S_FILEEXTNT	; (4473) @FEXT Insert a default file extension
 	RET3			; (4476) * Ldos and Trsdos have a function defined here
 	nop			; (4479)
 	nop			; (447A)
@@ -476,13 +471,13 @@ ifdef	@D_PICOENHANCED
 	OR	$E0		; Mask is 111xxxxx (top 3 bits as 0)
 	SLA	a		; then rotate to be 1xxxxx00
 	SLA	a		; LSB is $80 -> $FC
-	ld	(SUPER_EXEC2+1),a
+	ld	(_sup_jump+1),a
 	;
 ;	ld	a,$33		; MSB is $33
-;	ld	(SUPER_EXEC2+2),a
+;	ld	(_sup_jump+2),a
 	;
 	pop	af		; restore registers
-SUPER_EXEC2:
+_sup_jump:
 	jp	$3380		; instruction is modified above
 	;
 ;
@@ -499,7 +494,7 @@ else
 	;
 	ld	hl,OVRCURR	; pointer to the overlay number in file name
 	cp	a,(hl)		; compare with current number
-	jr	z,SUPER_EXEC2	; if already loaded then skip load
+	jr	z,_sup_cont	; if already loaded then skip load
 	ld	(hl),a		; update the current pointer
 	;
 	; open the overlay file
@@ -508,26 +503,37 @@ else
 	ld	c,FA_OPEN_EXIST|FA_READ	; Read existing
 	;
 	call	frehd_OPEN
-	ret	nz		; ERROR!!, then return - TODO Should be TRAPPED
+	jr	nz,_sup_fail1	; ERROR!!, then return with specific error code
 	;
+_sup_read
 	call	frehd_READ	; send command to read 256 bytes
-	ret	nz		; ERROR!!, then return - TODO Should be TRAPPED
+	jr	nz,_sup_fail2	; report an error
 	;
 	ld	bc,DATA2	; transfer 256 bytes (B). C=port to read data
 	ld	hl,OVERLY	; target binary address $4500
 	inir			; read 256 bytes into (HL)
 	;
 	call	frehd_READ	; send command to read 256 bytes
-	ret	nz		; ERROR!!, then return - TODO Should be TRAPPED
+	jr	nz,_sup_fail2	; report an error
 	inir			; read 256 bytes into (HL)
 	;
-SUPER_EXEC2:
-	pop	af		; restore registers
-	pop	bc		; including the original Supervisor call ID
+_sup_cont:
+	pop	af		; restore registers Including AF
+	pop	bc		; all registers passed into the Routine
 	pop	de
 	pop	hl
 	;
 	jp	OVERLY		; jump into the overlay code at $4500
+	;
+_sup_fail1:
+	ld	a,INTDOSERR$	; NZ flag should already be set.
+_sup_fail2:
+	pop	bc		; restore registers Discarding AF
+	pop	bc		; as AF contains an error code
+	pop	de
+	pop	hl
+	;
+	ret
 ;
 ; Overlay File name to use.
 OVRNAM: 	DEFB	'/SYS/OVERLAYz.SYS'

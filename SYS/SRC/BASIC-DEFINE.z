@@ -288,6 +288,6 @@ pageEnd
 ; CODE ENDS HERE
 ; ------------------------------
 	; After loading return to DOS
-	END	$402D
+	END	@EXIT
 ;
 

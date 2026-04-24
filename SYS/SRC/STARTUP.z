@@ -50,9 +50,11 @@
 ;
 	ld	hl,L2START	;00a8 - starting address of user RAM (now $47E8)
 	ld	(hl),0		;00ab - Zero is basic program terminator
-	;
-	jp	$00AC		; Continue Init in Level 2 with Stack Pointer
-				; and Asking for upper HI MEMORY
+;
+; ----------------------------------------------------------------------
+; Continue Init in Level 2 with Stack Pointer, and Asking for upper HI MEMORY
+; ----------------------------------------------------------------------
+	jp	$00AC		;
 ;
 ; ======================================================================
 ; Then after L2 Basic has done some additional startup it hits the "READY"
@@ -89,7 +91,7 @@ READY1:
         ld	(enhance_VER+1),a ; Modify Code to flag Advanced Pico
         ;
 READYX:
-	ld	hl,_KDOSMSG	; Free Bytes Message
+	ld	hl,_KDOSMSG	; DOS Loaded Message
 	call	STROUT		; print the message
 	;
 	; update the DOS exit to the normal command processor
@@ -100,15 +102,15 @@ READYX:
 	inc	hl
  	ld	(hl),NEWREADY / $100	; store MSB of NEW READY into DOS vecor
 	;
-	;im	1		; interrupts via $0038->$4012
-	;ei			; enable interrupts
+	im	1		; interrupts via $0038->$4012
+	ei			; enable interrupts
 	;
 	; then jump to the (new) READY prompt
 	;
 	jp	$1A19		; jump to the normal ready processor
 	;
 ;
-_KDOSMSG	DEFB	'kDOS Loaded',CR,0
+_KDOSMSG	DEFB	'kDOS Loaded',ENTER,0
 
 ; TRSDOS 2.3
 

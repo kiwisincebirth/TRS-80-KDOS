@@ -1,5 +1,43 @@
 
 
+STELLER ESCORT
+
+Patch SESCRBF3
+3A EC 37 CB 4F 20
+3A EC 37 CB 4F 18
+
+3A EC 37 CB 4F C8
+3A EC 37 CB 4F C9
+
+Same patch for Def Command
+DEFCMND7
+
+
+991b:   ld	a,$01
+991d:   ld	($37e1),a	; drive
+9920:   ld	a,$d0
+9922:   ld	($37ec),a	; command
+9925:   ld	bc,$0000
+9928:   call	$0060		; delay
+992b:   ld	bc,$5000
+992e:   ld	a,$01
+9930:   ld	($37e1),a	; drive
+9933:   ld	a,($37ec)	; status
+9936:   bit	1,a		; test
+9938:   jr	nz,$9945	; GOOD
+993a:   dec	bc
+993b:   ld	a,b
+993c:   or	c
+993d:   jr	nz,$992e
+993f:   ld	hl,$96e9
+9942:   jp	$9626		; BACK
+9945:   ld	b,$00
+9947:   ld	a,$01
+9949:   ld	($37e1),a	; drive
+994c:   ld	a,($37ec)	; status
+994f:   bit	1,a
+9951:   ret	z		; GOOD
+9952:   djnz	$9947
 
 
 METEOR
@@ -201,7 +239,7 @@ CHREXT:				;4FF4
 LOOP	LD	A,(HL)		; Loop Start Fetch the next character from the command line at (HL) into Register A.
 	CP	ETX		; Compare Register A against 03H (end-of-buffer terminator). If the command line buffer has been exhausted, the Z FLAG is set.
 	JR	Z,TERMCH	; If the Z FLAG (Zero) has been set because the end-of-buffer terminator (03H) was reached, JUMP to 5021H to terminate character extraction and prepare the return status.
-	CP	CR		; Compare Register A against 0DH (ASCII carriage return). This marks the end of the command line input.
+	CP	ENTER		; Compare Register A against 0DH (ASCII carriage return). This marks the end of the command line input.
 	JR	Z,TERMCH	; If the Z FLAG (Zero) has been set because a carriage return (0DH) was reached, JUMP to 5021H to terminate character extraction.
 	INC 	HL		; next character in the command line. The current character has been read into A and will be validated below. HL is advanced now so that if the character is invalid, HL already points past it.
 	CP 	30H		; Compare Register A against 30H (ASCII: 0). Characters below 30H are not valid filename characters (this range includes spaces 20H, separators like "/" 2FH, and control characters).
@@ -331,7 +369,7 @@ DEF_FCB_BLK:
 	; 4463 LDOS @DODIR - Display Directory Buffer
 	; 4464 ND80 - Routine Dequeue
 
-
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 TRSDOS
 4448:   jp	$475f

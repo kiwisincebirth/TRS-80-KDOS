@@ -3,6 +3,9 @@ set -e
 
 echo BUILD
 
+echo Building Keyboard
+./zmac keyboard.z --oo lst,cim,cmd,hex
+
 echo Building BOOT
 ./zmac boot.z --oo lst,cim,cmd,hex
 

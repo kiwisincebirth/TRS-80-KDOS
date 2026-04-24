@@ -60,7 +60,7 @@ GETDIR2
 	;
 GETDIR3
 	ld      hl,BUFFER       ; Force a new line at the end
-	ld      (hl),CR
+	ld      (hl),ENTER
 	call    @DSPLY
 	;
 	JP	@EXIT		; completed so exit
@@ -95,7 +95,7 @@ NEWDIR2
 	;
 NEWDIR3
 	ld      hl,BUFFER       ; Force a new line at the end
-	ld      (hl),CR
+	ld      (hl),ENTER
 	call    @DSPLY
 	;
 	JP	@EXIT		; completed so exit

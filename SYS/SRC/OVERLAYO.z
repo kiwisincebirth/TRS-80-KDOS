@@ -54,11 +54,11 @@ _DOCMD1:
 	cp	$C0		; Commands >= $C0 dont have parameters
 	jr	nc,_read_result ; so skip arguments
 	;
-	; get lenght of argument string
+	; get length of argument string
 	EX	DE, HL		; DE -> pointer to cmd buffer
 	call	_STR_LEN	; and get the length (DE), into B
 	;
-	; send lenght
+	; send length
 	ld	a,b		; size of the string
 	out     (SIZE2),a	; send it to pico
 	;

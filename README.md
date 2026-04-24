@@ -1,17 +1,23 @@
-# MiniDOS for the TRS-80 Model I
+# kDOS for the TRS-80 Model I
 
 ## Introduction
 
-Mini DOS is a minimalistic DOS (TRS-DOS supportive) that runs on
-a Model 1 computer which has native support for FAT filesystem
+kDOS is a operating environemnt that runs on Model 1 providing
+a TRS-DOS (DOS) like features to Level 2 basic
 
-Programs that run on TRS-DOS should run under MiniDOS so long
+The DOS runs alongside BASIC, rather than supplanting it.
+Typing a DOS command and a BASC statement are done in the
+same shell.
+
+Files are stored on SD card in native FAT filesystem.
+There is no emulation of legacy floppy or hard disks,
+nor any TRS-DOS (like) file-system.
+
+There are no meaningful limits (SD card size) on the number 
+of files that can be stored. Directories are fully supported.
+
+Programs that run on TRS-DOS should run under kDOS so long
 as they use standard DOS calls.
-
-The DOS runs in the Level 2 Basic command Shell, and dos
-commands are executed using the `#` prefix. e.g.
-
-`#DIR *.*`
 
 ## Features
 
@@ -19,54 +25,42 @@ Core Features
 * Supportive for existing Hardware
   * Floppy-80 (Model1) with custom PiPico V2 firmware. This is the preferred option
   * FreHD - In a basic very basic form. This is supported mainly for emulation and testing purposes
-* Runs in the BASIC command shell
+* Modern Filesystem features including
+  * Files are stored natively on the FAT filesystem.
+  * File directories are supported, (currently 1 directory at a time)
 * DOS Features
+  * DOS commands are typed into the BASIC command shell
   * Most DOS entry points at $4400 are supported.
   * Interrupts with real Time Clock support
 * BASIC features
-  * Disc Basic Features are supported
+  * Extended basic functions (non IO) are supported
+  * Basic File IO Statements are not supported
   * Long error messages ar displayed
-* Modern Filesystem features including 
-  * Files are stored natively on the FAT filesystem.
-  * File directories are supported, (currently 1 directory at a time)
 * Has a Low memory overhead than a traditional DOS
-  * Requires about half a KB of main memory space.
+  * Requires about 0.5Kb of main memory space.
   * 48350 on Level 2 -> - 47800 on Pico (550 bytes less)  
 
 ## Components
 
-This solution requires the following
+This solution requires:
 * Model 1 computer with 16K (or 48k) RAM
-* Floppy 80 M1 hardware, optionally FreHD hardware
-* Custom Firmware (written in C) that Runs on Pi Pico
-* SD Card for file storage, containing the O/S files.
+* Floppy 80 - M1 hardware, (optional FreHD hardware)
+* SD Card for file storage.
 * Expansion Interface is NOT required
 
-## Floppy 80
+* The solution provides
+* Software that runs on TRS-80, provides DOS like features
+  * software is stored and loaded fom SD card 
+* Software that runs on RP Pico v2 RP2350 that 
+  * provides interfaces with Z80 code,
+  * provides services to expose filesystem
+  * provides 128 Kb of virtual memory
+  * provides 32 Kb of High Memory (optional)
 
 The Floppy 80 is the primary hardware required by this solution. Custom Firmware provides
 * A command API similar to (but a superset of) FreHD, to provide needed DOS capabilities.
-* Paged Memory (in the $3000 - $37DF memory region), for low DOS ovrhead
+* Paged Memory (in the $3000 - $37DF memory region), for low DOS overhead
 * A Floppy Disk emulation (only) to support the loading of a boot block at start
-
-### Hardware Address Map
-
-The following is provided by the Pic Hardware
-
-| Address     |                                 |
-|-------------|---------------------------------|
-| 3000 - 3400 | Virtual Memory (page entry)     |
-| 3400 - 3600 | Virtual Memory (page swappable) |
-| 3600 - 37E0 | Scratch Memory (static)         |
-| 37E0        | Read and Reset RTC Interrupt    |
-| 37EC        | FDC Command Status              |
-| 37EF        | FDC Data Register               |
-| 37F0        | Virtual Memory Page Register    |
-| IO Port $C2 | Pico DATA IO Port               |
-| IO Port $C3 | Pico SIZE Register              |
-| IO Port $C4 | Pico COMMAND Register           |
-| IO Port $C5 | Pico ERROR Register             |
-| IO Port $CF | Pico STATUS Register            |
 
 ## Supported
 
@@ -134,9 +128,9 @@ At startup holding the <CLEAR> key will :
   * Are preloaded into Paged RAM as part of SYSP on Floppy80
   * Are loaded (on demand) into normal RAM, like a normal DOS
 
-### Memory Map
+### DOS Memory Map
 
-The effective Memory map
+The high level Memory map
 
 | Address     | Contents               | For FreHD            |
 |-------------|------------------------|----------------------|
@@ -152,17 +146,7 @@ The effective Memory map
 |             |                        | 4500 - 4700 Overlays |
 | 44D0        | BASIC Program Start    | 4700 - Basic Program |
 
-
-
 DOS Entry Points (4400-4480)
-
-; todo should we insert these int table below
-; (400C) RST 28H todo investigate BREAK Break Key; DOS Supervisor Call Dispatcher     
-; (400F) RST 30h (DOS DEBUG entry point) Vector.
-; (4012) RST 38h (Interrupt Service) Vector.                                                                                                 
-; (4033) DOS Char I/O Driver for Disk Files
-; (4427) * ND8Ø $82 identifying ND(8)0v(2)                                        
-; (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
 
 | Address |        | Contents                   | Issues          |
 |---------|--------|----------------------------|-----------------|
@@ -191,12 +175,36 @@ DOS Entry Points (4400-4480)
 | 446A    | @PRINT | Print a String             |                 |
 | 446D    | @TIME  | Time into (HL) buffer      | todo            |
 | 4470    | @DATE  | Date into (HL) buffer      | todo            |
-| 4473    | @FEXT  | Default Filename extension | todo            |
-| 44      | @      |                            |                 |
-| 44      | @      | - tbc -                    |                 |
-| 44      | @      |                            |                 |
-| 447E    |        | DOS Major Version          |                 |
-| 447F    |        | DOS Minor Version          |                 | 
+| 4473    | @FEXT  | Default Filename extension |                 |
+
+; todo should we insert these int table below
+; (400C) RST 28H DOS Supervisor Call Dispatcher     
+; (400F) RST 30h (DOS DEBUG entry point) Vector.
+; (4012) RST 38h (Interrupt Service) Vector.                                                                                                 
+; (4033) DOS Char I/O Driver for Disk Files
+; (4427) * ND8Ø $82 identifying ND(8)0v(2)                                        
+; (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
+
+### Floppy 80
+
+#### Hardware Address Map
+
+The following is provided by the RP2350 Pico Hardware
+
+| Address     |                                 |
+|-------------|---------------------------------|
+| 3000 - 3400 | Virtual Memory (page entry)     |
+| 3400 - 3600 | Virtual Memory (page swappable) |
+| 3600 - 37E0 | Scratch Memory (static)         |
+| 37E0        | Read and Reset RTC Interrupt    |
+| 37EC        | FDC Command Status              |
+| 37EF        | FDC Data Register               |
+| 37F0        | Virtual Memory Page Register    |
+| IO Port $C2 | Pico DATA IO Port               |
+| IO Port $C3 | Pico SIZE Register              |
+| IO Port $C4 | Pico COMMAND Register           |
+| IO Port $C5 | Pico ERROR Register             |
+| IO Port $CF | Pico STATUS Register            |
 
 ## Caveats
 
@@ -213,23 +221,28 @@ See the separate Compatibility document for what is and isn't supported.
 
 # DEV NOTES
 
-## Todo 
+### Todo 
 * FIRMWARE - STAatus command display Virtual Paging Info
 * FIRMWARE - STAatus command display Heap size remaining
 * FIRMWARE - Reset Signal is not resetting the ROOT folder, left in sub folder.
 
 ### Issues
+* typing LOAD "xx.bas" (basic command) from DOS causes a hang
+* keyboard @ key has the caps lock behaviour, it shoudn't.
+* keyboard Shift @ key doesnt respont frequently, only every second keystroke.
+* running a program that has no END $ADDRESS - will run code based on last byte loaded - crash.
 
 ### Improvement
 * Improve the code addition of .CMD to a filename when executing from CMD processor.
   * When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
 * Full reboot should not wipe out Clock, needs secondary storage.
+  * maybe just define an API on Pico to get time, and maintain it there
+  * existing SYS 0 static defines should be removed
+  * -
   * maybe keep copy in pico ram, and somehow make copy one a minute
   * on Startup copy correct values, from Pico ram
-  * existing SYS 0 static defines should be removed
   * code that updates time could be moved into virtual RAM page
   * backup data could also be in virtual page.
-  * or implement  more comprehensive TIME api in PICO
 
 ### Improvement - Error handling
 * #RM BASIC - removing a directory (not empty) produced "FF Error 7" Access denied due to prohibited
