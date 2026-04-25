@@ -30,7 +30,7 @@ import	constants.z
 				; todo dont think this always works,
 				; todo issue with detection based on column
 	;
-	ld	a,($447D)	; check the saved flag for DOS prompt todo 447d hardcoded needs fixing.
+	ld	a,(DOSPRMPT)	; check the saved flag for DOS prompt
 	or	a
 	jr	nz,_promptDOS	; if flag is set jp fwd and DOS prompt
 	;
@@ -39,7 +39,7 @@ import	constants.z
 	;
 _basicMode
 	xor	a
-	ld	($447D),a	; ensure the DOS flag off
+	ld	(DOSPRMPT),a	; ensure the DOS flag off
 	;
 
 	; **** Prompt the User
@@ -90,7 +90,7 @@ _promptDOS
 
 _processDos
 	ld	a,1
-	ld	($447D),a	; ensure the the DOS flag is set ON todo replace with constant
+	ld	(DOSPRMPT),a	; ensure the the DOS flag is set ON
 
 	; hl has pointer to the command buffer noting this is a l2 BASIC (-1) pointer.
 	; which is currently the '#' character

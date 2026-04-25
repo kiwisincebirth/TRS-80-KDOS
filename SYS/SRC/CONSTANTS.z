@@ -103,6 +103,8 @@ PICOVERS EQU	$41F5	; 2 bytes Pico Version number
 @DSPLY		EQU     $4467
 @PRINT		EQU	$446A
 ;
+DOSPRMPT	EQU	$447D ; holds CMD prompt state dos/basic
+;
 ; Jump Points into DOS Core (SYS0) routines
 ; must be consistent with code located at $4480
 ; which is a jump table to these internal routines
