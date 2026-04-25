@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	MINI DOS
+;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     Directory Management Shell Commands (multiple)
@@ -33,7 +33,7 @@ _DOCMD1:
 ;
 ; Note The Command Sent to the PICO is mapped from
 ; the DOS Supervisor Command parameter    0 to 7
-; into a matching FreHD Cmd ID in range $18 to $1F
+; into a matching Cmd ID in range $18 to $1F
 ;
 	; determine the command ID to send, based on Super Call ID
 	ld	a,c		; get the Supervisor ID
@@ -46,7 +46,7 @@ _DOCMD1:
 	or	$18		; set bit 4/5  -> 00011NNN
 	;
 	; Send the Command
-	out     (COMMAND2),A	; send the command we just mapped
+	out     (APICMND),A	; send the command we just mapped
 				; Wait happens latter, or not at all
 	;
 	; determine if need to send command arguments
@@ -60,26 +60,26 @@ _DOCMD1:
 	;
 	; send length
 	ld	a,b		; size of the string
-	out     (SIZE2),a	; send it to pico
+	out     (APISIZE),a	; send it to pico
 	;
 	; send the arguments
 	EX	DE, HL		; string pointer back into HL
-	ld	c,DATA2		; data port
+	ld	c,APIDATA		; data port
 	otir			; write bytes from (HL) cmd buffer
 	;
 _read_result
 	;
 	; check result of the operation, either command or arguments
-	call    fhd_WAIT	; wait for reslt
+	call    api_WAIT	; wait for reslt
 	jp      nz,@ERROR	; Command Failed
 	;
 	and     STATUS_DRQ	; mask DRQ status
 	jr      z,_DOCMD9       ; No DRQ so done
 	;
 	; read the data from Pico into Buffer
-	in	a,(SIZE2)	; num bytes
+	in	a,(APISIZE)	; num bytes
 	ld	b,a		; count
-	ld      c,DATA2		; C from data IO Port
+	ld      c,APIDATA		; C from data IO Port
 	ld      hl,_STR_BUFF	; to buffer
 	push	hl		; save the buffer address
 	inir			; transfer the data

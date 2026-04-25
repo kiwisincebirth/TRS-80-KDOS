@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	MINI DOS
+;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     SYS0 (UnPaged SYS0) - wrapper around CORE SYS0

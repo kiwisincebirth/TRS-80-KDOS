@@ -1,11 +1,18 @@
 ; ======================================================================
-; CONSTANTS
-; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
-
+;     CONSTANTS
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
 ; The character used on the command prompt
 CMD_PROMPT_CHR	EQU	':'
-
 ;
 ; ----------------------------------------------------------------------
 ; Z-80 Op Codes
@@ -82,7 +89,7 @@ PRGFIN	EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 ;
 KBROWCLR EQU	$41E5	; State of Clear KB Row at boot.
 FHDBYTE	 EQU	$41E6	; FHD byte counter - num bytes before full READ
-FREHDVER EQU	$41F5	; 2 bytes Fre HD Version number
+PICOVERS EQU	$41F5	; 2 bytes Pico Version number
 ;
 ; DOS Entry Points Routines
 ;
@@ -102,11 +109,11 @@ FREHDVER EQU	$41F5	; 2 bytes Fre HD Version number
 ;
 enh_VER   	equ	(0*3) + $4480
 ;
-fhd_OPEN   	equ	(1*3) + $4480	; These routines are for the Legacy File
-fhd_CLOSE 	equ	(2*3) + $4480
-fhd_READ	equ	(3*3) + $4480
-fhd_READBYTE	equ	(4*3) + $4480
-fhd_WAIT	equ	(5*3) + $4480
+api_OPEN   	equ	(1*3) + $4480	; These routines are for the Legacy File
+api_CLOSE 	equ	(2*3) + $4480
+api_READ	equ	(3*3) + $4480
+api_READBYTE	equ	(4*3) + $4480
+api_WAIT	equ	(5*3) + $4480
 ;
 ; ======================================================================
 ; MAIN MEMORY MAP - LAYOUT
@@ -117,6 +124,8 @@ PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
 PICOSCRDUSR	EQU	$37C8		; Holds Def USR 0-9 jump Addresses 20 bytes
 					; 37E0 - 37EF Gap Here
 PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
+;
+KBDMATRX	EQU	$3800
 ;
 STRBUFF		EQU	$41F8		; L2 Basic String Buffer (formally 41E5H)
 					; L2 Basic Assigns $103 bytes to this buffer
@@ -138,7 +147,6 @@ else
     L2START 	EQU	$4704		; Start of L2 Basic PROGRAM Storage
 endif
 
-; 		EQU	$5000		; The initial FreHD loader is here
 BOOTSYSLOC	EQU	$5200		; The BOOT.SYS loader location
 STARTUP		EQU	$5400		; Startup Code Block is loaded here
 ;
@@ -269,23 +277,23 @@ BQUOTE	EQU	$60	; A Back Quote ( ` )
 BSLASH	EQU	$5C	; A Back Slash ( \ )
 ;
 ; ======================================================================
-; FREHD
+; PICO API Definitions
 ; ======================================================================
 ;
-; FreHD PORT Interface defines
+; PICO PORT Interface defines
 ; ----------------------------------------------------------------------
 ; $C0 - $C1 HDC Write Protect and Command Registers
 ; $C8 - $CE HDC Data Error Sector Cylindr Registers
-DATA2	  	EQU	$C2		; 194 R/W - Primary Data Register
-SIZE2     	EQU	$C3		; 195 R/W - Size of Data Register
-COMMAND2  	EQU	$C4		; 196 WRITE ONLY - Command
-ERROR2    	EQU	$C5		; 197 READ ONLY - Error
-FILE2		EQU	$C6		; 198 R/W  - File ID (new) Register
-STATUS    	EQU	$CF		; 207 READ ONLY - Status of last CMD
+APIDATA	  	EQU	$C2		; 194 R/W - Primary Data Register
+APISIZE     	EQU	$C3		; 195 R/W - Size of Data Register
+APICMND  	EQU	$C4		; 196 WRITE ONLY - Command
+APIERROR    	EQU	$C5		; 197 READ ONLY - Error
+APIFILE		EQU	$C6		; 198 R/W  - File ID (new) Register
+APISTAT    	EQU	$CF		; 207 READ ONLY - Status of last CMD
 ;
 ; COMMAND ID's
 ; ----------------------------------------------------------------------
-; $00 - $0F FreHD Original
+; $00 - $0F FreHD Original Commands
 GETVER		EQU	00h
 ;GETTIME	EQU	01h
 ;SETTIME	EQU	02h
@@ -344,7 +352,7 @@ AM_VOL		EQU     008H            ; Volume label
 AM_DIR		EQU     010H            ; Directory
 AM_ARC		EQU     020H            ; Archive
 ;
-; FreHD Status Bits
+; PICO Status Bits
 ; ----------------------------------------------------------------------
 STATUS_BUSY     EQU	0x80		; Interface is BUSY, must wait for completion
 STATUS_READY    EQU	0x40		; interface is READY, to accept a new command
@@ -361,7 +369,7 @@ STATB_DRQ	EQU	3		; 1 = Data Available
 STATB_ZERO	EQU	2		; 1 = Zero Length File
 STATB_ERR	EQU	0		; 1 = Error
 ;
-; NOTE: STATUS_ERR means (ERROR2) exposes the error Code
+; NOTE: STATUS_ERR means (APIERROR) exposes the error Code
 ;
 ; ======================================================================
 ; MACROS

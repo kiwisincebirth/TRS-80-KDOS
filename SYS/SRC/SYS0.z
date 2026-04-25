@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	MINI DOS
+;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     SYS0 - CORE SYS0 Module
@@ -10,6 +10,8 @@
 ; ======================================================================
 ;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
+;
+import	constants.z
 ;
 ; ======================================================================
 ; Level 2 Communication Region (4000h - 4200h)
@@ -226,67 +228,67 @@ CIODOS:
 ; de pointer to the filename
 ; b  the length of the filename
 ; c  The open FA_* options - e.g. FA_OPEN_EXIST|FA_READ
-frehd_OPEN:
+_api_OPEN:
 	ex	de,hl		; file pointer into HL
 
 	ld	a,b		; filename length
 	inc	a		; +1 for options
 	inc	a		; +1 for terminator
-	out	(SIZE2),a	; write to FreHD size register
+	out	(APISIZE),a	; write to size register
 	;
 	ld	a,OPENFILE	; open file command
-	out	(COMMAND2),a	; send command to frehd
+	out	(APICMND),a	; send command
 	;
 	ld	a,$FF		; Set as though we have just read last (255) byte
 	ld	(FHDBYTE),a	; so next readbyte will force a read of 256 bytes
 	;
-	; call	frehd_WAIT	; ignore result
+	; call	_api_WAIT	; ignore result
 	;
 	ld	a,c		; file open options
-	ld	c,DATA2		; Data 2 register address
-	out	(c),a		; send command options to DATA2
-	otir			; send filename, length in B, to DATA2
+	ld	c,APIDATA		; Data 2 register address
+	out	(c),a		; send command options to DATA
+	otir			; send filename, length in B, to DATA
 	ld	a,0		; null terminator
 	out	(c),a		; send terminator
 	;
-	call	frehd_WAIT	; wait for status
+	call	_api_WAIT	; wait for status
 	;
 	ret
 ;
 ; Close the current File
-frehd_CLOSE:
+_api_CLOSE:
 	ld	a,CLOSEFILE	; close file
-	out	(COMMAND2),a
-	call	frehd_WAIT	; ignoring result
+	out	(APICMND),a
+	call	_api_WAIT	; ignoring result
 	ret
 ;
 ; Command to init the
 ; Read a Block of 256 Bytes
-frehd_READ:
-	xor	a		; request 256 bytes from FreHD File
-	out	(SIZE2),a	; Set the FreHD Size register
+_api_READ:
+	xor	a		; request 256 bytes from File
+	out	(APISIZE),a	; Set the Size register
 	ld	(FHDBYTE),a	; reset the byte counter, 0 bytes used
 	;
 	ld	a,READFILE	; command
-	out	(COMMAND2),a	; send command
+	out	(APICMND),a	; send command
 	;
-	call	frehd_WAIT	; wait for status
+	call	_api_WAIT	; wait for status
 	ret
 ;
 ; Read a Single Byte
 ; Note Only Used by Basic and Loader, not by Sys0 itself. - consider movng
-frehd_READBYTE:
+_api_READBYTE:
 	push	hl
 	ld	hl,FHDBYTE	; byte counter
 	inc	(hl)		; we are reading next byte, byte counter++
 	pop	hl
 	jr	nz,read2	; skip over BLOCK read if not required
 	;
-	call	frehd_READ	; every 256 bytes, need another 256 bytes
+	call	_api_READ	; every 256 bytes, need another 256 bytes
 	ret	nz		; return if read error
 read2:
 	xor	a		; clear flags, Z = true indicates no error
-	in	a,(DATA2)	; get a byte from FreHD, leaving flags alone
+	in	a,(APIDATA)	; get a byte, leaving flags alone
 	ret
 ;
 ;BYTEC	DEFB	0		; num bytes before need another READ
@@ -299,19 +301,19 @@ read2:
 ; NZ if there was an error
 ;	Register A : The Dos Error Code
 ;
-frehd_WAIT:
+_api_WAIT:
 	ex 	(sp),hl		; small delay to
 	ex 	(sp),hl		; settle the controller
 	;
-_wait1:	in 	a, (STATUS)	; read status from FreHD
+_wait1:	in 	a, (APISTAT)	; read status
 	bit	STATB_BUSY,a	; BUSY status bit
 	jr 	nz, _wait1	; loop while busy, for correct status
 	;
-	; in 	a, (STATUS)	; read status again
+	; in 	a, (APISTAT)	; read status again
 	bit	STATB_ERR,a	; test the LSB bit (STATUS_ERR)
 	ret	z		; No error just return the status
 	;
-	in	a, (ERROR2)	; read the FF error code from frehd
+	in	a, (APIERROR)	; read the FF error code
 
 	; The error code is mapped in the following way (bit 7 removed)
 	;   as 0 -  20 FF  Error -> map to 64- 128 by  setting Bit 6,
@@ -434,11 +436,11 @@ $FREE_CORE1	EQU	SYSFCB - $
 ; if modifying below please edit constants.z ( referring to $4480 )
 ;
 	JP	enhance_VER
-	JP	frehd_OPEN
-	JP	frehd_CLOSE
-	JP	frehd_READ
-	JP	frehd_READBYTE
-	JP	frehd_WAIT
+	JP	_api_OPEN
+	JP	_api_CLOSE
+	JP	_api_READ
+	JP	_api_READBYTE
+	JP	_api_WAIT
 ;
 ; ----------------------------------------------------------------------
 ; ----------------------------------------------------------------------
@@ -502,18 +504,18 @@ else
 	ld	b,OVRNAMLEN	; filename length
 	ld	c,FA_OPEN_EXIST|FA_READ	; Read existing
 	;
-	call	frehd_OPEN
+	call	_api_OPEN
 	jr	nz,_sup_fail1	; ERROR!!, then return with specific error code
 	;
 _sup_read
-	call	frehd_READ	; send command to read 256 bytes
+	call	_api_READ	; send command to read 256 bytes
 	jr	nz,_sup_fail2	; report an error
 	;
-	ld	bc,DATA2	; transfer 256 bytes (B). C=port to read data
+	ld	bc,APIDATA	; transfer 256 bytes (B). C=port to read data
 	ld	hl,OVERLY	; target binary address $4500
 	inir			; read 256 bytes into (HL)
 	;
-	call	frehd_READ	; send command to read 256 bytes
+	call	_api_READ	; send command to read 256 bytes
 	jr	nz,_sup_fail2	; report an error
 	inir			; read 256 bytes into (HL)
 	;
@@ -546,7 +548,7 @@ endif
 ;
 ; Signal if we have an Enhanced Version of DOS
 ; a  modified by this routine
-; Z  - if a standard FreHD with standard firmware
+; Z  - if a standard FreHD with "traditional" firmware
 ; NZ - if an enhanced version with Advanced Pico firmware (A=1)
 enhance_VER:
 
@@ -574,7 +576,7 @@ $FREE_CORE2	EQU	CORE2END - $
 ; ======================================================================
 ;
 ; ======================================================================
-; 4700 - End Of MDOS
+; 4700 - End Of KDOS
 ; ======================================================================
 ;
 $FREE_TOTAL	EQU	$FREE_CORE1 + $FREE_CORE2

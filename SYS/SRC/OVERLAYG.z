@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	MINI DOS
+;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     FILE HANDLING FOR DOS API's @ $4400 - $4480
@@ -32,7 +32,7 @@ import	constants.z
 	;
 	; And Pass the File ID to The PICO
        	ld     	a,(ix+FCB_FILEID) ; file id from FCB
-       	out    	(FILE2),a	; set file ID into Pico
+       	out    	(APIFILE),a	; set file ID into Pico
 	;
 	; Now decode which function to call
 	pop	af		; Get the call id back
@@ -82,17 +82,17 @@ _ILLEGAL
 _readfile
 	; Send the Command
 	ld	a,TRS_FILE_READ		; API READ command
-	out	(COMMAND2),a		; send command to frehd
+	out	(APICMND),a		; send command
 
 	; Wait and return if error
-	CALL	fhd_WAIT		; wait for status
+	CALL	api_WAIT		; wait for status
 	ret	nz			; error then out of here
 
 	; receive the data buffer
 	CALL	_LRL_FCB		; Set A = files LRL, and If 256 (0)
 					; then overwrite HL from FCB
 	ld	b,a			; LRL record length from A
-	ld	c,DATA2			; read block from PORT
+	ld	c,APIDATA			; read block from PORT
 	INIR				; load N bytes into Buffer
 	;
 	; Sync Files FCB Metadata - RETURNING to caller
@@ -120,17 +120,17 @@ _verifyfile
 _writefile
 	; Send the Command
 	ld	a,TRS_FILE_WRITE	; API WRITE command
-	out	(COMMAND2),a		; send command to frehd
+	out	(APICMND),a		; send command
 	;
 	; write the data buffer
 	CALL	_LRL_FCB		; Set A = files LRL, and If 256 (0)
 					; then overwrite HL from FCB
 	ld	b,a			; LRL record length from A
-	ld	c,DATA2			; write block to PORT
+	ld	c,APIDATA			; write block to PORT
 	OTIR				; write N bytes to Pico
 
 	; Wait and return if error
-	CALL	fhd_WAIT		; wait for status
+	CALL	api_WAIT		; wait for status
 	ret	nz			; error then out of here
 
 	; Sync Files FCB Metadata - RETURNING to caller
@@ -145,7 +145,7 @@ _writefile
 ;
 _rewindfile:
 	ld     	a,TRS_FILE_SOF		; command to execute
-	out    	(COMMAND2),a         	; Write the File Seek command
+	out    	(APICMND),a         	; Write the File Seek command
 	jr	_position_finish
 ;
 ; @BKSP Backspace One Record ($4445)
@@ -155,7 +155,7 @@ _rewindfile:
 ;
 _backspacefile
 	ld     	a,TRS_FILE_BACK		; command to execute
-	out    	(COMMAND2),a         	; Write the File Seek command
+	out    	(APICMND),a         	; Write the File Seek command
 	jr	_position_finish
 ;
 ; @PEOF Position to End Of File  EOF ($4448)
@@ -165,7 +165,7 @@ _backspacefile
 ;
 _eoffile
 	ld     	a,TRS_FILE_EOF		; command to execute
-	out    	(COMMAND2),a         	; Write the File Seek command
+	out    	(APICMND),a         	; Write the File Seek command
 	jr	_position_finish
 ;
 ; @POSN Position to a specified record ($4442)
@@ -176,16 +176,16 @@ _eoffile
 ;
 _positionfile
 	ld     	a,TRS_FILE_POS		; command to execute
-       	out    	(COMMAND2),a         	; Write the File Seek command
+       	out    	(APICMND),a         	; Write the File Seek command
 	;
 	; Send the 2-byte Record Number (BC)
 	ld     a,c
-	out    (DATA2),a            ; LSB
+	out    (APIDATA),a            ; LSB
 	ld     a,b
-	out    (DATA2),a            ; MSB (This triggers Step 2 on Pico)
+	out    (APIDATA),a            ; MSB (This triggers Step 2 on Pico)
 	;
 _position_finish
-       	call   	fhd_WAIT             	; Wait for Pico to complete seek
+       	call   	api_WAIT             	; Wait for Pico to complete seek
        	ret     nz			; if error then exit out
        	;
 	JP	_sync_META_POS		; NOW sync the local FCB -> and RET
@@ -196,7 +196,7 @@ _position_finish
 ;
 _sync_META
 	ld	a, TRS_FILE_FCB		; send command to
-	out  	(COMMAND2), a		; Ask for the 9-byte update
+	out  	(APICMND), a		; Ask for the 9-byte update
 	;
 _sync_META_POS
 	; Calculate local FCB offset 5
@@ -210,7 +210,7 @@ _sync_META_POS
 	inc	h			; if Carry, then bump MSB
 _sync_m1
 	;
-	ld   	bc, $900 + DATA2	; Get 9 bytes from IN (DATA2)
+	ld   	bc, $900 + APIDATA	; Get 9 bytes from IN (DATA)
 	INIR                    	; Update bytes 5-13
 	;
 	pop  	hl                 	; Restore saved pointer
@@ -226,8 +226,8 @@ _sync_m1
 ;
 _LRL_FCB:
 	;
-    	; Pico has set SIZE2 to LRL (e.g., 0 for 256)
-    	; IN   A, (SIZE2)		; get bytes from Pico
+    	; Pico has set SIZE to LRL (e.g., 0 for 256)
+    	; IN   A, (APISIZE)		; get bytes from Pico
 	;
 	ld	a,(IX+FCB_LRL)		; get LRL from FCB
 	or	a			; set flags based on LRL

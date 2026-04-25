@@ -2,21 +2,23 @@
 
 ## Introduction
 
-kDOS is a operating environemnt that runs on Model 1 providing
+kDOS is a operating environment that runs on Model 1 providing
 a TRS-DOS (DOS) like features to Level 2 basic
 
 The DOS runs alongside BASIC, rather than supplanting it.
-Typing a DOS command and a BASC statement are done in the
+Typing a DOS command and a BASIC statement are done in the
 same shell.
 
 Files are stored on SD card in native FAT filesystem.
 There is no emulation of legacy floppy or hard disks,
-nor any TRS-DOS (like) file-system.
+nor any TRS-DOS (like) file-system. 
 
 There are no meaningful limits (SD card size) on the number 
 of files that can be stored. Directories are fully supported.
+Files copied to the SD card in modern computer, are 
+directly readable on the TRS-80
 
-Programs that run on TRS-DOS should run under kDOS so long
+Programs that run on TRS-DOS "should" run under kDOS so long
 as they use standard DOS calls.
 
 ## Features
@@ -70,6 +72,7 @@ The Floppy 80 is the primary hardware required by this solution. Custom Firmware
 | Commands     | SAVE "filename.BAS"  |                            | All  |
 |              | RUN "filename.BAS"   |                            | All  |
 |              | KILL "filename"      | Delete a file (todo)       | Pico | 
+|              | MERGE "filename"     | Merge a file (todo)        | Pico | 
 |              | -                    |                            |      |
 | BASIC        | &Hxx                 | Hexadecimal Constant       | Pico |
 | Instructions | &Oxx                 | Octo-decimal Constant      | Pico |
@@ -228,21 +231,23 @@ See the separate Compatibility document for what is and isn't supported.
 
 ### Issues
 * typing LOAD "xx.bas" (basic command) from DOS causes a hang
+* running a program that has no END $ADDRESS - will run code based on last byte loaded - crash.
+  * instead this should be detected and generate an error
+
+### Keyboard
+Good Keyboard Driver e.g. LDOS, interrupt driven e.g. support typeahead
 * keyboard @ key has the caps lock behaviour, it shoudn't.
 * keyboard Shift @ key doesnt respont frequently, only every second keystroke.
-* running a program that has no END $ADDRESS - will run code based on last byte loaded - crash.
 
 ### Improvement
 * Improve the code addition of .CMD to a filename when executing from CMD processor.
   * When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
+
+### RTC
 * Full reboot should not wipe out Clock, needs secondary storage.
   * maybe just define an API on Pico to get time, and maintain it there
   * existing SYS 0 static defines should be removed
-  * -
-  * maybe keep copy in pico ram, and somehow make copy one a minute
-  * on Startup copy correct values, from Pico ram
-  * code that updates time could be moved into virtual RAM page
-  * backup data could also be in virtual page.
+  * copied on boot into RAM
 
 ### Improvement - Error handling
 * #RM BASIC - removing a directory (not empty) produced "FF Error 7" Access denied due to prohibited
@@ -259,21 +264,24 @@ See the separate Compatibility document for what is and isn't supported.
 * Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
 
 ### High Priority
-Disk Basic FILO IO Functions
+* M1ZVM
+* Debugger
 
 ### DOS Entry Points
 Need to add these
 * Date Time
+  * (446D) @TIME todo Get the time "23:59:59" into (HL)
+  * (4470) @DATE todo Get the date "12/12/99" into (HL)
 * Filename Extension
 
 ### Medium
 * Add a #COPY file.ext:N file.ext:N command
 * Add a KILL basic statement, leveraging #DELETE
+* Add a MERGE basic statement
 * Add BASIC FILE IO statements
 * #DIR {optional: wildcard}{optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
 
 ### Features
-* Good Keyboard Driver e.g. LDOS, interrupt driven e.g. support typeahead
 * Add ability for search paths when looking for file.
 * Add ability for named directories :1 to :9
 * NewDos 80 #System like command to store configuration parameters
@@ -343,7 +351,7 @@ Jump to a routine that RETs or JPs  -> Make it a Jump
 
 ## Enhanced Filename & Path Handling
 
-MDOS features a filename and path sanitiser that allows the TRS-80 to interact with a modern SD card.
+The DOS features a filename and path sanitiser that allows the TRS-80 to interact with a modern SD card.
 This system supports both legacy TRS-DOS naming conventions and modern hierarchical FAT subdirectories.
 
 ### Core Features

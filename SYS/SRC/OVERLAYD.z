@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	MINI DOS
+;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     DIR COMMAND
@@ -25,31 +25,31 @@ import	constants.z
 	call	enh_VER		; call the Enhanced Pico check
 	jr	nz,NEWDIR	; Enhanced Fre Hd / Advanced Pico handling
 ;
-; otherwise fall through to Standard FreHD handling
-; FreHD API to do a DIR listing
+; otherwise fall through to Standard (non advanced)
+; API to do a DIR listing
 ;
 GETDIR:
 	call	SETROWS         ; Setup column and row count
 	;
 	ld      a,2             ; 2 bytes
-	out     (SIZE2),A
+	out     (APISIZE),A
 	ld      a,OPENDIR
-	out     (COMMAND2),A
-	; call    fhd_WAIT
+	out     (APICMND),A
+	; call    api_WAIT
 	;
 	ld      a,"/"		; Default to the "ROOT" directory
-	out     (DATA2),A	; Directories are really for Oico Version only.
+	out     (APIDATA),A	; Directories are really for Oico Version only.
 	ld      a,0
-	out     (DATA2),A
+	out     (APIDATA),A
 	;
-	call    fhd_WAIT
+	call    api_WAIT
 	jp      nz,@ERROR	; Open DIR failed
 	;
 GETDIR2
 	ld      a,READDIR       ; Request directory entry
-	out     (COMMAND2),A
+	out     (APICMND),A
 	;
-	call    fhd_WAIT
+	call    api_WAIT
 	jp      nz,@ERROR	; read dir entry failed. handle error
 	;
 	and     STATUS_DRQ	; mask DRQ status
@@ -73,18 +73,18 @@ NEWDIR:
 	call	_STR_LEN	; and get the length (DE), into B
 	;
 	ld	a,b		; get the size of string
-	out     (SIZE2),a	; send to PICO
+	out     (APISIZE),a	; send to PICO
 	;
 	ld      a,TRS_NEW_DIR	; send the command
-	out     (COMMAND2),A
-	;call    fhd_WAIT
+	out     (APICMND),A
+	;call    api_WAIT
 	;
 	EX	DE, HL		; string pointer back into HL
-	ld	c,DATA2		; data port
+	ld	c,APIDATA		; data port
 	otir			; write all the bytes from (HL)
 	;
 NEWDIR2
-	call    fhd_WAIT
+	call    api_WAIT
 	jp      nz,@ERROR	; Read Failed
 	;
 	and     STATUS_DRQ	; mask DRQ status
@@ -102,9 +102,9 @@ NEWDIR3
 ;
 ; ----------------------------------------------------------------------
 PROCESSDIR:
-	in      a,(SIZE2)       ; initiate read the FILINFO structure
+	in      a,(APISIZE)       ; initiate read the FILINFO structure
 	ld      b,a
-	ld      c,DATA2		; BC is count, from data IO Port
+	ld      c,APIDATA		; BC is count, from data IO Port
 	ld      hl,BUFFER	; to buffer
 	inir			; transfer the data
 	;
@@ -114,7 +114,7 @@ PROCESSDIR:
 	ret   	nz	 	; Ignore this file
 	;
 	ld      a,(hl)		; Check File attribute for DIRECTORY
-	and     AM_DIR		; if directory - todo for frehd exclude these
+	and     AM_DIR		; if directory - todo skip , exclude directries for non advanced
 	jr   	z,PROCESS2      ; No So skip down
 	;
 	call	enh_VER		; call the Enhanced Pico check

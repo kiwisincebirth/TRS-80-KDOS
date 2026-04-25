@@ -1,8 +1,8 @@
 ; ======================================================================
-;       	MINI DOS
+;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
-;     Working Memory in PICO Scratch RAM
+;     Working Memory in PICO Scratch RAM (3400-37EF)
 ;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -30,20 +30,20 @@ pico_loader:
 ; ======================================================================
 
 ; ----------------------------------------------------------------------
-;;;
-;;; FreHD file loader
-;;;
-;;; **** ON a PICo this code has to be in the SCRATCH RAM
-;;; **** Since the Loader could load functions into Paged RAM
-;;;
-;;; Input:
-;;; - DE : pointer to filename
-;;; - B  : filename length
-;;;
-;;; Return:
-;;; - Z  : no error ;    HL : contains transfer address
-;;; - NZ : error occurred, file not or partially loaded
-;;;
+;
+; File loader
+;
+; **** ON a PICo this code has to be in the SCRATCH RAM
+; **** Since the Loader could load functions into Paged RAM
+;
+; Input:
+; - DE : pointer to filename
+; - B  : filename length
+;
+; Return:
+; - Z  : no error ;    HL : contains transfer address
+; - NZ : error occurred, file not or partially loaded
+;
 _ploader:
 	ld	a,(PICOPAGENUM)		; get current virtual page number
 	ld	(_pload1+1),a		; save it into instruction below
@@ -57,10 +57,10 @@ _pload1:
 ;
 _loader:
 	ld	c,FA_OPEN_EXIST|FA_READ
-	call	fhd_OPEN	; open file command
+	call	api_OPEN	; open file command
 	ret	nz		; error, then return
 	;
-_load:	call	fhd_READBYTE	; get type code
+_load:	call	api_READBYTE	; get type code
 	jr	nz,_load9	; no byte so assume finished and return
 	;
 	dec	a
@@ -69,7 +69,7 @@ _load:	call	fhd_READBYTE	; get type code
 _load1:	call	_getadr		; Type 1 get address; HL Addr and B Size
 	ret	nz
 	;
-_load1a:	call	fhd_READBYTE
+_load1a: call	api_READBYTE
 	ret	nz
 	ld	(hl),a		; save that byte
 	inc	hl
@@ -79,10 +79,10 @@ _load1a:	call	fhd_READBYTE
 _load2:	dec	a		; test if type 2 (TRADDR)
 	jr	z,_load8		; yes consume transfer address
 	;
-	call	fhd_READBYTE	; Type 3 and above: assume comment
+	call	api_READBYTE	; Type 3 and above: assume comment
 	ld	b,a		; get comment length
 _load2a:
-	call	fhd_READBYTE	; read comment character
+	call	api_READBYTE	; read comment character
 	ret	nz
 	djnz	_load2a		; read and ignore
 	jr	_load
@@ -90,20 +90,20 @@ _load2a:
 _load8:	call	_getadr		; get transfer address
 	ret	nz
 	;
-_load9:	call	fhd_CLOSE
+_load9:	call	api_CLOSE
 	xor	a		; set Z for success !
 	ret
 	;
 _getadr:
-	call	fhd_READBYTE	; get block length
+	call	api_READBYTE	; get block length
 	ret	nz
 	ld	b,a		; get length and
 	dec	b		; adjust length
 	dec	b		; adjust length
-	call	fhd_READBYTE	; get low-order load addr
+	call	api_READBYTE	; get low-order load addr
 	ret	nz
 	ld	l,a
-	call	fhd_READBYTE	; get high-order load addr
+	call	api_READBYTE	; get high-order load addr
 	ret	nz
 	ld	h,a		; address into HL
 	xor	a		; success
@@ -112,10 +112,10 @@ _getadr:
 ; ----------------------------------------------------------------------
 ; ----------------------------------------------------------------------
 ; ----------------------------------------------------------------------
-;;;
-;;; Interrupt Service Routine
-;;; todo consider moving this to virtual ram.
-;;;
+;
+; Interrupt Service Routine
+; todo consider moving this to virtual ram.
+;
 _isr_service
 	;
 	push	hl

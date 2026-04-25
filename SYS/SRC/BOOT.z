@@ -1,27 +1,34 @@
-;;;
-;;; BOOT.SYS - Like Boot Block on Floppy Disk
-;;; (The main loader for MDOS)
-;;;
-;;; FreHD Like - SYS0.SYS - ROM LOADER
-;;;
-;;; These 256 bytes are the code which is initially loaded and starts
-;;; the load of the actual mini DOS.
-;;;
-;;; This code tries to open "/SYS/SYS0x.SYS" on the SD-card.
-;;; and will execute this code once loaded
-;;;
-;;; This is loaded and executed from Level 2 ROM if either:
-;;;	* A Floppy Disk boot block will load this at $4200
-;;;	    - In which case the code relocates itself to $5200
-;;;    	* Fre HD Autoboot Rom will Load FREHD.ROM
-;;;	    - FREHD.ROM will load this directly to $5200
-;;;
-;;; If loaded from floppy disk boot the code will automatically
-;;; be relocated and executed from $5200
-;;;
-
 ; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BOOT.SYS - Boot Block (floppy) Like startup
+;       SYS0.SYS (Overlay) - SYSP.SYS (Paged) - LOADER
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
 import	constants.z
+;
+; These 256 bytes are the code which is initially loaded and starts
+; the load of the actual DOS.
+;
+; This code tries to open "/SYS/SYS0x.SYS" on the SD-card.
+; and will execute this code once loaded
+;
+; This is loaded and executed from Level 2 ROM if either:
+;	* A Floppy Disk boot block will load this at $4200
+;	    - In which case the code relocates itself to $5200
+;    	* Loaded via a FreHD auto-boot ROM (as FREHD.ROM)
+;	    - FREHD.ROM will load this directly to $5200
+;
+; If loaded from floppy disk boot the code will automatically
+; be relocated and executed from $5200
+;
 ; ======================================================================
 ;
 	ORG	BOOTSYSLOC
@@ -51,7 +58,7 @@ RELOADED:
 START:
 	; Detection of warm start
 	ld	hl,KBROWCLR	; location of saved value
-	ld	a,(14400)	; CLEAR Keyboard Row value
+	ld	a,(KBDMATRX+$40); CLEAR Keyboard Row value
 	;
 	;ld	b,(hl)		; get saved val from last boot.
 	;cp	b		; compare values
@@ -59,16 +66,16 @@ START:
 	;
 	ld	(hl),a		; not warm boot remember it for next time.
 	;
-	; Detection of Advancded PICO hardware
+	; Detection of Advanced PICO hardware
 	;
 	; Potentially simplify this code, just read and check STATUS bit,
 	; or new File-Id register (write read back), or a new command
 	;
-	ld	a,GETVER	; version information from FreHD
-	out	(COMMAND2),a
+	ld	a,GETVER	; version information from Pico
+	out	(APICMND),a
 	call	fhdwait		; ignoring result
 	;
-	ld	c, DATA2	; data port
+	ld	c, APIDATA	; data port
 	in	a,(c)		; read / skip over first byte
 	in	a,(c)		; read / skip over second byte
 	;
@@ -77,13 +84,13 @@ START:
 	xor	d		; xor them together -> $FF if Enhanced Pico
 	inc	a		; $00 Z if advanced PICO hardware
 	;
-	ld	de,fnamef	; Default to FreHD Minimal /SYS0.SYS
+	ld	de,fnamef	; Default to Minimal ram banked SYS0.SYS
 	ld	b,$10		; length of 16 bytes
 	;
 	jr	nz,START1	; NZ If NOT Advanced Pico, skip over
 	;
 	; CLEAR KEY - Detection.
-	ld	a,(14400)	; CLEAR Keyboard Row
+	ld	a,(KBDMATRX+$40); CLEAR Keyboard Row
 	and	2		; CLEAR KEY Pressed
 	jr	NZ, START1	; Then Use Traditional, not Paged
 	;
@@ -96,17 +103,17 @@ START1:
 	;
 	jp	(hl)		; jump to SYS0.SYS
 	;
-;;;
-;;; FreHD file loader
-;;;
-;;; Input:
-;;; - DE : pointer to filename
-;;; - B  : filename length
-;;;
-;;; Return:
-;;; - Z  : no error. HL contains transfer address
-;;; - NZ : error occurred, file not or partially loaded
-;;;
+;
+; File loader
+;
+; Input:
+; - DE : pointer to filename
+; - B  : filename length
+;
+; Return:
+; - Z  : no error. HL contains transfer address
+; - NZ : error occurred, file not or partially loaded
+;
 file_loader:
 	ld	hl,0			; save SP in IX
 	add	hl,sp
@@ -115,13 +122,13 @@ file_loader:
 
 	ex	de,hl
 	ld	a,OPENFILE		; open file command
-	out	(COMMAND2),a
+	out	(APICMND),a
 	;
 	ld	a,b			; Size Computation
 	inc	a			; +1 for options
 	inc	a			; +1 for null-terminator
-	out	(SIZE2),a
-	ld	c,DATA2
+	out	(APISIZE),a
+	ld	c,APIDATA
 	ld	a,FA_OPEN_EXIST|FA_READ
 	out	(c),a			; send option
 	otir				; send filename
@@ -154,7 +161,7 @@ load4:	call	getbyte
 load5:
 	call	getaddr			; get transfer address
 	ld	a,CLOSEFILE		; close file
-	out	(COMMAND2),a
+	out	(APICMND),a
 	call	fhdwait
 	xor	a			; set Z for success !
 	ret
@@ -175,23 +182,23 @@ getbyte
 	jr	nz,getbyte1		; every 256 bytes, need another chunk
 	call	getchunk
 getbyte1:
-	in	a,(DATA2)		; get a byte
+	in	a,(APIDATA)		; get a byte
 	ret
 ;
 getchunk
 	xor	a			; request 256 bytes
-	out	(SIZE2),a
+	out	(APISIZE),a
 	ld	a,READFILE
-	out	(COMMAND2),a
+	out	(APICMND),a
 	call	fhdwait
 	jr	nz,geterror
-	in	a,(STATUS)		; DRQ set means we got something
+	in	a,(APISTAT)		; DRQ set means we got something
 	and	08h
 	ret	nz			; return if ok !
 					; fall through to error
 geterror:
 	ld	a,CLOSEFILE		; close file
-	out	(COMMAND2),a
+	out	(APICMND),a
 	call	fhdwait
 	ld	sp,ix
 	inc	a			; set NZ (wait returns A == 0 or 1)
@@ -201,10 +208,10 @@ fhdwait:
 	ex 	(sp),hl			; small delay to
 	ex 	(sp),hl			; settle the controller
 fhdwait1:
-	in 	a, (STATUS)
+	in 	a, (APISTAT)
 	rlca
 	jr 	c, fhdwait1
-	in 	a, (STATUS)		; read status again
+	in 	a, (APISTAT)		; read status again
 	and 	01h			; nz = error
 	ret
 ;

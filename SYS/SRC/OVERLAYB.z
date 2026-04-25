@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	MINI DOS
+;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     BASIC - LOAD, SAVE and RUN
@@ -44,40 +44,40 @@ _BAS_SAVE:
 	call	_GET_STRING	; de points to string, B is the lenght non-zero
 ;
 	ld	c,FA_CREATE_ALWAYS|FA_WRITE	; create with over-write
-	call	fhd_OPEN	; open file command
+	call	api_OPEN	; open file command
 	jp	nz,@ERROR	; file not opened.
 ;
 	ld	c,1		; write 1 byte
-	call	_fhd_WRITE	; setup the write command for 1 byte
+	call	_api_WRITE	; setup the write command for 1 byte
 	jp	nz,@ERROR	; file not opened.
 ;
 	ld	a,$FF
-	out	(DATA2),a	; write $FF byte
-	call	fhd_WAIT
+	out	(APIDATA),a	; write $FF byte
+	call	api_WAIT
 	jp	nz,@ERROR	; file not opened.
 ;
 	ld	hl,(TXTTAB)	; get the start basic pointer
 	ld	de,(VARTAB)	; get the  end  basic pointer
 _save2:
 	ld	c,0		; write 256 bytes
-	call	_fhd_WRITE	; setup the write command for 1 byte
+	call	_api_WRITE	; setup the write command for 1 byte
 	jp	nz,@ERROR	; file not opened.
 ;
 ; this is a bit of a simple approach, will always write
 ; 256 byte blocks (even on last block), more bytes than is needed.
 ; consider truncating to just the number of bytes on the last block
 ;
-	ld	bc, DATA2	; b=0 "256" bytes, c=DATA2 output port
+	ld	bc, APIDATA	; b=0 "256" bytes, c=DATA output port
 	ld	b, a		; the count to transfer
 	otir			; send data from (hl) to port (C)
-	call	fhd_WAIT
+	call	api_WAIT
 	jp	nz,@ERROR	; file not opened.
 _save3:
 	RST	18H		; CARRY SET=HL<DE; NO CARRY=HL>DE; NZ=Unequal; Z=Equal).
 	jr	c,_save2	; more bytes so loop back.
 ;
 _save9:
-	call	fhd_CLOSE
+	call	api_CLOSE
 	jp	@EXIT		; exit to DOS
 ;
 ; ----------------------------------------------------------------------
@@ -119,10 +119,10 @@ _LOADER:
 	call	_GET_STRING	; de points to string, B is the length non-zero
 
 	ld	c,FA_OPEN_EXIST|FA_READ
-	call	fhd_OPEN	; open file command
+	call	api_OPEN	; open file command
 	jp	nz,@ERROR	; file not opened.
 
-	call	fhd_READBYTE
+	call	api_READBYTE
 	jp	nz,@ERROR	; error if dont find another byte
 	;
 	cp	$FF		; check first byte is $FF - meaning basic program.
@@ -139,7 +139,7 @@ _DLLOP3:
 	ld	b,3		; looking for 3 zeros for termination
 _DLLOP4:
 	; start of loop
-	call	fhd_READBYTE; transfer a byte from source
+	call	api_READBYTE; transfer a byte from source
 	jp	nz,@ERROR	; error if dont find another byte
 	;
 	ld	(de),a		; transfer to the destination
@@ -152,7 +152,7 @@ _DLLOP4:
 	jr	nz,_DLLOP4	; main loop not resetting zero counter
 	;
 _LOAD_FIN:
-	call	fhd_CLOSE	; received 3 $00 so finish here
+	call	api_CLOSE	; received 3 $00 so finish here
 ;
 ; ORIGINAL FROM CLOAD
 ;	ld	(VARTAB),de	; After three 000 - Save the new end of the BASIC program pointer.
@@ -198,12 +198,12 @@ _GET_STRING:
 ;
 ; init the write of bytes to a file
 ; C the number of bytes 0=256
-_fhd_WRITE:
+_api_WRITE:
 	ld	a,WRITEFILE	; command
-	out	(COMMAND2),a	; send command
+	out	(APICMND),a	; send command
 	;
 	ld	a,c
-	out	(SIZE2),a	; Set the FreHD Size register
+	out	(APISIZE),a	; Set the PICO Size register
 	;
 	ret
 ;

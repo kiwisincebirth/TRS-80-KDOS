@@ -1,16 +1,29 @@
-
 ; ======================================================================
-; 5200 - Startup Code is Located Here
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     Startup Code To Init KDOS
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
 ;
 ; Called by the loader once load complete
 ; Resumes the Level 2 rom startup ensuring 4000-4200 coms region
 ; is established excluding the code loaded as part of loading this file.
 ; This ensure L2 Basic routines are full established.
+;
 ; ======================================================================
 ;
 ; todo move the clock startup - zero time bytes here
 ; todo detection logic around cold or warm start
-
+;
+; ======================================================================
 	ORG	STARTUP
 	;
 	di			; initially disable interrupts
@@ -68,12 +81,12 @@ READY1:
 	ld	hl,(MEMSIZ)	; Get the Basic MEMORY SIZE? amount
 	ld	(MEMEND),hl	; Save in DOS High Memory pointer
 	;
-	ld	a,GETVER	; version information from FreHD
-	out	(COMMAND2),a
-	call	frehd_WAIT	; ignoring result
+	ld	a,GETVER	; get version information
+	out	(APICMND),a	; send the command
+	call	api_WAIT	; ignoring result
 	;
-	ld	hl,FREHDVER 	; major and minor versions $41FE $41FF
-	ld	bc, $200+DATA2	; 2 bytes from version
+	ld	hl,PICOVERS 	; major and minor versions $41FE $41FF
+	ld	bc, $200+APIDATA	; 2 bytes from version
 	inir			; store the version
 	;
 	; When booting User can hold Clear Key, which disables Paged

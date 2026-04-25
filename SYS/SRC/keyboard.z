@@ -6,8 +6,6 @@ import constants.z
 ; ----------------------------------------------------------------------
 KEYTAB		EQU	$0050	; Rom address of KB translation table
 ;
-kbdmatrix	EQU	$3800
-;
 KYBTSS		EQU	$4036
 KYBTSS8		EQU	$412F	; Location of Saved 8th row of keyboard matrix
 ;
@@ -25,7 +23,7 @@ KYBTSS8		EQU	$412F	; Location of Saved 8th row of keyboard matrix
 ; ----------------------------------------------------------------------
 ;
 KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area, Saved Rows (4036)
-	ld	bc,kbdmatrix+1	;03e6 - first keyboard matrix row
+	ld	bc,KBDMATRX+1	;03e6 - first keyboard matrix row
 	ld	d,0		;03e9 - track the keyboard Row
 KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
 KEYLP2:	ld	e,a		;03ec - save keyboard row
@@ -106,7 +104,7 @@ KEYFND:
 ; 	Bit 3-6 unused Bits from KB DCB ($4019)
 ; 	Bit 7 - Shifted State for Alpha (CAPS xor SHIFT)
 KB_CAPSCTL:
-        ld	a,(kbdmatrix+$80)	; Value from SHIFT Matrix Row 3880H
+        ld	a,(KBDMATRX+$80) ; Value from SHIFT Matrix Row 3880H
         and	$07		; mask only the Shift/Control keys
         ld	b,a		; save keyboard shift control keys
         rrca			; Rotate bit 0 (shift) to Bit 7

@@ -1,5 +1,5 @@
 ; ======================================================================
-;       	MINI DOS
+;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     FILE HANDLING FOR DOS API's @ $4400 - $4480
@@ -70,6 +70,7 @@ _ILLEGAL
 
 ; below is copied from trs dos SYS 01
 ; https://www.trs-80.com/sub-disassem-dos-td23-sys-1.htm
+; todo this might need work, e.g. FILE.EXT might become -> FILE.EXT/EXT
 
 _fext
 	push	de                   ; 4fc0:
@@ -228,7 +229,7 @@ _init_open:
 ;
 	; setup the file open command
 	ld	a,TRS_FILE_OPEN		; API FILE OPEN command
-	out	(COMMAND2),a		; send command to Pico
+	out	(APICMND),a		; send command to Pico
 ;
  	; byte 0 : open options
 	pop	af			; get the Super ID back
@@ -239,7 +240,7 @@ _init_open:
 ;
 _open_skip1
 	; byte 0 : open options
-	ld	c,DATA2			; the data port
+	ld	c,APIDATA			; the data port
 	out	(c),a			; send it.
  	; byte 1 : logical record length 0=256 (B)
  	out	(c),b
@@ -252,7 +253,7 @@ _open_skip1
 	otir				; send data from (hl) to port (C)
 ;
 _open_open:
-	call	fhd_WAIT		; wait for status of OPEN
+	call	api_WAIT		; wait for status of OPEN
 	jr	nz,_open_out1		; error then out of here
 ;
 	; copy the FCB data back to ram.
@@ -261,7 +262,7 @@ _open_open:
 	ld	b,32			; FCB is 32 bytes
 	inir				; transfer the data back to HL
 ;
-	BIT	STATB_ZERO, A		; check status (from fhd_wait) for FileLen = 0
+	BIT	STATB_ZERO, A		; check status (from api_wait) for FileLen = 0
 	JR	NZ, _new_file		; If Zero length (flag) then => New file
 _existing_file:
     	XOR	A                	; set Zero flag (Success),
@@ -290,17 +291,17 @@ _closefile
 	push	de
 	pop	ix			; get fcb into IX
 	ld	a,(ix+FCB_FILEID)	; file id from the FCB
-	out	(FILE2),a		; write file id to pico
+	out	(APIFILE),a		; write file id to pico
 	;
 	ld	a,TRS_FILE_CLOSE	; close command
-	out	(COMMAND2),a		; send the command
+	out	(APICMND),a		; send the command
 	;
-	call	fhd_WAIT		; wait for status
+	call	api_WAIT		; wait for status
 
 	; copy the FCB data back overiting the FCB
 	ld	h,d			; copy fcb into HL
 	ld	l,e
-	ld	bc,$2000+DATA2		; copy B=$20 bytes from Port C=DATA2
+	ld	bc,$2000+APIDATA		; copy B=$20 bytes from Port C=DATA
 	inir				; transfer the data back to HL
 
 	ret
