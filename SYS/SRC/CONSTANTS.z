@@ -129,7 +129,8 @@ PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
 ;
 KBDMATRX	EQU	$3800
 ;
-STRBUFF		EQU	$41F8		; L2 Basic String Buffer (formally 41E5H)
+STRBUFF		EQU	$41FB		; L2 Basic String Buffer (formally 41E5H)
+					; requires 3 bytes preamble
 					; L2 Basic Assigns $103 bytes to this buffer
 ;
 CORE1		EQU	$4300		; DOS Core Resident Code Block

@@ -41,8 +41,8 @@ import	constants.z
 				; $40A0 - $40A5 (6 bytes) need different values.
 	ldir			;007e - Move the routines into $4040 thru $4060
 ;
-;  Initialises String Buffer
-	ld	hl,STRBUFF	;0080 - String Buffer Area in RAM (historically 41E5H)
+;  Initialises String Buffer (bytes preceding)
+	ld	hl,STRBUFF-3	;0080 - String Buffer Area in RAM (historically 41E5H)
 	ld	(hl),':'	;0083 - save a colon
 	inc	hl		;0085 - next location
 	ld	(hl),b		;0086 - write a 0, B reg should be zero

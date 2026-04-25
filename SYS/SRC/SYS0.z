@@ -61,7 +61,7 @@ import	constants.z
 	DEFW	$FFFE		;40A2 (CURLIN) - Current BASIC Line Number
 	DEFW	L2START+1	;40A4 (TXTTAB) - BASIC Program Statement Table (was $41E9)
 	DEFB	0		;40A6 (TTYPOS) - Cursor pos on VDU line. See POS function.
-	DEFW	STRBUFF+3	;40A7 (BUFPNT) - Main command line (KB) Input buffer.
+	DEFW	STRBUFF		;40A7 (BUFPNT) - Main command line (KB) Input buffer.
 ;
 ; ----------------------------------------------------------------------
 ; (4152-41A5) DOS BASIC commands
