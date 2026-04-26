@@ -87,9 +87,9 @@ PRGFIN	EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 ;
 ; KDOS specific data held at these Hi locations (41E5-41F7)
 ;
-KBROWCLR EQU	$41E5	; State of Clear KB Row at boot.
-FHDBYTE	 EQU	$41E6	; FHD byte counter - num bytes before full READ
-PICOVERS EQU	$41F5	; 2 bytes Pico Version number
+KBROWCLR EQU	$447B	; State of Clear KB Row at boot.
+FHDBYTE	 EQU	$447C	; FHD byte counter - num bytes before full READ
+PICOVERS EQU	$447D	; 2 bytes Pico Version number
 ;
 ; DOS Entry Points Routines
 ;
@@ -103,7 +103,7 @@ PICOVERS EQU	$41F5	; 2 bytes Pico Version number
 @DSPLY		EQU     $4467
 @PRINT		EQU	$446A
 ;
-DOSPRMPT	EQU	$447D ; holds CMD prompt state dos/basic
+DOSPRMPT	EQU	$447F ; holds CMD prompt state dos/basic
 ;
 ; Jump Points into DOS Core (SYS0) routines
 ; must be consistent with code located at $4480
@@ -122,6 +122,11 @@ api_WAIT	equ	(5*3) + $4480
 ; Memory Locations for Regions
 ; ======================================================================
 ;
+
+;4318H-4356H
+;(63 bytes)	DOS command input buffer (TRSDOS 2.3 / T1)
+;4318H. This 63-byte buffer will receive the user's keyboard input.
+
 PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
 PICOSCRDUSR	EQU	$37C8		; Holds Def USR 0-9 jump Addresses 20 bytes
 					; 37E0 - 37EF Gap Here
@@ -129,12 +134,12 @@ PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
 ;
 KBDMATRX	EQU	$3800
 ;
-STRBUFF		EQU	$41FB		; L2 Basic String Buffer (formally 41E5H)
+CORE1		EQU	$41F8		; DOS Core Resident Code Block
+SYSFCB  	EQU	$42F4		; DOS System FCB BUFFER
+STRBUFF		EQU	$4318		; L2 Basic String Buffer (formally 41E5H)
 					; requires 3 bytes preamble
 					; L2 Basic Assigns $103 bytes to this buffer
 ;
-CORE1		EQU	$4300		; DOS Core Resident Code Block
-SYSFCB  	EQU	$43E0		; DOS System FCB BUFFER
 DOSENTY 	EQU	$4400		; TRS-DOS Entry Points
 CORE2		EQU	$4480		; Second Core Resident Code Block
 
@@ -198,7 +203,7 @@ S_COPYCMD	EQU	'O' - SUP_OFF + $40	; #COPY #CP command
 S_DELCMD	EQU	'O' - SUP_OFF + $60	; #DEL #DELETE #KILL #RM command
 S_MDCMD		EQU	'O' - SUP_OFF + $80	; #MKDIR command
 S_RENCMD	EQU	'O' - SUP_OFF + $A0	; #REN #RENAME #MV #MOVE command
-S_PWDCMD	EQU	'O' - SUP_OFF + $C0	; #PWD command
+S_PWDCMD	EQU	'O' - SUP_OFF + $C0	; #PWD (NO ARGS) command
 ;
 SUPERV 	macro	p1
 	ld	a,p1	; load supervisor id

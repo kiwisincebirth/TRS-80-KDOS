@@ -25,15 +25,18 @@ import	constants.z
 	; not the comments below indicate the original source code
 	; this is done because we need to trap before tokenisation.
 
-	; **** Print the READY message
-	call	CRDONZ		;1a22 - display a carriage return if necessary
-				; todo dont think this always works,
-				; todo issue with detection based on column
-	;
 	ld	a,(DOSPRMPT)	; check the saved flag for DOS prompt
 	or	a
 	jr	nz,_promptDOS	; if flag is set jp fwd and DOS prompt
 	;
+; ----------------------------------------------------------------------
+; **** BASIC ****
+; ----------------------------------------------------------------------
+	call	CRDONZ		;1a22 - display a carriage return if necessary
+				; todo dont think this always works,
+				; todo issue with detection based on column
+	;
+	; **** Print the READY message
 	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
 	call	STROUT		;1a28 - Display the word “READY”
 	;
@@ -74,19 +77,30 @@ _MAIN:	ld	hl,$FFFF	;1a33 - line number indicating Direct command mode
 	pop	af		; pop AF fom above as not using it
 	jr	_processDos
 
+; ----------------------------------------------------------------------
+; **** DOS ****
+; ----------------------------------------------------------------------
 _promptDOS
 	ld	a,CMD_PROMPT_CHR ; # prompt
 	call	OUTDO		; Display the # Prompt
 	;
 	; **** Get User Command
-	call	INLIN		; Actually read a Line of input
+;	call	INLIN		; Actually read a Line of input
+	LD	HL,4318H	;the DOS command input buffer
+	LD	B,7FH 		;max chars in buffer.
+	CALL	0040H		;line input routine On return, HL points past the last character entered, and the buffer is terminated with 0DH.
 
 	jr	c,_promptdos	; loop back if BREAK pressed
 
-	GETCHR			;
-	cp	0		; test for an end of statement
-	jr	z,_basicMode	; if terminator then back to BASIC mode
-	dec	hl		; need to back track the char just read
+	xor	a
+	cp 	b
+	jr	z,_basicMode
+
+;
+;	GETCHR			;
+;	cp	0		; test for an end of statement
+;	jr	z,_basicMode	; if terminator then back to BASIC mode
+;	dec	hl		; need to back track the char just read
 
 _processDos
 	ld	a,1
@@ -107,9 +121,11 @@ _LOOK1
 	jr	z,_FOUND	; found terminator in table, i.e. Found Cmd
 	ld	b,a		; save lookup char for compare
 	;
-	RST	10h		; consume the next command char (A)
+;	RST	10h		; consume the next command char (A)
+	ld	a,(hl)
+	inc	hl
 
-	cp	0		; was next command char a terminator
+	cp	$0d		; was next command char a terminator
 	jr	z,_LOOK2	; we havent matched a cmd in our lookup tabe
 
 	cp	'a'		; lower case check
@@ -137,9 +153,9 @@ _LOOK2:
 	;
 ; ----------------------------------------------------------------------
 _FOUND:
-	inc	hl		; consume the next command char
+;	inc	hl		; consume the next command char
 	ld	a,(hl)
-	cp	0		; if a terminator
+	cp	$0d		; if a terminator
 	jr	z,_FOUND2
 	cp	' '		; is a space
 	jr	nz,_LOOK2	; NOT space haven't found it
@@ -154,10 +170,10 @@ _FOUND2:
 
 ; ----------------------------------------------------------------------
 _NOTFND:
-	;
+	; todo also consider moving this into Overlay L
 	; parse the command line string as a file name
 	ld	hl,(SAVBUFF)	; get original address of command buffer
-	inc	hl		; buffer pointer so actual char (not prior)
+	; inc	hl		; buffer pointer so actual char (not prior)
 	ld	de,SYSFCB	; system FCB, where we store filename to exec
 	push	de		; save system FCB for latter use
 	ld	b,16		; max bytes in command name (could be 31?)

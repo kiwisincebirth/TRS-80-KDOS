@@ -77,13 +77,15 @@ LOAD_FIL
 ; On Entry
 ;    DE -> points to the Filespec
 ; On Exit
-;    HL -> pointer to command buffer (arguments)
+;    BC -> pointer to start of command buffer (LD6/TD6 Only) ???
+;    DE -> pointer to FCB that opened the file (ND80 TD6) ???
+;    HL -> pointer to command buffer, first non-blank after command
 ;    AF and BC are Altered
 ;
 RUN_FIL:
 	push	hl		; save the string pointer passed in
 	;
-	call	_STR_LEN	; count the length of the DE string -> B
+	call	_STR_LEN	; count the length of the DE (FCB) string -> B
 	call	file_loader	; attempt to load the file
 	jr	nz,RUN_FAIL	; error handler and exit to @ERROR
 	;
@@ -102,7 +104,9 @@ RUN_ER2:
 	jp	@ERROR		; DOS ERROR
 ;
 ; Get the length of the string.
-; Also in OverlayD
+; Also in OverlayD, OverlayL, and OverlayO
+;
+; NOTE: Unlike the others this is not a CMD buffer, so DONT change the Terminator
 ;
 _STR_LEN:
 	push	de		; save PCB pointer

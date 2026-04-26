@@ -80,7 +80,7 @@ NEWDIR:
 	;call    api_WAIT
 	;
 	EX	DE, HL		; string pointer back into HL
-	ld	c,APIDATA		; data port
+	ld	c,APIDATA	; data port
 	otir			; write all the bytes from (HL)
 	;
 NEWDIR2
@@ -162,10 +162,10 @@ PROCES6
 ; ----------------------------------------------------------------------
 ;
 ; Get the length of the string.
-; Also in OverlayL
+; Also in OverlayD, OverlayL, and OverlayO
 ;
 _STR_LEN:
-	push	de		; save PCB pointer
+	push	de		; save pointer to string
 	dec	de		; dec as inc below happens first
 	ld	b,0		; length including the terminator
 	;
@@ -173,14 +173,21 @@ _STR_LEN1
 	inc	de		; increment pointer
 	inc	b		; and the counters
 	ld	a,(de)		; get the byte
+	cp	EXT		; end of Text terminator
+	jr	z,_STR_TERM	; IF CR then end of command
+	cp	ENTER		; a CR DOS terminator
+	jr	z,_STR_TERM	; IF CR then end of command
 	or	a		; check the byte
-	jr	nz,_STR_LEN1	; NOT a terminator, so loop
+	jr	nz,_STR_LEN1	; NOT a ZERO terminator, so loop
 	;
 	pop	de		; restore the FCB
 	ret			; and return the length
-
+_STR_TERM
+	xor	a
+	ld 	(de),a		; replace CR with 0 terminator
+	pop	de
+	ret
 ; ----------------------------------------------------------------------
-
 
 BUFFER
 	DS      32		; 32 should be enough
