@@ -381,9 +381,9 @@ $FREE_CORE1	EQU	SYSFCB - $
 	ld	b,a		; (4409) @ERROR Error Exit - Display Error Messages
 	SUPERV	S_ERRHAND	; Put error code into B -> displaying Disk Error Code
 	RET3			; (440D) @DEBUG Enter Debug Mode from running program
-	RET3			; (4410) @ADTSK Add an address to the Interrupt Task List Vector
-	RET3			; (4413) @RMTSK Remove an address from the Interrupt Task List Vector
-	RET3			; (4416) * LDOS Replace currently executing Task * ND80 Keep Drives Rotating
+	RET3			; (4410) todo @ADTSK Add an address to the Interrupt Task List Vector
+	RET3			; (4413) todo @RMTSK Remove an address from the Interrupt Task List Vector
+	RET3			; (4416) * LDOS Replace currently executing Task * TRSDOS ND80 Keep Drives Rotating
 	RET3			; (4419) * LDOS Remove currently executing task  * ND80 exec CMD and return
 	SUPERV	S_FILESPEC	; (441C) @FSPEC Extract / Fetch a file specification
 	nop

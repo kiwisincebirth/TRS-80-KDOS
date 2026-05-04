@@ -20,6 +20,7 @@ echo Building OVERLAY\'s
 ./zmac overlaye.z --oo lst,cim
 ./zmac overlayf.z --oo lst,cim
 ./zmac overlayg.z --oo lst,cim
+./zmac overlayh.z --oo lst,cim
 ./zmac overlayl.z --oo lst,cim
 ./zmac overlayo.z --oo lst,cim
 
@@ -36,6 +37,7 @@ cp zout/overlayd.cim ../overlayd.sys
 cp zout/overlaye.cim ../overlaye.sys
 cp zout/overlayf.cim ../overlayf.sys
 cp zout/overlayg.cim ../overlayg.sys
+cp zout/overlayh.cim ../overlayh.sys
 cp zout/overlayl.cim ../overlayl.sys
 cp zout/overlayo.cim ../overlayo.sys
 
@@ -51,25 +53,31 @@ cp zout/overlayd.cim ~/Documents/FreHD/SYS/overlayd.sys
 cp zout/overlaye.cim ~/Documents/FreHD/SYS/overlaye.sys
 cp zout/overlayf.cim ~/Documents/FreHD/SYS/overlayf.sys
 cp zout/overlayg.cim ~/Documents/FreHD/SYS/overlayg.sys
+cp zout/overlayh.cim ~/Documents/FreHD/SYS/overlayh.sys
 cp zout/overlayl.cim ~/Documents/FreHD/SYS/overlayl.sys
 cp zout/overlayo.cim ~/Documents/FreHD/SYS/overlayo.sys
 
-if mount | grep -q "/Volumes/FLOPPY90"; then
+if mount | grep -q "/Volumes/KDOS"; then
 
-echo Copying Files to Floppy90
+echo Copying Files to KDOS
 
-cp zout/boot.cmd     /Volumes/FLOPPY90/frehd.rom
-cp zout/boot.cim     /Volumes/FLOPPY90/SYS/BOOT.SYS
-cp zout/sys0p.cmd    /Volumes/FLOPPY90/SYS/SYSP.sys
-cp zout/sys0f.cmd    /Volumes/FLOPPY90/SYS/SYS0.sys
-cp zout/overlayb.cim /Volumes/FLOPPY90/SYS/overlayb.sys
-cp zout/overlayc.cim /Volumes/FLOPPY90/SYS/overlayc.sys
-cp zout/overlayd.cim /Volumes/FLOPPY90/SYS/overlayd.sys
-cp zout/overlaye.cim /Volumes/FLOPPY90/SYS/overlaye.sys
-cp zout/overlayf.cim /Volumes/FLOPPY90/SYS/overlayf.sys
-cp zout/overlayg.cim /Volumes/FLOPPY90/SYS/overlayg.sys
-cp zout/overlayl.cim /Volumes/FLOPPY90/SYS/overlayl.sys
-cp zout/overlayo.cim /Volumes/FLOPPY90/SYS/overlayo.sys
+cp zout/boot.cmd     /Volumes/KDOS/frehd.rom
+cp zout/boot.cim     /Volumes/KDOS/SYS/BOOT.SYS
+cp zout/sys0p.cmd    /Volumes/KDOS/SYS/SYSP.sys
+cp zout/sys0f.cmd    /Volumes/KDOS/SYS/SYS0.sys
+cp zout/overlayb.cim /Volumes/KDOS/SYS/overlayb.sys
+cp zout/overlayc.cim /Volumes/KDOS/SYS/overlayc.sys
+cp zout/overlayd.cim /Volumes/KDOS/SYS/overlayd.sys
+cp zout/overlaye.cim /Volumes/KDOS/SYS/overlaye.sys
+cp zout/overlayf.cim /Volumes/KDOS/SYS/overlayf.sys
+cp zout/overlayg.cim /Volumes/KDOS/SYS/overlayg.sys
+cp zout/overlayh.cim /Volumes/KDOS/SYS/overlayh.sys
+cp zout/overlayl.cim /Volumes/KDOS/SYS/overlayl.sys
+cp zout/overlayo.cim /Volumes/KDOS/SYS/overlayo.sys
+
+echo Unmounting KDOS
+
+diskutil unmount /Volumes/KDOS
 
 fi
 

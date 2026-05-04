@@ -64,6 +64,12 @@ VIRTUAL_ROUTINE _basic_overg, PAGE_OVERLAYG
 include	overlayg.z
 pageEnd
 
+; Help Command Text
+; Loader Command has a Jump to DOS
+VIRTUAL_PAGE _basic_overh, PAGE_OVERLAYH
+include	overlayh.z
+pageEnd
+
 ; CMD Loader and Runner
 ; For Loader API Call we have a RET path
 ; Loader Command has a Jump to DOS

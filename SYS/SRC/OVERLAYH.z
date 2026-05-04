@@ -1,0 +1,56 @@
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     FILE HANDLING FOR DOS API's @ $4400 - $4480
+;	Deals with Access to Data in an Open File
+;	( See Overlay F for the Open/Close functions )
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4700h)
+; ======================================================================
+;
+	ORG	OVERLY
+;
+	ld	hl,_HELP_MSG
+	call	LISPRT
+;
+	JP	@EXIT
+;
+; ----------------------------------------------------------------------
+;
+_HELP_MSG:
+	defb 'kDOS (Beta.1) Help', ENTER
+	defb '  Press <Enter> to switch from BASIC to DOS : prompt', ENTER
+	defb '  Programs can be run by typing name of CMD file', ENTER
+	defb 'DOS Commands', ENTER
+	defb '  CD <path> - change directory   MD <path> - make new directory', ENTER
+	defb '  DIR <filter> - show dir files  PWD - show current path', ENTER
+	defb '  COPY <file1> <file2> - single  REN <file1> <file2> - rename', ENTER
+	defb '  LOAD <file.cmd> - load binary  DEL <file> - delete a file', ENTER
+;	defb '  DI EI - disable/enable Clock', ENTER
+	defb 'BASIC Commands', ENTER
+	defb '  LOAD "<file.bas>" SAVE "<file.bas>" RUN "<file.bas>"', ENTER
+;	defb '  LOAD - SAVE - RUN "<file.bas>"', ENTER
+	defb '  &Hxx &Oxxx DEF FN USR INSTR$ MID$ TIME$ LINE INPUT ', ENTER
+	defb 0
+;
+;
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+FREE_OVERLAYH	EQU	OVERLY + $200 - $
+;
+	; FILL to end of REGION
+	DC	FREE_OVERLAYH , 0
+;

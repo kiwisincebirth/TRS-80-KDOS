@@ -69,8 +69,8 @@ The Floppy 80 is the primary hardware required by this solution. Custom Firmware
 |              | Floppy 80            | Caveat                     |      |
 |--------------|----------------------|----------------------------|------|
 | BASIC        | LOAD "filename.BAS"  | Load a basic Program       | All  |
-| Commands     | SAVE "filename.BAS"  |                            | All  |
-|              | RUN "filename.BAS"   |                            | All  |
+| Commands     | SAVE "filename.BAS"  | Save a program to Disk     | All  |
+|              | RUN "filename.BAS"   | Load and Run a program     | All  |
 |              | KILL "filename"      | Delete a file (todo)       | Pico | 
 |              | MERGE "filename"     | Merge a file (todo)        | Pico | 
 |              | -                    |                            |      |
@@ -79,9 +79,9 @@ The Floppy 80 is the primary hardware required by this solution. Custom Firmware
 |              | DEF FNn(A)=A         | Define a User Function     | Pico |
 |              | DEF USRn=ADDR        | Define a Call address      | Pico |
 |              | FNn(A)               | Invoke a User Function     | Pico |
+|              | INSTR(X$,Y$)         | String Search function     | Pico |
 |              | LINE INPUT A$        | Input an entire line       | Pico |
 |              | MID(X$,N,N)=""       | Mid String Assignment      | Pico |
-|              | INSTR(X$,Y$)         | String Search function     | Pico |
 |              | TIME$                | RTC Current DateTime       | Pico |
 |              | USRn(A)              | Invoke a Call address      | Pico |
 |              |                      |                            |      |
@@ -89,7 +89,7 @@ The Floppy 80 is the primary hardware required by this solution. Custom Firmware
 |              |                      |                            |      |
 | DOS          | #filename            | Runs a CMD program         | All  |
 |              | #CD {dirName}        | Set working directory      | Pico |
-|              | #COPY {f1} {f2}      | Copy a File                | Pico |
+|              | #COPY {f1} {f2}      | Copy a File (todo)         | Pico |
 |              | #DEL {filename}      | delete file or directory   | Pico |
 |              | #DIR {wildcard}      | display directory contents | All  |
 |              | #LOAD {filename.CMD} | Load a CMD program         | All  |
