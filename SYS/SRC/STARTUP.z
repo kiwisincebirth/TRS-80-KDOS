@@ -2,7 +2,7 @@
 ;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
-;     Startup Code To Init KDOS
+;     Startup Code To Init KDOS - The entry point for DOS
 ;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -125,7 +125,10 @@ READYX:
 ;
 _KDOSMSG	DEFB	'kDOS Loaded',ENTER,0
 
-; TRSDOS 2.3
+;
+; TRSDOS 2.3 STARTUP - As defined on TRS-80.COM
+; These statements need to be reviewed for completeness
+;
 
 ; The code from 4E20-4E55 initializes the device address table (43B8-43BF) and the device mnemonic table (43C0-43CC).
 ;   These tables are used by the DEVICE command to report the device configuration and the driver addresses for all devices listed in the table.
@@ -155,6 +158,6 @@ _KDOSMSG	DEFB	'kDOS Loaded',ENTER,0
 ; A carriage return at 42EO (the EO'th byte of the sector) means no AUTO procedure file exists.
 ;   In this case also, control passes to 4400, which causes SYSl (the command line processor) to be loaded and executed.
 ; If 42E0 does not contain a carriage return, it is assumed to hold a 20-character command to be executed.
-;   This command is copied to the commmand line buffer by the code at 4ED9 - 4EE2, displayed on the video, and then SYSl is called to process the command.
+;   This command is copied to the command line buffer by the code at 4ED9 - 4EE2, displayed on the video, and then SYSl is called to process the command.
 ;
 ; ======================================================================

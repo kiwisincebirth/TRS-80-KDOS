@@ -52,7 +52,7 @@ VIRTUAL_PAGE basiclineinput, PAGE_LINEINP
 ; ------------------------------
 ; End of Paged Routine
 ; ------------------------------
-pageEnd
+VIRTUAL_END
 ;
 ; ------------------------------
 ; DOS ENTRY VECTOR

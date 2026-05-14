@@ -3,6 +3,7 @@
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     SYSP (Paged SYS0) - including all additional modules
+;	loaded into paged RAM
 ;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -18,7 +19,7 @@
 import constants.z
 ;
 ; ----------------------------------------------------------------------
-; Core SYS 0
+; Core SYS 0 ($4200 - $4500)
 ; ----------------------------------------------------------------------
 include sys0.z
 
@@ -31,57 +32,57 @@ include sys0.z
 ; These are functions that JP back to dos
 VIRTUAL_PAGE _basic_overb, PAGE_OVERLAYB
 include	overlayb.z
-pageEnd
+VIRTUAL_END
 
 ; Command Processor Overlay
 ; it is a terminal service, no RETURN
 VIRTUAL_PAGE _basic_overc, PAGE_OVERLAYC
 include	overlayc.z
-pageEnd
+VIRTUAL_END
 
 ; DIR Command
 ; No ret from this, back to dos
 VIRTUAL_PAGE _basic_overd, PAGE_OVERLAYD
 include	overlayd.z
-pageEnd
+VIRTUAL_END
 
 ; Error Reporting for DOS
 ; These are routines that can either
 ; return or Jump out to Dos
 VIRTUAL_PAGE _basic_overe, PAGE_OVERLAYE
 include	overlaye.z
-pageEnd
+VIRTUAL_END
 
 ; DOS Routines for DISK File Open/Close Access
 ; These are DOS routines that ALL return to caller
 VIRTUAL_ROUTINE _basic_overf, PAGE_OVERLAYF
 include	overlayf.z
-pageEnd
+VIRTUAL_END
 
 ; DOS Routines for DISK File R/W Access
 ; These are DOS routines that ALL return to caller
 VIRTUAL_ROUTINE _basic_overg, PAGE_OVERLAYG
 include	overlayg.z
-pageEnd
+VIRTUAL_END
 
 ; Help Command Text
 ; Loader Command has a Jump to DOS
 VIRTUAL_PAGE _basic_overh, PAGE_OVERLAYH
 include	overlayh.z
-pageEnd
+VIRTUAL_END
 
 ; CMD Loader and Runner
 ; For Loader API Call we have a RET path
 ; Loader Command has a Jump to DOS
 VIRTUAL_PAGE _basic_overl, PAGE_OVERLAYL
 include	overlayl.z
-pageEnd
+VIRTUAL_END
 
 ; File System Command
 ; No ret from this, back to dos
 VIRTUAL_PAGE _basic_overs, PAGE_OVERLAYO
 include	overlayo.z
-pageEnd
+VIRTUAL_END
 
 ; ----------------------------------------------------------------------
 ; BASIC Extensions - Non Disk Functions
@@ -103,12 +104,12 @@ include BASIC-USR.z		; $41A9
 include	BASIC-MID.z		; $41D9
 ;
 ; ----------------------------------------------------------------------
-; Pico Scratch Memory
+; Pico Scratch Memory ($3600 - $37DF)
 ; ----------------------------------------------------------------------
 include PICO-WORK.z
 ;
 ; ----------------------------------------------------------------------
-; Startup Code Block
+; Startup Code Block ($3600 - $37DF)
 ; ----------------------------------------------------------------------
 include startup.z
 ;

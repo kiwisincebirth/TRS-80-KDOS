@@ -2,7 +2,7 @@
 ;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
-;     BOOT.SYS - Boot Block (floppy) Like startup
+;     BOOT.SYS - Boot Block (floppy) startup, loading either
 ;       SYS0.SYS (Overlay) - SYSP.SYS (Paged) - LOADER
 ;
 ;     Source Code Created By : kiwisincebirth - 2026

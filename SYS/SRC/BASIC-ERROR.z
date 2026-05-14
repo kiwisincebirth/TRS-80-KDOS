@@ -82,7 +82,7 @@ L2ERRTAB
 ; ------------------------------
 ; End of Paged Routine
 ; ------------------------------
-pageEnd
+VIRTUAL_END
 ;
 ; ------------------------------
 ; SECOND VIRTUAL PAGE STARTS HERE
@@ -163,7 +163,7 @@ L3ERRTAB
 ; ------------------------------
 ; End of Paged Routine
 ; ------------------------------
-pageEnd
+VIRTUAL_END
 ;
 ; ------------------------------
 ; DOS ENTRY VECTOR

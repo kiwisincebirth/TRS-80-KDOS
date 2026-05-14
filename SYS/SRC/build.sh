@@ -3,9 +3,6 @@ set -e
 
 echo BUILD
 
-echo Building Keyboard
-./zmac keyboard.z --oo lst,cim,cmd,hex
-
 echo Building BOOT
 ./zmac boot.z --oo lst,cim,cmd,hex
 
@@ -24,6 +21,9 @@ echo Building OVERLAY\'s
 ./zmac overlayl.z --oo lst,cim
 ./zmac overlayo.z --oo lst,cim
 
+echo Building Keyboard
+./zmac keyboard.z --oo lst,cmd,hex
+
 echo DEPLOY
 echo Copying Files to Parent
 
@@ -40,6 +40,7 @@ cp zout/overlayg.cim ../overlayg.sys
 cp zout/overlayh.cim ../overlayh.sys
 cp zout/overlayl.cim ../overlayl.sys
 cp zout/overlayo.cim ../overlayo.sys
+cp zout/keyboard.cmd ../KEYBOARD.CMD
 
 echo Copying Files to FreHD
 
@@ -56,6 +57,7 @@ cp zout/overlayg.cim ~/Documents/FreHD/SYS/overlayg.sys
 cp zout/overlayh.cim ~/Documents/FreHD/SYS/overlayh.sys
 cp zout/overlayl.cim ~/Documents/FreHD/SYS/overlayl.sys
 cp zout/overlayo.cim ~/Documents/FreHD/SYS/overlayo.sys
+cp zout/keyboard.cmd ~/Documents/FreHD/KEYBOARD.CMD
 
 if mount | grep -q "/Volumes/KDOS"; then
 
@@ -74,6 +76,7 @@ cp zout/overlayg.cim /Volumes/KDOS/SYS/overlayg.sys
 cp zout/overlayh.cim /Volumes/KDOS/SYS/overlayh.sys
 cp zout/overlayl.cim /Volumes/KDOS/SYS/overlayl.sys
 cp zout/overlayo.cim /Volumes/KDOS/SYS/overlayo.sys
+cp zout/keyboard.cmd /Volumes/KDOS/SYS/KEYBOARD.CMD
 
 echo Unmounting KDOS
 

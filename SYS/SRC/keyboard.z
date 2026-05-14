@@ -1,7 +1,17 @@
-
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     Keyboard Driver
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
 import constants.z
-
-	org	$7000
 
 ; ----------------------------------------------------------------------
 KEYTAB		EQU	$0050	; Rom address of KB translation table
@@ -10,7 +20,11 @@ KYBTSS		EQU	$4036
 KYBTSS8		EQU	$412F	; Location of Saved 8th row of keyboard matrix
 ;
 ; ======================================================================
-; 03E3H-0457H – KEYBOARD DRIVER – “KBDDRV”
+
+VIRTUAL_ROUTINE KBDDRV,  PAGE_KEYBDRV
+
+; ======================================================================
+; KEYBOARD DRIVER – “KBDDRV”
 ;
 ;   This is the keyboard driver. It scans the keyboard and converts
 ;   the bit pattern obtained to ASCII and stores it in the A register.
@@ -22,39 +36,39 @@ KYBTSS8		EQU	$412F	; Location of Saved 8th row of keyboard matrix
 ;   IX+6 = “K”eyboard, and IX+7 = ”I"nput
 ; ----------------------------------------------------------------------
 ;
-KBDDRV:	ld	hl,KYBTSS	;03e3 - keyboard work area, Saved Rows (4036)
+	ld	hl,KYBTSS	;03e3 - keyboard work area, Saved Rows (4036)
 	ld	bc,KBDMATRX+1	;03e6 - first keyboard matrix row
 	ld	d,0		;03e9 - track the keyboard Row
-KEYLP:	ld	a,(bc)		;03eb - get keyboard Row
-KEYLP2:	ld	e,a		;03ec - save keyboard row
+_KLOOP:	ld	a,(bc)		;03eb - get keyboard Row
+_KLOP2:	ld	e,a		;03ec - save keyboard row
 	xor	(hl)		;03ed - compare with saved row
 	ld	(hl),e		;03ee - write new value to saved row
 	and	e		;03ef - mask the bits that were just observed
-	jr	nz,KEYDWN	;03f0 - we found a depressed key
+	jr	nz,_KDOWN	;03f0 - we found a depressed key
 	inc	d		;03f2 - advance to nex row
 	inc	l		;03f3 - next saved KB row address
 	rlc	c		;03f4 - next KB matrix row
 ;
 ; NEW Extension for Main KB Matrix Scan, including all 8 rows.
-KB_SCANLOOP:
+_KSCANLOOP:
 	ret	c		; past 8th row of keyboard matrix so return from here
-	jp	p,KEYLP		;03f6 - Not reached Row 8 (bit 7) of Matrix - LOOP
+	jp	p,_KLOOP	;03f6 - Not reached Row 8 (bit 7) of Matrix - LOOP
 ;
 ; NEW Process the 8th 8th row of keyboard matrix
-KB_SCANLP2:
+_KSCANLOP2:
 	ld	hl,KYBTSS8	; saved old keyboard row 8.
 	ld	a,(bc) 		; Get Row 8 from KBD matrix
 	and	$F8		; Masking to exclude SHIFT and CTRL
-	jp	KEYLP2		; Loop back and process 8th row
+	jr	_KLOP2		; Loop back and process 8th row
 
 ; ----------------------------------------------------------------------
-; 03FAH – Accept a KB Down-stroke and Convert it to ASCII – “KEYDWN”
+; 03FAH – Accept a KB Down-stroke and Convert it to ASCII – “_KDOWN”
 ;   On entry D contains the row counter
 ;   and A contains the data from the keyboard matrix,
 ; ----------------------------------------------------------------------
-KEYDWN:	ld	e,a		;03fa - column data from the matrix
+_KDOWN:	ld	e,a		;03fa - column data from the matrix
 ;
-KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
+_KBOUN:	push	bc		;011C Save Row Address in BC into the STACK
 	ld 	bc,$0500	;011D the debounce delay, todo configurable
 	call	DELAY		;0120 delay on delay count in BC (18.8 ms)
 	pop	bc		;0123 Restore the Row Address back to BC
@@ -69,33 +83,33 @@ KEYBOU:	push	bc		;011C Save Row Address in BC into the STACK
 	rlca			;03fe - multiply row counter by 8, gives row offset
 	ld	d,a		;03ff - save row counter
 	ld	a,e		; get column data back into A
-KEYDLP:
+_KDLP:
 	rrca			; Rotate A right, shifting bits toward carry flag.
-	jr	c,KEYFND	; If C found the matrix bit, continue below
+	jr	c,_KFIND	; If C found the matrix bit, continue below
 	inc	d		; bump key code index for next column
-	jr	KEYDLP		; loop to find next bit
+	jr	_KDLP		; loop to find next bit
 ;
 ; ----------------------------------------------------------------------
-; 040BH – Part of the Keyboard routine – “KEYFND”
+; 040BH – Part of the Keyboard routine – “_KFIND”
 ;   Convert keyboard matrix code 0-63 (Row*8 + Column) into ASCII character
 ;   On entry D contains matrix character (0-63) ie. Row*8 + Column (0-7)
 ;   On Exit A contains the ASCII value, or 0 if the kay can1not be identified
 ; ----------------------------------------------------------------------
 ;
-KEYFND:
-	call	KB_CAPSCTL 	; get B register with CTRL ; Shift Key ; Shift alpha
+_KFIND:
+	call	_KCAPSCTL 	; get B register with CTRL ; Shift Key ; Shift alpha
 	ld 	a,d		; Load Register A with the value in Register D (Row * 8 + column 0-7)
 	cp 	$3B 		; was CAPS LOCK key pressed
-	jp 	z,KB_CAPSLOCK 	; process caps Lock key
+	jr 	z,_KCAPSLOCK 	; process caps Lock key
 	cp 	$20		; Check to see if the key is alphabetic by testing for the 4 rows (@, A-Z)
-	jp 	nc,KB_KEYNAL 	; if the value in Register A is not alpha
+	jr 	nc,_KKNALP 	; if the value in Register A is not alpha
 	bit 	2,b		; test if the CTRL key was depressed
-	jr	nz,KEYRTN 	; not ctrl returning a ctrl key value.
+	jr	nz,_KRETN 	; not ctrl returning a ctrl key value.
 	add 	$40 		; Adjust the ASCII value in Register A
 	bit 	7, B 		; test  the alpha SHIFT value
-	jr 	NZ,KEYRTN 	; Jump if the no SHIFT required
+	jr 	NZ,_KRETN 	; Jump if the no SHIFT required
 	add 	$20 		; Adjust the value for lower case
-	jr 	KEYRTN 		; Return the Byte
+	jr 	_KRETN 		; Return the Byte
 
 ; Determine The Modifier Keys - returning in B register
 ; 	Bit 0 - SHIFT Key State from Keyboard
@@ -103,7 +117,7 @@ KEYFND:
 ; 	Bit 2 - CTRL Key State from Keyboard
 ; 	Bit 3-6 unused Bits from KB DCB ($4019)
 ; 	Bit 7 - Shifted State for Alpha (CAPS xor SHIFT)
-KB_CAPSCTL:
+_KCAPSCTL:
         ld	a,(KBDMATRX+$80) ; Value from SHIFT Matrix Row 3880H
         and	$07		; mask only the Shift/Control keys
         ld	b,a		; save keyboard shift control keys
@@ -116,69 +130,68 @@ KB_CAPSCTL:
         ret
 ;
 ; Toggle Caps Lock
-KB_CAPSLOCK:
+_KCAPSLOCK:
 	ld	a,(ix+5) 	; caps lock bit
 	xor	$80		; CAPS LOCK bit mask
 	ld	(ix+5),a	; CAPS LOCK bit mask
 	xor	a		; no Ket to return.
 	ret
 ;
-; Prefix for KEYNAL routine to handle CTRL Key check
-KB_KEYNAL:
+; Prefix for _KKNAL routine to handle CTRL Key check
+_KKNALP:
 	bit 	2,b		; test if the CTRL key was depressed
-	jp	z,KEYNAL 	; no control Key, process it normally
+	jr	z,_KKNAL 	; no control Key, process it normally
 	sub	$20		; remove the KEY offset, so zero based
 	ld	hl,KB_CTRLTR	; the control key translation table
-	jp	KEYTRN		; Return after Control key translation
-
+	jr	_KTRN		; Return after Control key translation
 ;
 ; ----------------------------------------------------------------------
-; 0429H – Part of the Keyboard routine – “KEYNAL”
+; 0429H – Part of the Keyboard routine – “_KKNAL”
 ;    If we are here, the character was not alpha so need
 ;    to check for numeric, shifted numeric, or special
 ;    On Entry A contains ($60-$7F)
 ; ----------------------------------------------------------------------
-KEYNAL:	sub	$30		;0429 - only sub 30 since no add in caller
-	jr	nc,KEYSPL	;042b - If Rows 7-8 then special character
+_KKNAL:	sub	$30		;0429 - only sub 30 since no add in caller
+	jr	nc,_KSPEC	;042b - If Rows 7-8 then special character
 	add	a,$40		;042d - Re-Adjust A down to contain ($30-$3F)
 	cp	$3C		;042f - Check if one of the last 4 characters
-	jr	c,KEYINV	;0431 - skip if "0123456789" i.e. leave unchanged
+	jr	c,_KINV	;0431 - skip if "0123456789" i.e. leave unchanged
 	xor	$10		;0433 - If ",-+/" then flip bit 4, align to ASCII
-KEYINV:	rrc	b		;0435 - Get saved Shift Key rotated into C flag
-	jr	nc,KEYRTN	;0437 - If not shifted then return ($30-$3F)
+_KINV:	rrc	b		;0435 - Get saved Shift Key rotated into C flag
+	jr	nc,_KRETN	;0437 - If not shifted then return ($30-$3F)
 	xor	$10		;0439 - Apply the Shift to the Character
-	jr	KEYRTN		;043b - If Shifted Return ($20-2F)
+	jr	_KRETN		;043b - If Shifted Return ($20-2F)
 				;noting Shift "0" returns a <space> $20 todo caps
 ; ----------------------------------------------------------------------
-; 043DH – Part of the Keyboard routine – “KEYSPL”
+; 043DH – Part of the Keyboard routine – “_KSPEC”
 ;    This routine does a special key conversion via a table
 ;    On Entry A contains ($00-$0F)
 ; ----------------------------------------------------------------------
-KEYSPL:	rlca			;043d - times 2, as each table row is 2 bytes
+_KSPEC:	rlca			;043d - times 2, as each table row is 2 bytes
 	rrc	b		;043e - Get saved Shift Key rotated into C flag
-	jr	nc,KEYNSF	;0440 - If not Shifted skip next instruction
+	jr	nc,_KNSF	;0440 - If not Shifted skip next instruction
 	inc	a		;0442 - if shifted align to tables second Column
-KEYNSF:	ld	hl,KEYTAB	;0443 - Base Address of lookup table
-KEYTRN:	ld	c,a		;0446 - get the key offset address into BC
+_KNSF:	ld	hl,KEYTAB	;0443 - Base Address of lookup table
+_KTRN:	ld	c,a		;0446 - get the key offset address into BC
 	ld	b,0		;0447
 	add	hl,bc		;0449 - and add it to the table base address
 	ld	a,(hl)		;044a - get the character to return from the table
 ; ----------------------------------------------------------------------
-; 044BH-044BH – Part of the Keyboard routine – “KEYRTN”
+; 044BH-044BH – Part of the Keyboard routine – “_KRETN”
 ;   This routine will debounce the keyboard downstroke and return
 ; ----------------------------------------------------------------------
-KEYRTN:	ld	d,a		;044b - save value for the key pressed from A
+_KRETN:	ld	d,a		;044b - save value for the key pressed from A
 	;
-KEYRT2:	ld	bc,3500		;044c - delay count (3500)
+_KRET2:	ld	bc,3500		;044c - delay count (3500)
 	call	DELAY		;044f - delay about 51.3 ms
 	;
 	ld	a,d		;0452 - restore value for the key pressed
+;
 ;	cp	$01		;0453 - Check to see if the BREAK key was pressed
 ;	ret	nz		;0455 - Return if the BREAK key wasn’t pressed
 ;	rst	28h		;0456 - Disk Basic break Key handling DISABLED
+;
 	ret			;0457
-
-
 ;
 ; Translation table for non - alpha control character
 KB_CTRLTR:
@@ -212,14 +225,16 @@ KB_CTRLTR:
 	DEFB	TAB	; Tab, -> right arrow
 	DEFB	SPACE	; Space
 
+; END OF PAGE ROUTINE
+VIRTUAL_END
 
+; Keyboard Driver Vector
 	org	$4016
-
 	defw	KBDDRV
 
+; Once Loaded Jump back to DOS
 	end	@EXIT
-
-
+;
 ; ----------------------------------------------------------------------
 ; 				Column
 ;	Row	0	1	2	3	4	5	6	7
@@ -228,66 +243,80 @@ KB_CTRLTR:
 ;	1	h	i	j	k	l	m	n	o
 ;	2	p	q	r	s	t	u	v	w
 ;	3	x	y	z
-;	4	0	1!	2"	3#	4$	5%	6&	7'
-;	5	8(	9)	:*	;+	,<	-=	.>	/?
-;	6	Enter	Clear	Break	↑	↓	←	→	Space
+;	4	0	1	2	3	4	5	6	7
+;	5	8	9	:	;	,	-	.	/
+;	6	Enter	Clear	Break	↑ [	↓ LF	← BS	→ Tab	Space
 ;	7	Shift		Ctrl	Caps
 ;
-; 	SHIFTED			Column
+;  SHIFTED			Column
 ;	Row	0	1	2	3	4	5	6	7
 ; ----------------------------------------------------------------------
 ;	0	@	A	B	C	D	E	F	G
 ;	1	H	I	J	K	L	M	N	O
 ;	2	P	Q	R	S	T	U	V	W
 ;	3	X	Y	Z
-;	4	0	!	"	#	$	%	&	'
+;	4	Caps	!	"	#	$	%	&	'
 ;	5	(	)	*	+	<	=	>	?
-;	6	Enter	Clear	Break	↑	↓	←	→	Space
+;	6	Enter	Clear	Break	$1B	↓ LF	$18	$19	Space
 ;	7	Shift		Ctrl	Caps
 
-; 	CTRL			Column
+;  CTRL KEY			Column
 ;	Row	0	1	2	3	4	5	6	7
 ; ----------------------------------------------------------------------
-;	0	@	A	B	C	D	E	F	G
-;	1	H	I	J	K	L	M	N	O
-;	2	P	Q	R	S	T	U	V	W
-;	3	X	Y	Z
+;	0	$00	Break	$02	$03	$04	$05	$06	$07
+;	1	← BS	→ Tab	↓ LF	$0B	$0C	Enter	$0E	$0F
+;	2	$10	$11	$12	$13	$14	$15	$16	$17
+;	3	$18	$19	$1A
 ;	4	|	$1B	$1C	$1D	$1E	$7F	~	`
-;	5	(	)	*	+	<	=	>	?
-;	6	Enter	Clear	Break	↑	↓	←	→	Space
+;	5	{	}	$00	^	[	_	]	\
+;	6	Enter	Clear	Break	↑ [	↓ LF	← BS	→ Tab	Space
 ;	7	Shift		Ctrl	Caps
 ;
 ;
 ;
 ;		DEC	HEX	Symbol	Description
-;---------------------------------------------
+;----------------------------------------------------
+; CTRL :	0	00	NUL	Null character
+; BREAK		1	01
+; CTRL A	1	01
+;...	..	..	...	...
 ; ←		8	08	BS	Back Space
 ; →		9	09	TAB	Tab
 ; ↓		10	0A	LF	Line Feed
-; BREAK		24	18
 ; SHFT ←	24	18
 ; SHFT →	25	19		32 Char Mode
+;...	..	..	...	...
+; CTRL Z	26	1A
 ; SHFT ↑	27	1B	ESC	Escape
-; CLEAR		31	1F	US	Unit Seperator
-; ↑		91	5B	[
-;---------------------------------------------
-;CTRL :		0	00	NUL	Null character
-;CTRL A		1	01	SOH	Start of Heading
-;...	..	..	...	...
-;...	..	..	...	...
-; CTRL Z	26	1A	SUB	Substitute
 ; CTRL 1	27	1B	ESC	Escape
-; CTRL 2	28	1C	FS	File Separator
-; CTRL 3	29	1D	GS	Group Separator
-; CTRL 4	30	1E	RS	Record Separator
-;		31	1F	US	Unit Separator ???
+; CTRL 2	28	1C
+; CTRL 3	29	1D
+; CTRL 4	30	1E
+; CLEAR		31	1F
 ; Space		32	20	Space	Space
-; SHFT 1	33	21	!	Exclamation Mark
+; SHFT 1	33	21	!	exclamation
 ; ...		..	..	..	...
-; @		64	40	@	@
+; SHFT 9	41	29	)	close bracket
+; SHIFT :	42	2A	*	asterisk
+; SHIFT ;	43	2B	+	plus
+; ,		44	2C	,	comma
+; -		45	2D	-	minus
+; .		46	2E	.	full stop
+; /		47	2F	/	slash
+; 0		48	30	0	0
+; ...		..	..	..	...
+; 9		57	39	9	9
+; :		58	3A	:	colon
+; ;		59	3B	;	semicolon
+; SHIFT ,	60	3C	<	less than
+; SHIFT -	61	3D	=	equal
+; SHIFT .	62	3E	>	greater than
+; SHIFT /	63	3F	?	question
+; @		64	40	@	at sign
 ; SHFT A	65	41	A	A
 ; ...	..	..	..	...
 ; SHFT Z	90	21	Z	Z
+; ↑		91	5B	[	Opening bracket
 ; CTRL ,	91	5B	[	Opening bracket
 ; CTRL /	92	5C	\	Backslash
 ; CTRL .	93	5D	]	Closing bracket

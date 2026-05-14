@@ -430,8 +430,9 @@ PAGE_OVERLAYN	EQU	$EE	; -unused
 PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
 
 ; Basic Extensions (32)
-; Propose C0 (192) to DF (223)
+; Pages - C0 (192) to DF (223)
 ;
+PAGE_KEYBDRV	EQU	193	; Optional Keyboard Driver
 PAGE_AMPERSAND	EQU	212
 PAGE_DOSERROR1	EQU	213
 PAGE_DOSERROR2	EQU	214
@@ -464,7 +465,7 @@ label	EQU	$		; Define a program label for Entry
 	ORG  	$3400		; All code sits in the 512-byte window
 endm
 
-pageEnd macro
+VIRTUAL_END macro
 	assert $ <= $3600
 endm
 
