@@ -1,32 +1,32 @@
-
-; ------------------------------
-; BASIC DEF FN
-; Original Source from TRSDOS 2.3
-; SEE
-; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
-; ------------------------------
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BASIC DEF FN - disk basic extension
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
 ;
 import	constants.z
 ;
-; ------------------------------
-; CODE STARTS HERE
-; ------------------------------
+; ======================================================================
+;
+; Set as Jump, we do NOT have a RET Semantic happening.
 ;
 VIRTUAL_PAGE basicdefine, PAGE_DEFINE
 ;
-;  	DEF 	- $415B -> 5655
-; 	FN  	- $4155 -> 558E
-;	USR N	- $41A9 -> 5679
+; ======================================================================
+;
+; Original Source from TRSDOS 2.3, See
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
 ;
 	; entry point for DEF
 	jp	_5655
 ;
-; ------------------------------
-; Code Required Starts Here
-; Copied From TRS DOS 2.3
-; ------------------------------
-;
-
 _5556
 	ld	a,($40af)   ; 5556:
 	dec	a           ; 5559:
@@ -266,16 +266,16 @@ _56ab
 _56ba
 	ld	e,$2e       ; 56ba:
 	jp	$19a2       ; 56bc:
-
 ;
-; ------------------------------
+; ======================================================================
 ; End of Paged Routine
-; ------------------------------
+; ======================================================================
+;
 VIRTUAL_END
 ;
-; ------------------------------
+; ======================================================================
 ; DOS ENTRY VECTOR
-; ------------------------------
+; ======================================================================;
 ;
 ;  	DEF 	- $415B -> 5655
 ; 	FN  	- $4155 -> 558E
@@ -283,11 +283,4 @@ VIRTUAL_END
 ;
 	ORG	$415B
 	jp	basicdefine
-;
-; ------------------------------
-; CODE ENDS HERE
-; ------------------------------
-	; After loading return to DOS
-	END	@EXIT
-;
 

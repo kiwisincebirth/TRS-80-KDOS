@@ -1,23 +1,29 @@
-
-; ------------------------------
-; BASIC INSTR extension
-; Original Source from TRSDOS 2.3
-; SEE
-; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
-; ------------------------------
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BASIC INSTR - disk basic extension
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
 ;
 import	constants.z
 ;
-; ------------------------------
-; CODE STARTS HERE
-; ------------------------------
+; ======================================================================
+;
+; There are no RETS in this Code
 ;
 VIRTUAL_PAGE instrfunc, PAGE_INSTRFUNC
 ;
-; ------------------------------
-; Code Required Starts Here
-; Copied From TRS DOS 2.3
-; ------------------------------
+; ======================================================================
+;
+; Original Source from TRSDOS 2.3, See
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+;
    rst	$0010        ; 588b:
    call	$2335        ; 588c:
    rst	$0020        ; 588f:
@@ -129,26 +135,16 @@ _590a
    dec	b            ; 590e:
    jr	z,_58fe      ; 590f:
    jr	_58ec        ; 5911:
-
-
-
 ;
-; ------------------------------
+; ======================================================================
 ; End of Paged Routine
-; ------------------------------
+; ======================================================================
+;
 VIRTUAL_END
 ;
-; ------------------------------
+; ======================================================================
 ; DOS ENTRY VECTOR
-; ------------------------------
+; ======================================================================
 ;
 	ORG	$419D
 	jp	instrfunc
-;
-; ------------------------------
-; CODE ENDS HERE
-; ------------------------------
-	; After loading return to DOS
-	END	@EXIT
-;
-

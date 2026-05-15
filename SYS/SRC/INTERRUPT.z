@@ -1,0 +1,129 @@
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     INTERRUPT SERVICE ROUTINE
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+TICKSPERSEC	EQU	40	; number of interrupts per second
+;
+; ======================================================================
+;
+VIRTUAL_ROUTINE ISR_SERVICE, PAGE_INTERRUPT
+;
+; ======================================================================
+; Main Interrupt Service Routine - Called from SYS0
+; ======================================================================
+;
+_isr_service:
+	push	hl
+	push	de
+	push	bc		; Main Interrupt Handler
+	;
+	ld	hl,TICKCNT	; timer tick
+	inc	(hl)		; increment the timer tick
+	;
+	call	_trs80_time	; RTC Clock update
+	;
+
+_isr_exit:
+	pop	bc
+	pop	de
+	pop	hl
+	;
+	ret
+;
+; ----------------------------------------------------------------------
+; RTC Clock Interrupt Routine
+; ----------------------------------------------------------------------
+;
+_trs80_time:
+	ld	hl,_counter	; counter tick storage
+	dec	(hl)		; dec the counter
+	ret	nz		; not ready so return
+	;
+	ld	(hl),TICKSPERSEC ; reset countdown from 40 (HZ)
+	;
+; Now advance the clock by 1 second (will rollover)
+; TRSDOS Routine to advance the time
+; Original Code from TRS-DOS 2.3 See
+; https://www.trs-80.com/sub-disassem-dos-td23-sys-0.htm
+	;
+	ld	b,$03            ; 45ba:
+	ld	hl,XTIME         ; 45bc:
+	ld	de,_cal_limit_45ef  ; 45bf:
+_count_inc:
+	inc	(hl)             ; 45c2:
+	ld	a,(de)           ; 45c3:
+	sub	(hl)             ; 45c4:
+	ret	nz               ; 45c5:
+	ld	(hl),a           ; 45c6:
+	inc	l                ; 45c7:
+	inc	e                ; 45c8:
+	djnz	_count_inc       ; 45c9:
+	inc	l                ; 45cb:
+	inc	(hl)             ; 45cc:
+	inc	l                ; 45cd:
+	ld	a,(hl)           ; 45ce:
+	dec	l                ; 45cf:
+	dec	a                ; 45d0:
+	add	a,e              ; 45d1:
+	ld	e,a              ; 45d2:
+	ld	a,(de)           ; 45d3:
+	cp	(hl)             ; 45d4:
+	ret	nc               ; 45d5:
+	ld	a,(hl)           ; 45d6:
+	cp	$1e              ; 45d7:
+	jr	nc,_reset_dom    ; 45d9:
+	dec	l                ; 45db:
+	ld	a,(hl)           ; 45dc:
+	inc	l                ; 45dd:
+	and	$03              ; 45de:
+	ret	z                ; 45e0:
+_reset_dom:
+	ld	(hl),$01         ; 45e1:
+	inc	l                ; 45e3:
+	inc	(hl)             ; 45e4:
+	ld	a,(hl)           ; 45e5:
+	sub	$0d              ; 45e6:
+	ret	c                ; 45e8:
+	ld	(hl),$01         ; 45e9:
+	dec	l                ; 45eb:
+	dec	l                ; 45ec:
+	inc	(hl)             ; 45ed:
+	ret                      ; 45ee:
+;
+_counter
+	DB	TICKSPERSEC	; tick countdown 40 per second.
+;
+_cal_limit_45ef:
+	DB	3CH 	; Maximum number of 60 for SECONDS
+	DB	3CH	; Maximum number of 60 for MINUTES
+	DB	18H	; Maximum number of 24 for HOURS
+	DB	1FH	; Maximum number of 31 for JANUARY
+	DB	1CH	; Maximum number of 28 for FEBRUARY
+	DB	1FH	; Maximum number of 31 for MARCH
+	DB	1EH	; Maximum number of 30 for APRIL
+	DB	1FH	; Maximum number of 31 for MAY
+	DB	1EH	; Maximum number of 30 for JUNE
+	DB	1FH	; Maximum number of 31 for JULY
+	DB	1FH	; Maximum number of 31 for AUGUST
+	DB	1EH	; Maximum number of 30 for SEPTEMBER
+	DB	1FH	; Maximum number of 31 for OCTOBER
+	DB	1EH	; Maximum number of 30 for NOVEMBER
+	DB	1FH 	; Maximum number of 31 for DECEMBER
+;
+; ======================================================================
+; End of Paged Routine
+; ======================================================================
+;
+VIRTUAL_END
+

@@ -1,25 +1,30 @@
-
-; ------------------------------
-; BASIC AMPersand & Dos extension
-; Original Source from TRSDOS 2.3
-; SEE
-; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
-; ------------------------------
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BASIC AMPersand &Hxx &Oxxx Disk Basic extension
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
 ;
 import	constants.z
 ;
-; ------------------------------
-; CODE STARTS HERE
-; ------------------------------
+; ======================================================================
 ;
-; Set as Jump, een though we do have a RET Symtic happening.
+; Set as Jump, we do NOT have a RET Semantic happening.
 ; there are quite a few escapes to OV err, etc
+;
 VIRTUAL_PAGE ampersand, PAGE_AMPERSAND
 ;
-; ------------------------------
-; Code Required Starts Here
-; Copied From TRS DOS 2.3
-; ------------------------------
+; ======================================================================
+;
+; Original Source from TRSDOS 2.3, See
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+;
 _5913
    ld	de,$0000         ; 5913:
    rst	$0010            ; 5916:
@@ -84,22 +89,16 @@ _5964
    ret                   ; 5968: An actual RET
 
 ;
-; ------------------------------
+; ======================================================================
 ; End of Paged Routine
-; ------------------------------
+; ======================================================================
+;
 VIRTUAL_END
 ;
-; ------------------------------
+; ======================================================================
 ; DOS ENTRY VECTOR
-; ------------------------------
+; ======================================================================
 ;
 	ORG	$4194
 	jp	ampersand
 ;
-; ------------------------------
-; CODE ENDS HERE
-; ------------------------------
-	; After loading return to DOS
-	END	@EXIT
-;
-

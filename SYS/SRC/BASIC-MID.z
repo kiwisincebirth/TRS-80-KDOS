@@ -1,29 +1,32 @@
-
-; ------------------------------
-; BASIC MID$ Dos extension
-; Original Source from TRSDOS 2.3
-; SEE
-; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
-; ------------------------------
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BASIC MID$ - disk basic extension
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
 ;
 import	constants.z
 ;
-; ------------------------------
-; CODE STARTS HERE
-; ------------------------------
+; ======================================================================
 ;
 ; this code is doing stack manipulation so use PAGE
+;
 VIRTUAL_PAGE midollar, PAGE_MIDOLLAR
 ;
-	; actual code entry point for MID$
-	jr	dlhsmd
+; ======================================================================
 ;
-; ------------------------------
-; Code Required Starts Here
-; Copied From TRS DOS 2.3
-; ------------------------------
-
-lophex
+; Original Source from TRSDOS 2.3, See
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+;
+	; actual code entry point for MID$
+	jr	_5969
+;
 _5921
    inc	hl               ; 5921:
    ld	a,(hl)           ; 5922:
@@ -81,7 +84,6 @@ _5964
 ; ------------------------------
 ; actual entry point for MID$
 ; ------------------------------
-dlhsmd
 _5969
    inc	hl          ; 5969:
    rst	$0008       ; 596a:
@@ -186,22 +188,16 @@ _59e7
    add	hl,hl       ; 59e8:
    ret		    ; 59e9
 ;
-; ------------------------------
+; ======================================================================
 ; End of Paged Routine
-; ------------------------------
+; ======================================================================
+;
 VIRTUAL_END
 ;
-; ------------------------------
+; ======================================================================
 ; DOS ENTRY VECTOR
-; ------------------------------
+; ======================================================================
 ;
 	ORG	$41D9
 	jp	midollar
-;
-; ------------------------------
-; CODE ENDS HERE
-; ------------------------------
-	; After loading return to DOS
-	END	@EXIT
-;
 

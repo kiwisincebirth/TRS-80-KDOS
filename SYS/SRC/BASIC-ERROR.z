@@ -1,27 +1,28 @@
-
-; ------------------------------
-; BASIC ERROR Reporting extension
-; Original Source from TRSDOS 2.3
-; SEE
-; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
-; ------------------------------
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BASIC ERROR Reporting - disk basic extension
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
 ;
 import	constants.z
 ;
-; ------------------------------
-; CODE STARTS HERE
-; ------------------------------
+; ======================================================================
 ;
-; Non Returning Routine.
+; There are no RETS in this Code
+;
 VIRTUAL_PAGE L2ERRORHAND1, PAGE_DOSERROR1
 ;
-; ------------------------------
-; Code Required Starts Here
-; Copied From TRS DOS 2.3
-; ------------------------------
-; code is invoked from Dos Exit $41a6
-; from call location 19EC in l2 Roms
-; ------------------------------
+; ======================================================================
+;
+; Original Source from TRSDOS 2.3, See
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
 ;
    	pop	hl                   ; 57e6: - POP the Call off the Stack
    	ld	hl,L2ERRTAB          ; 57e7: error table 5203 - 54c3 ($2c0 bytes)
@@ -160,22 +161,17 @@ L3ERRTAB
 	; And ending in Error 70
 	; Note NEWDOES 80 DEFINES up to 84 errors
 ;
-; ------------------------------
+; ======================================================================
 ; End of Paged Routine
-; ------------------------------
+; ======================================================================
+;
 VIRTUAL_END
 ;
-; ------------------------------
+; ======================================================================
 ; DOS ENTRY VECTOR
-; ------------------------------
+; ======================================================================
 ;
+; code is invoked from Dos Exit $41a6 from call location 19EC in l2 Roms
+
 	ORG	$41A6
 	jp	L2ERRORHAND1
-;
-; ------------------------------
-; CODE ENDS HERE
-; ------------------------------
-	; After loading return to DOS
-	END	@EXIT
-;
-

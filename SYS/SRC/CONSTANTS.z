@@ -65,7 +65,6 @@ GETCHR	macro
 ;
 ;
 SCR_LOADOADER	EQU PICOSCRATCH + 0	; entry point for Standalone Binary Loader
-SCR_INT_SERV	EQU PICOSCRATCH + 3	; entry point for Interrupt Service
 ;
 ; Level 2 Basic Communications region
 ;
@@ -85,12 +84,6 @@ ERRLIN	EQU	$40EA	; Line no. In which error occurred
 VARTAB	EQU	$40F9
 PRGFIN	EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 ;
-; KDOS specific data held at these Hi locations (41E5-41F7)
-;
-KBROWCLR EQU	$447B	; State of Clear KB Row at boot.
-FHDBYTE	 EQU	$447C	; FHD byte counter - num bytes before full READ
-PICOVERS EQU	$447D	; 2 bytes Pico Version number
-;
 ; DOS Entry Points Routines
 ;
 @CMD		EQU	$4400 ; Same as @EXIT
@@ -103,7 +96,12 @@ PICOVERS EQU	$447D	; 2 bytes Pico Version number
 @DSPLY		EQU     $4467
 @PRINT		EQU	$446A
 ;
-DOSPRMPT	EQU	$447F ; holds CMD prompt state dos/basic
+; KDOS specific data held at these Hi locations (4479-447F)
+;
+KBROWCLR 	EQU	$447B ; State of Clear KB Row at boot. detection of warm start ???
+FHDBYTE	 	EQU	$447C ; FHD byte counter - num bytes before full READ (SYS0)
+PICOVERS 	EQU	$447D ; 2 bytes Pico Version number (Startup)
+DOSPRMPT	EQU	$447F ; holds CMD prompt state dos/basic (OverlayC)
 ;
 ; Jump Points into DOS Core (SYS0) routines
 ; must be consistent with code located at $4480
@@ -429,10 +427,12 @@ PAGE_OVERLAYM	EQU	$ED	; -unused
 PAGE_OVERLAYN	EQU	$EE	; -unused
 PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
 
-; Basic Extensions (32)
+; Basic Extensions & other Misc Pages (32)
 ; Pages - C0 (192) to DF (223)
 ;
-PAGE_KEYBDRV	EQU	193	; Optional Keyboard Driver
+PAGE_INTERRUPT	EQU	193	; Interrupt Service Routing
+PAGE_KEYBDRV	EQU	194	; (Optional) Keyboard Driver
+;
 PAGE_AMPERSAND	EQU	212
 PAGE_DOSERROR1	EQU	213
 PAGE_DOSERROR2	EQU	214

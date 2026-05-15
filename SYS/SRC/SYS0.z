@@ -46,7 +46,7 @@ import	constants.z
 	DB	11	; (4043H) Hours counter (binary, 0-23)
 	DB	26	; (4044H) Year counter (binary, offset 2000)
 	DB	1	; (4045H) Day counter (binary, 1-31)
-	DB	4	; (4046H) Month counter (binary, 1-12)
+	DB	5	; (4046H) Month counter (binary, 1-12)
 	DW	DOSEND	; (4047H) Utility load address (normally $5200).
 	DW	$FFFF	; (4049H) DOS highest RAM address (MEMEND)
 			; Updated by init, after L2 MEM Size? Check
@@ -285,11 +285,11 @@ _api_READBYTE:
 	ld	hl,FHDBYTE	; byte counter
 	inc	(hl)		; we are reading next byte, byte counter++
 	pop	hl
-	jr	nz,read2	; skip over BLOCK read if not required
+	jr	nz,_read2	; skip over BLOCK read if not required
 	;
 	call	_api_READ	; every 256 bytes, need another 256 bytes
 	ret	nz		; return if read error
-read2:
+_read2:
 	xor	a		; clear flags, Z = true indicates no error
 	in	a,(APIDATA)	; get a byte, leaving flags alone
 	ret
@@ -343,7 +343,7 @@ INTERRUP_SR:
 	jr	nc,INTERRUP_EXIT ; If NO timer interrupt, skip
 ;
 ifdef @D_PICOENHANCED
-	call	SCR_INT_SERV	; call the main Service Routine
+	call	ISR_SERVICE
 else
 ;
 	; SIMPLE Interrupt Handler
@@ -425,7 +425,7 @@ $FREE_CORE1	EQU	SYSFCB - $
 	nop			; (447C)
 	nop			; (447D)
 	nop			; (447E)
-	nop			; (447F)
+	nop			; (447F) Note Bytes 447F and Down are used See Constants.z
 ;
 	assert	$ == CORE2
 ;

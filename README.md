@@ -49,6 +49,10 @@ This solution requires:
 * SD Card for file storage.
 * Expansion Interface is NOT required
 
+And if you need to build this project
+* [ZMAC](https://48k.ca/zmac.html) is the assembler used
+* `MAKE` is the preferred build tool
+
 ### Hardware
 
 The Floppy 80 (model 1) is the primary hardware required by this solution. 
@@ -126,35 +130,39 @@ This is a work in progress not all features are implemented at this time.
 See the separate Compatibility document for what is and isn't supported.
 
 ### FreHD solution
+When running this on a FreHD there are several limitations
 * Only provides a small sub set of functions (frehd limited firmware)
 * Consumes 512 bytes more RAM for overlays (no paged ram)
 * file management, and sub-Directories are not supported
 * Many DOS API's (support File IO) are not supported
 * Doesn't support Disk Basic extensions.
 
-
 ## Future 
 
 ### Features
 
-Single Selectable Directory
-
-using a CD command we can change the directory of the effective Drive (0).
-For most file operations e.g. DIR the default is the selected drive 0
-
-Named Virtual Directories
+**Named Virtual Directories**
 
 Defined as volume identifiers on existing File name e.g. :1 thru :9
-
 When a file is specified with a Drive :1 - :9 then  virtual dive will be used
+Static config can be used for defining these virtual . e.g. 
 
-Several directories can be specified that allow a virtual search path
-maning if not fund on :0 will search other drives in order to find it.
-
-Static config can be used for defining these virtual
+```
 DIR1=namedDirectory1 ...
 DIR9=namedDirectory9
+```
 
-BASIC
+**Search Path**
+
+Several directories can be specified that allow a virtual search path
+meaning if not fund on :0 will search other drives in order to find it.
+very much like the dos PATH command. Used when opening a file for Read access 
+e.g. 
+
+```
+PATH=/BIN;/SYS
+```
+
+
 
 

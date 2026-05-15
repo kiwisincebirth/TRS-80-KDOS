@@ -32,8 +32,6 @@ The following inputs all result in the same FAT filename CONFIG.SYS:
 * CONFIG/SYS (Legacy TRS-DOS style)
 * CONFIG/SYS.PASSWORD (Legacy with password ignored)
 
-
-
 ## Boot Process
 
 |            | Floppy 80 M1            | F80 & FHD              | FreHD                       |
@@ -155,82 +153,3 @@ Jump to a routine that jumps   Only -> Make it a Jump
 Jump to a routine that RETs or JPs  -> Make it a Jump
 
 
-
-# DEV NOTES
-
-### Todo
-* FIRMWARE - STAatus command display Virtual Paging Info
-* FIRMWARE - STAatus command display Heap size remaining
-* FIRMWARE - Reset Signal is not resetting the ROOT folder, left in sub folder.
-
-### Issues
-* typing LOAD "xx.bas" (basic command) from DOS causes a hang
-* running a program that has no END $ADDRESS - will run code based on last byte loaded - crash.
-    * instead this should be detected and generate an error
-
-### Keyboard
-Good Keyboard Driver e.g. LDOS, interrupt driven e.g. support typeahead
-* keyboard @ key has the caps lock behaviour, it shoudn't.
-* keyboard Shift @ key doesnt respont frequently, only every second keystroke.
-
-### Improvement
-* Improve the code addition of .CMD to a filename when executing from CMD processor.
-    * When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
-
-### RTC
-* Full reboot should not wipe out Clock, needs secondary storage.
-    * maybe just define an API on Pico to get time, and maintain it there
-    * existing SYS 0 static defines should be removed
-    * copied on boot into RAM
-
-### Improvement - Error handling
-* #RM BASIC - removing a directory (not empty) produced "FF Error 7" Access denied due to prohibited
-  access or directory full -> Should provide better error.
-* #MKdir BASIC - FF Error 8 - Exists
-* Need "Access Denied" and "Exists" messages - but maybe
-    * in RM we MAP the Access Denied to "Directory Not Empty"
-    * in MKDIR we MAP the Exists     to "Directory Exists"
-
-### PicoRAM
-* Need to investigate the Enhanced Flag ???
-* Remove the ENHANCED runtime variable directive ???
-* Conditional Build directives #IFDEF FREHD_BUILD
-* Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
-
-### High Priority
-* M1ZVM
-* Debugger
-
-### DOS Entry Points
-Need to add these
-* Date Time
-    * (446D) @TIME todo Get the time "23:59:59" into (HL)
-    * (4470) @DATE todo Get the date "12/12/99" into (HL)
-* Filename Extension
-
-### Medium
-* Add a #COPY file.ext:N file.ext:N command
-* Add a KILL basic statement, leveraging #DELETE
-* Add a MERGE basic statement
-* Add BASIC FILE IO statements
-* #DIR {optional: wildcard}{optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
-
-### Features
-* Add ability for search paths when looking for file.
-* Add ability for named directories :1 to :9
-* NewDos 80 #System like command to store configuration parameters
-* When Pressing RESET (NMI), ROM drops back to DOS Ready,
-    * Probably requires updated ROM, since cold start immediately overites $4000 - $405D
-    * these addresses contan the clock and 402d dos reentry.
-    * Updated Rom could check for Flag and drop to 402D
-    * Boot loader cold detect existing install, look for BYTE in (KBROWCLR EQU $41E5)
-    * Not load the full O/S - Paged Ram doesnt need to be touched.
-    *
-
-### Low Priority Commands
-* #AUTO - startup command execution
-* #APPEND - one file to another
-* #REBOOT
-* #Status - display something about the Environment, implies some config to view/modify
-* #Ver - something about the DOS build # Pico Build #
-* #CLOSEALL - to close open file handles
