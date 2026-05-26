@@ -61,7 +61,7 @@ To prevent the internal hardware stack from overflowing, the system distinguishe
 
 The following registers are provided
 * 37F0 is the current page register which allows manually reads and writes.
-* 37F1 is a command register, writing to this address will affect the operation of virtual memory
+* 37F8 is a command register, writing to this address will affect the operation of virtual memory
 
 ## Potential Pitfalls to Watch
 
@@ -70,3 +70,38 @@ The following registers are provided
     * or ensure ISRs avoid that range.
 
 * Direct Memory Access: Range $3000–$33FF is no longer general-purpose memory; it must be treated strictly as the trampoline area.
+
+## Virtual Memory
+
+The following is an analysis of best approach for defining virtual memory pages
+
+| Calling Code | Springboard  | Exit From VM | Unwind of the Virtual Page                   | Call Stack |     | 
+|--------------|--------------|--------------|----------------------------------------------|------------|-----|
+| JUMP         | JUMP         | JUMP         | GOOD. No expectation of unwind               | GOOD       | A # |
+| JUMP         | JUMP         | RET          | ** OK. Expectation of unwind                 | GOOD       | C # |
+| JUMP         | CALL (push)  | JUMP         | ** BAD **                                    | ** BAD **  | F-  |
+| JUMP         | CALL (push)  | RET          | GOOD. Normal Ret from routine as final line  | GOOD       | A # |
+| CALL         | JUMP         | JUMP         | ** OK. Future ret will bypass the unwind     | GOOD       | C   |
+| CALL         | JUMP         | RET          | ** OK. Bypass unwind of Virtual Memory       | OK         | C - |
+| CALL         | CALL (push)  | JUMP         | GOOD. Normal Call, future ret will unwind VM | GOOD       | A # |
+| CALL         | CALL (push)  | RET          | GOOD. Normal Call/Ret pttern                 | GOOD       | A # |
+
+Call to a Routine that Returns Only -> Make it a CALL
+Call to a routine that Jumps Only   -> Make it a CALL
+Call to a routine that RETs or JPs  -> Make it a CALL
+
+Jump to a Routine that Returns Only -> Make it a CALL
+Jump to a routine that jumps   Only -> Make it a Jump
+Jump to a routine that RETs or JPs  -> Make it a Jump
+
+A routine that changes the Stack    -> Make it a Jump
+
+### In summary
+
+Normally These should be set up as a CALL
+* Any routine that You CALL
+* Any code that ONLY exits via RET
+
+Exceptions where a JUMP should be used
+* Any code that directly manipulates the Stack
+* Any code you Jump to that doesn't exclusivly RET

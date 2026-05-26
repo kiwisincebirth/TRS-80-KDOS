@@ -1,6 +1,12 @@
 
 # DEV NOTES
 
+## Tools
+
+To Build this project
+* [ZMAC](https://48k.ca/zmac.html) is the assembler used
+* `MAKE` is the build tool
+
 ## Work In Progress (TODO)
 
 ### Todo
@@ -15,18 +21,20 @@
 
 ### Keyboard
 Good Keyboard Driver e.g. LDOS, interrupt driven e.g. support typeahead
+* support key repeat, using interrupts for timing?
+* support flashing cursor
 * keyboard @ key has the caps lock behaviour, it shoudn't.
 * keyboard Shift @ key doesnt respont frequently, only every second keystroke.
 
 ### Improvement
+* Loader code in Extra Ram consider moving to $4000
 * Improve the code addition of .CMD to a filename when executing from CMD processor.
     * When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
 
 ### RTC
 * Full reboot should not wipe out Clock, needs secondary storage.
-    * maybe just define an API on Pico to get time, and maintain it there
-    * existing SYS 0 static defines should be removed
-    * copied on boot into RAM
+    * maybe just define an API on Pico (FREHD) to get time, and maintain it there
+    * existing SYS 0 static defines should be removed, setting during startup.
 
 ### Improvement - Error handling
 * #RM BASIC - removing a directory (not empty) produced "FF Error 7" Access denied due to prohibited
@@ -35,12 +43,6 @@ Good Keyboard Driver e.g. LDOS, interrupt driven e.g. support typeahead
 * Need "Access Denied" and "Exists" messages - but maybe
     * in RM we MAP the Access Denied to "Directory Not Empty"
     * in MKDIR we MAP the Exists     to "Directory Exists"
-
-### PicoRAM
-* Need to investigate the Enhanced Flag ???
-* Remove the ENHANCED runtime variable directive ???
-* Conditional Build directives #IFDEF FREHD_BUILD
-* Need to build 2 sets of artifacts - 1 for Frehd overlays, and 1 for PicoRam
 
 ### High Priority
 * M1ZVM
@@ -54,10 +56,10 @@ Need to add these
 * Filename Extension
 
 ### Medium
+* Add BASIC FILE IO statements
 * Add a #COPY file.ext:N file.ext:N command
 * Add a KILL basic statement, leveraging #DELETE
 * Add a MERGE basic statement
-* Add BASIC FILE IO statements
 * #DIR {optional: wildcard}{optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
 
 ### Features
