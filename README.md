@@ -2,8 +2,8 @@
 
 ## Introduction
 
-kDOS is a operating environment that runs on the Tandy TRS-80 Model 1 providing
-a TRS-DOS (DOS) like features to Level 2 BASIC
+kDOS is an operating environment that runs on the Tandy TRS-80 Model 1
+providing a TRS-DOS (DOS) like features to Level 2 BASIC
 
 The DOS runs alongside Level 2 BASIC, rather than supplanting it.
 Typing a DOS command and a BASIC statement are done in the
@@ -113,45 +113,48 @@ will be interpreted as PATH/FILENAME.EXT
 
 ## Supported
 
-Below is a summary of the suppoerted DOS commands.
+Below is a summary of the suppoerted DOS commands. Noting if running on a FreHD
+or under the FreHD TRS80GP emulation only the "FreHD" marked features are supported 
 
-| Command             | Description                |      |
-|---------------------|----------------------------|------|
-| {filename}          | Runs a CMD program         | All  |
-| CD {dirName}        | Set working directory      | Pico |
-| COPY {f1} {f2}      | Copy a File (todo)         | Pico |
-| DEL {filename}      | delete file or directory   | Pico |
-| DIR {wildcard}      | display directory contents | All  |
-| LOAD {filename.CMD} | Load a CMD program         | All  |
-| MKDIR {dirname}     | Make a directory           | Pico |
-| MOVE {f1} {f2}      | move file or directory     | Pico |
-| PWD                 | display current directory  | Pico |
-| REN {f1} {f2}       | rename file or directory   | Pico |
+| Command         | Description                   |       |
+|-----------------|-------------------------------|-------|
+| {filename}      | Runs a CMD program            | FreHD |
+| CD {dirName}    | Set working directory         |       |
+| COPY {f1} {f2}  | Copy a File (todo)            |       |
+| DEL {filename}  | delete file or directory      |       |
+| DIR {wildcard}  | display directory contents    | FreHD |
+| HELP            | Display a summary of commands | FreHD |
+| MKDIR {dirname} | Make a directory              |       |
+| MOVE {f1} {f2}  | move file or directory        |       |
+| PWD             | display current directory     |       |
+| REN {f1} {f2}   | rename file or directory      |       |
 
-As well as BASIC itself has been upgraded with DOS features
+As well as the DOS commands, BASIC itself has been upgraded with 
+the non-disk I/O statements and extensions. The following are supported
 
-|            | Command             | Description                |      |
-|------------|---------------------|----------------------------|------|
-| Commands   | LOAD "filename.BAS" | Load a basic Program       | All  |
-|            | SAVE "filename.BAS" | Save a program to Disk     | All  |
-|            | RUN "filename.BAS"  | Load and Run a program     | All  |
-|            | KILL "filename"     | Delete a file (todo)       |      | 
-|            | MERGE "filename"    | Merge a file (todo)        |      | 
-|            | -                   |                            |      |
-| Statements | &Hxx                | Hexadecimal Constant       | Pico |
-|            | &Oxx                | Octo-decimal Constant      | Pico |
-|            | CVI CVS CVD         | Convert from String        | Pico |
-|            | DEF FNn(A)=A        | Define a User Function     | Pico |
-|            | DEF USRn=ADDR       | Define a Call address      | Pico |
-|            | FNn(A)              | Invoke a User Function     | Pico |
-|            | INSTR(X$,Y$)        | String Search function     | Pico |
-|            | LINE INPUT A$       | Input an entire line       | Pico |
-|            | MID(X$,N,N)=""      | Mid String Assignment      | Pico |
-|            | MKI$ MKS$ MKD$      | Convert to String          | Pico |
-|            | TIME$               | RTC Current DateTime       | Pico |
-|            | USRn(A)             | Invoke a Call address      | Pico |
-|            |                     |                            |      |
-| Errors     | Display Full Error  |                            | Pico |
+|            | Command             | Description            |       |
+|------------|---------------------|------------------------|-------|
+| Commands   | LOAD "filename.BAS" | Load a basic Program   | FreHD |
+|            | SAVE "filename.BAS" | Save a program to Disk | FreHD |
+|            | RUN "filename.BAS"  | Load and Run a program | FreHD |
+|            | KILL "filename"     | Delete a file (todo)   | FreHD | 
+|            | MERGE "filename"    | Merge a file (todo)    | FreHD | 
+|            | -                   | -                      |       |
+| Statements | &Hxx                | Hexadecimal Constant   |       |
+|            | &Oxx                | Octo-decimal Constant  |       |
+|            | CVI CVS CVD         | Convert from String    |       |
+|            | DEF FNn(A)=A        | Define a User Function |       |
+|            | DEF USRn=ADDR       | Define a Call address  |       |
+|            | FNn(A)              | Invoke a User Function |       |
+|            | INSTR(X$,Y$)        | String Search function |       |
+|            | LINE INPUT A$       | Input an entire line   |       |
+|            | MID(X$,N,N)=""      | Mid String Assignment  |       |
+|            | MKI$ MKS$ MKD$      | Convert to String      |       |
+|            | TIME$               | RTC Current DateTime   |       |
+|            | USRn(A)             | Invoke a Call address  |       |
+
+As well as this BASIC will display the descriptive error messages.
+Disk Basic I/O function are a future feature
 
 ## Caveats
 
