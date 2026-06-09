@@ -1,0 +1,95 @@
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BASIC MKI$ MKS$ MKD$ - disk basic extension
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+;
+; Original Source from TRSDOS 2.3, See
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+;
+; ======================================================================
+;
+; MKI$, MKS$ and MKD$ Commands
+;
+VIRTUAL_PAGE basicmki, PAGE_MKI
+;
+	ld	a,$02            ;5eff:
+;	DB	LDBCNN
+;	LD 	A,$04		 ;5f02
+;	DB	LDBCNN
+;	LD 	A,$08		 ;5f05:
+	push	af               ;5f07:
+	call	$2819            ;5f08:
+	pop	af               ;5f0b:
+	call	$2857            ;5f0c:
+	ld	hl,($40d4)       ;5f0f:
+	call	$09ff            ;5f12:
+	jp	$2a2b            ;5f15:
+;
+VIRTUAL_END
+;
+; ======================================================================
+;
+VIRTUAL_PAGE basicmks, PAGE_MKS
+;
+;	ld	a,$02            ;5eff:
+;	DB	LDBCNN
+	LD 	A,$04		 ;5f02
+;	DB	LDBCNN
+;	LD 	A,$08		 ;5f05:
+	push	af               ;5f07:
+	call	$2819            ;5f08:
+	pop	af               ;5f0b:
+	call	$2857            ;5f0c:
+	ld	hl,($40d4)       ;5f0f:
+	call	$09ff            ;5f12:
+	jp	$2a2b            ;5f15:
+;
+VIRTUAL_END
+;
+; ======================================================================
+;
+VIRTUAL_PAGE basicmkd, PAGE_MKD
+;
+;	ld	a,$02            ;5eff:
+;	DB	LDBCNN
+;	LD 	A,$04		 ;5f02
+;	DB	LDBCNN
+	LD 	A,$08		 ;5f05:
+	push	af               ;5f07:
+	call	$2819            ;5f08:
+	pop	af               ;5f0b:
+	call	$2857            ;5f0c:
+	ld	hl,($40d4)       ;5f0f:
+	call	$09ff            ;5f12:
+	jp	$2a2b            ;5f15:
+;
+VIRTUAL_END
+;
+; ======================================================================
+; End of Paged Routines
+; ======================================================================
+;
+; ======================================================================
+; DOS ENTRY VECTOR
+; ======================================================================
+;
+	ORG	$416A
+	jp	basicmki
+
+	ORG	$416D
+	jp	basicmks
+
+	ORG	$4170
+	jp	basicmkd

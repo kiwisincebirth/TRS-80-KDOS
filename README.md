@@ -2,32 +2,34 @@
 
 ## Introduction
 
-kDOS is a operating environment that runs on Model 1 providing
-a TRS-DOS (DOS) like features to Level 2 basic
+kDOS is a operating environment that runs on the Tandy TRS-80 Model 1 providing
+a TRS-DOS (DOS) like features to Level 2 BASIC
 
-The DOS runs alongside BASIC, rather than supplanting it.
+The DOS runs alongside Level 2 BASIC, rather than supplanting it.
 Typing a DOS command and a BASIC statement are done in the
 same shell.
 
-Files are stored on SD card in native FAT filesystem.
-There is no emulation of legacy floppy or hard disks,
+Files are stored and accessed from SD card in a standard FAT filesystem.
+There is no emulation of TRS-80 floppy disk or hard disk drives,
 nor any TRS-DOS (like) file-system. 
 
-There are no meaningful limits (SD card size) on the number 
-of files that can be stored. Directories are fully supported.
-Files copied to the SD card in modern computer, are 
-directly readable on the TRS-80
+There are no imposed file size limits, or limits on the number 
+of files that can be stored, for a TRS-80 a modern SD card could be 
+considered infinite storage. Directories are fully supported.
+Files copied to the SD card by modern computer, are 
+directly readable on the TRS-80. 
 
 Programs that run on TRS-DOS "should" run under kDOS so long
 as they use standard DOS API calls. Programs that directly 
-access FDC hardware or undocumented (non-standard) API calls will not function.
+access FDC hardware or undocumented (non-standard) API calls will 
+probably not function, unless patched.
 
 ## Features
 
 Core Features
 * Modern Filesystem 
   * Files are stored natively on the FAT filesystem.
-  * File directories are supported
+  * File directories (including nested) are supported
   * File storage space is unrestricted, can store any number of files
   * Automatic conversion of traditional filename/ext into filename.ext
 * DOS Features
@@ -99,6 +101,11 @@ The `:` prompt is the equivalent of the DOS prompt, where disk commands are ente
 
 ### Filenames
 
+Files names (including directories) should follow the 8.3 naming convention.
+Longer file names will be truncated to 8.3 format. While this is supported
+it is not recommended as the '~' character is not consistently displayed
+or available on the standard keyboard.
+
 When entering filenames the preference is to use a modern format.
 e.g. FILENAME.EXT , but the tradition format of FILENAME/EXT
 is generally supported within constrains e.g. PATH/FILENAME/EXT
@@ -133,12 +140,14 @@ As well as BASIC itself has been upgraded with DOS features
 |            | -                   |                            |      |
 | Statements | &Hxx                | Hexadecimal Constant       | Pico |
 |            | &Oxx                | Octo-decimal Constant      | Pico |
+|            | CVI CVS CVD         | Convert from String        | Pico |
 |            | DEF FNn(A)=A        | Define a User Function     | Pico |
 |            | DEF USRn=ADDR       | Define a Call address      | Pico |
 |            | FNn(A)              | Invoke a User Function     | Pico |
 |            | INSTR(X$,Y$)        | String Search function     | Pico |
 |            | LINE INPUT A$       | Input an entire line       | Pico |
 |            | MID(X$,N,N)=""      | Mid String Assignment      | Pico |
+|            | MKI$ MKS$ MKD$      | Convert to String          | Pico |
 |            | TIME$               | RTC Current DateTime       | Pico |
 |            | USRn(A)             | Invoke a Call address      | Pico |
 |            |                     |                            |      |
@@ -157,32 +166,6 @@ When running this on a FreHD there are several limitations
 * file management, and sub-Directories are not supported
 * Many DOS API's (support File IO) are not supported
 * Doesn't support Disk Basic extensions.
-
-## Future 
-
-### Features
-
-**Named Virtual Directories**
-
-Defined as volume identifiers on existing File name e.g. :1 thru :9
-When a file is specified with a Drive :1 - :9 then  virtual dive will be used
-Static config can be used for defining these virtual . e.g. 
-
-```
-DIR1=namedDirectory1 ...
-DIR9=namedDirectory9
-```
-
-**Search Path**
-
-Several directories can be specified that allow a virtual search path
-meaning if not fund on :0 will search other drives in order to find it.
-very much like the dos PATH command. Used when opening a file for Read access 
-e.g. 
-
-```
-PATH=/BIN;/SYS
-```
 
 
 

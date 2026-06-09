@@ -45,6 +45,7 @@ pico_loader:
 ; - NZ : error occurred, file not or partially loaded
 ;
 _ploader:
+; todo replace the code below with Command to PICO to start virtual load, and command to restore prior state
 	ld	a,(PICOPAGENUM)		; get current virtual page number
 	ld	(_pload1+1),a		; save it into instruction below
 	call	_loader

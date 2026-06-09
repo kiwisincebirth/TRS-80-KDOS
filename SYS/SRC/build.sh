@@ -1,46 +1,46 @@
 #!/bin/zsh
 set -e
 
-echo BUILD
+#echo BUILD
 
-echo Building BOOT
-./zmac boot.z --oo lst,cim,cmd,hex
-
-echo Building SYS0
-./zmac sys0f.z --zmac --oo lst,cmd
-./zmac sys0p.z --zmac --oo lst,cmd
-
-echo Building OVERLAY\'s
-./zmac overlayb.z --oo lst,cim
-./zmac overlayc.z --oo lst,cim
-./zmac overlayd.z --oo lst,cim
-./zmac overlaye.z --oo lst,cim
-./zmac overlayf.z --oo lst,cim
-./zmac overlayg.z --oo lst,cim
-./zmac overlayh.z --oo lst,cim
-./zmac overlayl.z --oo lst,cim
-./zmac overlayo.z --oo lst,cim
-
-echo Building Keyboard
-./zmac keyboard.z --oo lst,cmd,hex
-
-echo DEPLOY
-echo Copying Files to Parent
-
-cp zout/boot.cmd     ../../frehd.rom
-cp zout/boot.cim     ../BOOT.SYS
-cp zout/sys0p.cmd    ../SYSP.sys
-cp zout/sys0f.cmd    ../SYS0.sys
-cp zout/overlayb.cim ../overlayb.sys
-cp zout/overlayc.cim ../overlayc.sys
-cp zout/overlayd.cim ../overlayd.sys
-cp zout/overlaye.cim ../overlaye.sys
-cp zout/overlayf.cim ../overlayf.sys
-cp zout/overlayg.cim ../overlayg.sys
-cp zout/overlayh.cim ../overlayh.sys
-cp zout/overlayl.cim ../overlayl.sys
-cp zout/overlayo.cim ../overlayo.sys
-cp zout/keyboard.cmd ../KEYBOARD.CMD
+#echo Building BOOT
+#./zmac boot.z --oo lst,cim,cmd,hex
+#
+#echo Building SYS0
+#./zmac sys0f.z --zmac --oo lst,cmd
+#./zmac sys0p.z --zmac --oo lst,cmd
+#
+#echo Building OVERLAY\'s
+#./zmac overlayb.z --oo lst,cim
+#./zmac overlayc.z --oo lst,cim
+#./zmac overlayd.z --oo lst,cim
+#./zmac overlaye.z --oo lst,cim
+#./zmac overlayf.z --oo lst,cim
+#./zmac overlayg.z --oo lst,cim
+#./zmac overlayh.z --oo lst,cim
+#./zmac overlayl.z --oo lst,cim
+#./zmac overlayo.z --oo lst,cim
+#
+#echo Building Keyboard
+#./zmac keyboard.z --oo lst,cmd,hex
+#
+#echo DEPLOY
+#echo Copying Files to Parent
+#
+#cp zout/boot.cmd     ../../frehd.rom
+#cp zout/boot.cim     ../BOOT.SYS
+#cp zout/sys0p.cmd    ../SYSP.sys
+#cp zout/sys0f.cmd    ../SYS0.sys
+#cp zout/overlayb.cim ../overlayb.sys
+#cp zout/overlayc.cim ../overlayc.sys
+#cp zout/overlayd.cim ../overlayd.sys
+#cp zout/overlaye.cim ../overlaye.sys
+#cp zout/overlayf.cim ../overlayf.sys
+#cp zout/overlayg.cim ../overlayg.sys
+#cp zout/overlayh.cim ../overlayh.sys
+#cp zout/overlayl.cim ../overlayl.sys
+#cp zout/overlayo.cim ../overlayo.sys
+#cp zout/keyboard.cmd ../KEYBOARD.CMD
 
 echo Copying Files to FreHD
 

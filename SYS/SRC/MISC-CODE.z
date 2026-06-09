@@ -383,3 +383,31 @@ TRSDOS
 4475:   rst	$0028
 4476:   ld	a,$e3
 4478:   rst	$0028
+
+
+INTERRUPTS
+
+@ADTSK .... Vector = <441@>
+
+This routine will add an interrupt level task to the real time clock task table.
+The task slot can be Ø-1l; however, some slots are already assigned to certain
+functions i n LDOS. Slot assignments Ø-7 are low priority tasks
+executing every <2@@ milliseconds Model I > while slots 8-11.
+are high priority tasks executing <25 milliseconds Model I>.
+See the RAM STORAGE section for the slot assignments used by LDOS.
+
+DE => Task Control Block (TCB)
+A = Task slot assignment
+HL is used
+
+Note: The DE register is a pointer not to the location of your task driver, but
+to a two byte block of RAM called the TCB, which contains the address
+task driver entry point. Upon entry to your task routine, the register IX will
+contain the TCB address.
+
+@RMTSK .... Vector = <4413>
+
+routine will remove an interrupt level task from the task control block
+
+A = task assignment slot (Ø-11) to remove
+HL, DE are used

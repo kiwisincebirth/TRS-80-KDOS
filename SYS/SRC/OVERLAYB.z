@@ -157,7 +157,7 @@ _LOAD_FIN:
 ; ORIGINAL FROM CLOAD
 ;	ld	(VARTAB),de	; After three 000 - Save the new end of the BASIC program pointer.
 ;	;
-;	ld	hl,m_REDDY	; READY>
+;	ld	hl,READYM	; READY>
 ;	call	STROUT		; Print Ready Message
 ;	;
 ;	ld	de,(TXTTAB)	; pointer to Prog Statement Table

@@ -37,7 +37,7 @@ import	constants.z
 ; handle relation of code up to $5200 is was loaded by floppy
 ; disk bootstrap at location $4200
 ; ----------------------------------------------------------------------
-	call	_WHERE		; ($000B) - get PC into HL
+	call	@WHERE		; ($000B) - get PC into HL
 	;			; HL has address of this next instruction
 	ld	a,h		; MSB of address this code is running in.
 	cp	$ / $100	; compare MSB with correct Code Page

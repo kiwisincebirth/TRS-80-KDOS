@@ -1,0 +1,110 @@
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BASIC CVI$ CVS$ CVD$ - disk basic extension
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+;
+; Original Source from TRSDOS 2.3, See
+; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
+;
+; ======================================================================
+;
+; CVI, CVS, and CVD commands
+;
+VIRTUAL_PAGE basiccvi, PAGE_CVI
+;
+	ld	a,$01            ;5f18:
+;	DB	LDBCNN
+;	ld	a,$03	         ;5f1b:
+;	DB	LDBCNN
+;	ld	a,$07	         ;5f1e:
+	push	af               ;5f20:
+	call	$29d7            ;5f21:
+	pop	af               ;5f24:
+	cp	(hl)             ;5f25:
+	jp	nc,$1e4a         ;5f26:
+	inc	a                ;5f29:
+	inc	hl               ;5f2a:
+	ld	c,(hl)           ;5f2b:
+	inc	hl               ;5f2c:
+	ld	h,(hl)           ;5f2d:
+	ld	l,c              ;5f2e:
+	ld	($40af),a        ;5f2f:
+	jp	$09f7            ;5f32:
+;
+VIRTUAL_END
+;
+VIRTUAL_PAGE basiccvs, PAGE_CVS
+;
+;	ld	a,$01            ;5f18:
+;	DB	LDBCNN
+	ld	a,$03	         ;5f1b:
+;	DB	LDBCNN
+;	ld	a,$07	         ;5f1e:
+	push	af               ;5f20:
+	call	$29d7            ;5f21:
+	pop	af               ;5f24:
+	cp	(hl)             ;5f25:
+	jp	nc,$1e4a         ;5f26:
+	inc	a                ;5f29:
+	inc	hl               ;5f2a:
+	ld	c,(hl)           ;5f2b:
+	inc	hl               ;5f2c:
+	ld	h,(hl)           ;5f2d:
+	ld	l,c              ;5f2e:
+	ld	($40af),a        ;5f2f:
+	jp	$09f7            ;5f32:
+;
+VIRTUAL_END
+;
+VIRTUAL_PAGE basiccvd, PAGE_CVD
+;
+;	ld	a,$01            ;5f18:
+;	DB	LDBCNN
+;	ld	a,$03	         ;5f1b:
+;	DB	LDBCNN
+	ld	a,$07	         ;5f1e:
+	push	af               ;5f20:
+	call	$29d7            ;5f21:
+	pop	af               ;5f24:
+	cp	(hl)             ;5f25:
+	jp	nc,$1e4a         ;5f26:
+	inc	a                ;5f29:
+	inc	hl               ;5f2a:
+	ld	c,(hl)           ;5f2b:
+	inc	hl               ;5f2c:
+	ld	h,(hl)           ;5f2d:
+	ld	l,c              ;5f2e:
+	ld	($40af),a        ;5f2f:
+	jp	$09f7            ;5f32:
+;
+VIRTUAL_END
+;
+; ======================================================================
+; End of Paged Routines
+; ======================================================================
+;
+; ======================================================================
+; DOS ENTRY VECTOR
+; ======================================================================
+;
+	ORG	$4152
+	jp	basiccvi
+
+	ORG	$4158
+	jp	basiccvs
+
+	ORG	$415E
+	jp	basiccvd
+

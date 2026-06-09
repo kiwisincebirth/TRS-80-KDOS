@@ -72,17 +72,17 @@ import	constants.z
 ; ----------------------------------------------------------------------
 	ORG	$4152
 ;
-	jp	L3ERR		; CVI - $4152
+	jp	L3ERR		; CVI - $4152 - Done
 	jp	L3ERR		; FN  - $4155 - Done
-	jp	L3ERR		; CVS - $4158
+	jp	L3ERR		; CVS - $4158 - Done
 	jp	L3ERR		; DEF - $415B - Done
-	jp	L3ERR		; CVD - $415E
+	jp	L3ERR		; CVD - $415E - Done
 	jp	L3ERR		; EOF - $4161
 	jp	L3ERR		; LOC - $4164
 	jp	L3ERR		; LOF - $4167
-	jp	L3ERR		; MKI - $416A
-	jp	L3ERR		; MKS - $417D
-	jp	L3ERR		; MKD - $4170
+	jp	L3ERR		; MKI - $416A - Done
+	jp	L3ERR		; MKS - $416D - Done
+	jp	L3ERR		; MKD - $4170 - Done
 	jp	L3ERR		; CMD - $4173 - ? User Definable ?
 	jp	L3ERR		; TIME$ $4176 - Done
 	jp	L3ERR		; OPEN  $4179
@@ -133,7 +133,7 @@ import	constants.z
 ;
 ; ======================================================================
 ; ======================================================================
-; 4300 - Start of Main Routines
+; 41F8 - Start of Main Routines
 ; ======================================================================
 ; ======================================================================
 	ORG	CORE1
@@ -366,9 +366,15 @@ $FREE_CORE1	EQU	SYSFCB - $
 	DC	SYSFCB - $,0
 ;
 ; ======================================================================
+; 42F1 - System FCB
+; ======================================================================
 ;
-	ORG	SYSFCB
-	DC	$20,0		; 32 byte System FCB bock.
+; Some Bytes Starting 4312 not accounted for. Dealing with Break Key and Debugging.
+; 4312	JP 4BA0H	; 3 Byte Vector for Handling of Break Key for Disk Basic
+; 4315	DEFB 00H	; This byte will be either 0 if DEBUG is off, or C3 if DEBUG is on
+; 4316	DEFW 00H	; This byte will be the address of the nucleus to load DEBUG
+; 4315			; Start of Basic Command
+; 4318			; Command Line Buffer
 ;
 ; ======================================================================
 ; 4400 - DOS Entry Points

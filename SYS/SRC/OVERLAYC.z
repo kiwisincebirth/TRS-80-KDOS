@@ -37,7 +37,7 @@ import	constants.z
 				; todo issue with detection based on column
 	;
 	; **** Print the READY message
-	ld	hl,m_REDDY	;1a25 - the starting address of word “READY”
+	ld	hl,READYM	;1a25 - the starting address of word “READY”
 	call	STROUT		;1a28 - Display the word “READY”
 	;
 _basicMode
@@ -86,7 +86,7 @@ _promptDOS
 	;
 	; **** Get User Command
 ;	call	INLIN		; Actually read a Line of input
-	LD	HL,4318H	;the DOS command input buffer
+	LD	HL,STRBUFF	;the DOS command input buffer
 	LD	B,7FH 		;max chars in buffer.
 	CALL	0040H		;line input routine On return, HL points past the last character entered, and the buffer is terminated with 0DH.
 

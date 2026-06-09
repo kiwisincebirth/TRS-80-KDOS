@@ -17,6 +17,7 @@ CMD_PROMPT_CHR	EQU	':'
 ; ----------------------------------------------------------------------
 ; Z-80 Op Codes
 ; ----------------------------------------------------------------------
+LDBCNN	EQU	$01	; LD BC,nnnn - skip 2 bytes
 OPRET	EQU	$C9	; RET (Opcode)
 ;
 ; ----------------------------------------------------------------------
@@ -25,7 +26,7 @@ OPRET	EQU	$C9	; RET (Opcode)
 ;
 ; Level 2 Basic ROM Entry Addresses
 ;
-_WHERE	EQU	$000B	; Used for Code relocation.
+@WHERE	EQU	$000B	; Used for Code relocation.
 KBWAIT	EQU	$0049
 DELAY	EQU	$0060	; delay routine
 INIT2	EQU	$0075	; L2 Basic Non Disk Init
@@ -35,8 +36,7 @@ INLIN	EQU	$0361
 RESETR	EQU	$06CC
 LINPRT	EQU	$0FAF
 CONSTR	EQU	$18F7	; address of L2 basic Math support routines
-m_REDDY	EQU	$1929	; "READY" Message
-ERROR:	EQU	$19A2	; Display basic error
+READYM	EQU	$1929	; "READY" Message
 READYC	EQU	$1A88	; Continue Normal READY process loop
 FINI	EQU	$1AE8
 FINIDE	EQU	$1AE9
@@ -133,7 +133,8 @@ PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
 KBDMATRX	EQU	$3800
 ;
 CORE1		EQU	$41F8		; DOS Core Resident Code Block
-SYSFCB  	EQU	$42F4		; DOS System FCB BUFFER
+SYSFCB  	EQU	$42F1		; DOS System FCB BUFFER
+CORE1END	EQU	$4311		; Note there are some bytes starting 4312 debugging BREAK related
 STRBUFF		EQU	$4318		; L2 Basic String Buffer (formally 41E5H)
 					; requires 3 bytes preamble
 					; L2 Basic Assigns $103 bytes to this buffer
@@ -158,14 +159,17 @@ STARTUP		EQU	$5400		; Startup Code Block is loaded here
 ;
 ; ======================================================================
 ; Supervisor Call ID's
-; LSB 4 bits are the overlay file name ending with A-Z
+; MSB 3 bits are the function numbers ($20->1,$40->2,... $E0->7)
+;    Function $00->0 is not supported, as super ID < $20 (newdos/80) are
+;    handled by break key handler at 4312
+; LSB 5 bits are the overlay file name ending with A-Z
 ; Noting the A translates to an ID of $xxx00001
 ; ----------------------------------------------------------------------
 ;
 ; for the time being avoid Overlay A as it conflict with BREAK KEY
 BREAK_SUPERID	EQU	$01	; passed by L2 when Break Key pressed
 ;
-SUP_OFF		EQU	'@'			; Offset ID -> Ascii translation
+SUP_OFF		EQU	'@'			;  Ascii translation Offset
 ;
 S_BASICLOAD	EQU	'B' - SUP_OFF + $20	; LOAD basic command
 S_BASICSAVE	EQU	'B' - SUP_OFF + $40	; SAVE basic command
@@ -173,9 +177,9 @@ S_BASICMERGE	EQU	'B' - SUP_OFF + $60	; MERGE basic command
 S_BASICRUN	EQU	'B' - SUP_OFF + $80	; RUN  basic command
 S_BASICKILL	EQU	'B' - SUP_OFF + $A0	; KILL basic command
 ;
-S_CMDPROC	EQU	'C' - SUP_OFF 		; Command Interpreter READY>
-S_DIRCMD	EQU	'D' - SUP_OFF		; #DIR command
-S_ERRHAND	EQU	'E' - SUP_OFF		; (4409) DOS Error Handler
+S_CMDPROC	EQU	'C' - SUP_OFF + $20	; Command Interpreter READY>
+S_DIRCMD	EQU	'D' - SUP_OFF + $20	; #DIR command
+S_ERRHAND	EQU	'E' - SUP_OFF + $20	; (4409) DOS Error Handler
 ;
 S_FILEEXTNT	EQU	'F' - SUP_OFF + $20	; (4473) @FEXT API Function
 S_FILESPEC	EQU	'F' - SUP_OFF + $40	; (441C) @FSPEC API Function
@@ -192,7 +196,7 @@ S_POSNFILE	EQU	'G' - SUP_OFF + $A0	; (4442) @POSN API Function
 S_BKSPFILE	EQU	'G' - SUP_OFF + $C0	; (4445) @BKSP API Function
 S_PEOFFILE	EQU	'G' - SUP_OFF + $E0	; (4448) @PEOF API Function
 ;
-S_HELPCMD	EQU	'H' - SUP_OFF		; #HELP command
+S_HELPCMD	EQU	'H' - SUP_OFF + $20	; #HELP command
 ;
 S_LOADFILE	EQU	'L' - SUP_OFF + $20	; (4430) @LOAD DOS Function
 S_RUNFILE	EQU	'L' - SUP_OFF + $40	; (4433) @RUN  DOS Function
@@ -433,16 +437,22 @@ PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
 PAGE_INTERRUPT	EQU	193	; Interrupt Service Routing
 PAGE_KEYBDRV	EQU	194	; (Optional) Keyboard Driver
 ;
-PAGE_AMPERSAND	EQU	212
-PAGE_DOSERROR1	EQU	213
-PAGE_DOSERROR2	EQU	214
-PAGE_DEFINE	EQU	215
-PAGE_DEFINEFN	EQU	216
-PAGE_INSTRFUNC	EQU	217
-PAGE_LINEINP	EQU	218
-PAGE_MIDOLLAR	EQU	219
-PAGE_TIMEDOLL	EQU	220
-PAGE_USRN	EQU	221
+PAGE_AMPERSAND	EQU	207
+PAGE_CVI	EQU	208
+PAGE_CVS	EQU	209
+PAGE_CVD	EQU	210
+PAGE_DOSERROR1	EQU	211
+PAGE_DOSERROR2	EQU	212
+PAGE_DEFINE	EQU	213
+PAGE_DEFINEFN	EQU	214
+PAGE_INSTRFUNC	EQU	215
+PAGE_LINEINP	EQU	216
+PAGE_MIDOLLAR	EQU	217
+PAGE_MKI	EQU	218
+PAGE_MKS	EQU	219
+PAGE_MKD	EQU	220
+PAGE_TIMEDOLL	EQU	221
+PAGE_USRN	EQU	222
 
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------

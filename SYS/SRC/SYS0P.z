@@ -94,8 +94,10 @@ include	INTERRUPT.z		;
 ; BASIC Extensions - Non Disk Functions
 ; ----------------------------------------------------------------------
 ;
+include	BASIC-CVI.z		; $4152 ... $415E
 include	BASIC-DEFFN.z		; $4155
 include	BASIC-DEFINE.z		; $415B
+include	BASIC-MKI.z		; $416A ... $4170
 include	BASIC-TIME.z		; $4176
 include	BASIC-AMP.z		; $4194
 include	BASIC-INSTR.z		; $419D
