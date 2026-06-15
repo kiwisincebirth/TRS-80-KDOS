@@ -425,13 +425,16 @@ $FREE_CORE1	EQU	SYSFCB - $
 	RET3			; (4470) @DATE todo Get the date "12/12/99" into (HL)
 	SUPERV	S_FILEEXTNT	; (4473) @FEXT Insert a default file extension
 	RET3			; (4476) * Ldos and Trsdos have a function defined here
+	;
+	; KDOS specific data held $4479 - $447F
+	; See Constants.z
 	nop			; (4479)
 	nop			; (447A)
 	nop			; (447B)
 	nop			; (447C)
 	nop			; (447D)
 	nop			; (447E)
-	nop			; (447F) Note Bytes 447F and Down are used See Constants.z
+	nop			; (447F)
 ;
 	assert	$ == CORE2
 ;

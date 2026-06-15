@@ -86,7 +86,7 @@ READY1:
 	call	api_WAIT	; ignoring result
 	;
 	ld	hl,PICOVERS 	; major and minor versions $41FE $41FF
-	ld	bc, $200+APIDATA	; 2 bytes from version
+	ld	bc, $200+APIDATA  ; 2 bytes from version
 	inir			; store the version
 	;
 	; When booting User can hold Clear Key, which disables Paged

@@ -1,6 +1,5 @@
 
-
-STELLER ESCORT
+STELLAR ESCORT
 
 Patch SESCRBF3
 3A EC 37 CB 4F 20
@@ -11,7 +10,6 @@ Patch SESCRBF3
 
 Same patch for Def Command
 DEFCMND7
-
 
 991b:   ld	a,$01
 991d:   ld	($37e1),a	; drive
@@ -39,7 +37,6 @@ DEFCMND7
 9951:   ret	z		; GOOD
 9952:   djnz	$9947
 
-
 METEOR
 
 b277:   ld	hl,$7300	256 byte buffer
@@ -54,6 +51,7 @@ b28c:   jr	nz,$b2cc	->A error including EOF
 b28e:   jr	$b298
 
 VERIFY
+
 b290:   ld	de,$b312	fcb pointer B <-
 b293:   call	$443c		@VERIFY
 b296:   jr	nz,$b2cc	->A error
@@ -67,6 +65,7 @@ b2a8:   ld	($a583),a
 b2ab:   jp	$8500
 
 WRITE
+
 b2ae:   ld	hl,$7300	256 byte buffer
 b2b1:   ld	de,$b312	fcb pointer
 b2b4:   ld	b,$00		lrl = 256
@@ -80,7 +79,7 @@ b2c6:   call	$4428		@CLOSE
 b2c9:   jr	nz,$b2cc	->A error
 b2cb:   ret
 
-A
+DOS OPEN FILE
 
 ; BEFORE CALL to DOS
 ; 48 49 53 43  4F 52 45 53  2F 4D 45 54  3A 30 0D 4D |HISCORES/MET:0.M|
@@ -96,6 +95,7 @@ A
 ; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
 ; FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF |................|
 
+; Potentially what we CREATED ?
 ; 80 28 20 00  73 00 00 1B  00 00 00 00  01 00 09 60 |.( .s..........`|
 ; FF FF FF 48  49 53 43 4F  52 45 53 2F  4D 45 54 00 |...HISCORES.MET.|
 
@@ -115,7 +115,7 @@ A
 ;@POSN	EQU	4442H	; Position file to record BC
 
 
-
+ERROR MAPPING
 
 Numbers below are based on LDOS 5.1 reference Manual
 
@@ -214,10 +214,8 @@ const char *FRESULT_str(FRESULT i) {
     }
 }
 
-
-
 ; Originally from TRS DOS 2.3 SYS1
-; 4FF4H - Character Extraction Subroutine📋
+; 4FF4H - Character Extraction Subroutine
 ; Reads up to B characters from the command line at (HL)
 ; Storing valid filename characters (digits 0-9 and uppercase letters A-Z)
 ; into the output buffer at (DE).
@@ -323,8 +321,7 @@ aplha_check:
 	CP	1AH	;Compare against 1AH (26). If result is less than 26, the character was 'a'-'z'.
 	RET		;Return. CARRY set if lowercase letter, CARRY clear if not alphabetic.
 
-
-
+DEFAULT DCB
 
 ; this was attept at documenting THE default FCB
 DEF_FCB_BLK:
@@ -348,9 +345,9 @@ DEF_FCB_BLK:
 	DEFW	$FFFF		; 14 15 File Directory Extent
 				; 16-31 File Directory Extent's
 
+DOS ROUTINES
 
-
-	; Addresses that Are not currently supported
+	; Addresses that Are DIFFERENT
 	;
 	; 444B LDOS @CKEOF - Check EOF
 	; 444B ND80 - Allocate File Space
@@ -369,9 +366,8 @@ DEF_FCB_BLK:
 	; 4463 LDOS @DODIR - Display Directory Buffer
 	; 4464 ND80 - Routine Dequeue
 
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 TRSDOS
+
 4448:   jp	$475f
 ;
 4467:   jp	$44cf
@@ -384,14 +380,13 @@ TRSDOS
 4476:   ld	a,$e3
 4478:   rst	$0028
 
-
 INTERRUPTS
 
-@ADTSK .... Vector = <441@>
+@ADTSK .... Vector = <4410>
 
 This routine will add an interrupt level task to the real time clock task table.
-The task slot can be Ø-1l; however, some slots are already assigned to certain
-functions i n LDOS. Slot assignments Ø-7 are low priority tasks
+The task slot can be Ø-11; however, some slots are already assigned to certain
+functions in LDOS. Slot assignments Ø-7 are low priority tasks
 executing every <2@@ milliseconds Model I > while slots 8-11.
 are high priority tasks executing <25 milliseconds Model I>.
 See the RAM STORAGE section for the slot assignments used by LDOS.

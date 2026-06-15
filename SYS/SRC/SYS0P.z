@@ -85,10 +85,11 @@ include	overlayo.z
 VIRTUAL_END
 
 ; ----------------------------------------------------------------------
-; Interrupt Handler
+; Misc Code Extensions
 ; ----------------------------------------------------------------------
 ;
-include	INTERRUPT.z		;
+include	INTERRUPT.z		; Interrupt Handler
+include BASIC-HELP.z		; Used by Help Overlay
 ;
 ; ----------------------------------------------------------------------
 ; BASIC Extensions - Non Disk Functions

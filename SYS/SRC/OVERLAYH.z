@@ -2,9 +2,7 @@
 ;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
-;     FILE HANDLING FOR DOS API's @ $4400 - $4480
-;	Deals with Access to Data in an Open File
-;	( See Overlay F for the Open/Close functions )
+;     HELP COMMAND
 ;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -24,26 +22,29 @@ import	constants.z
 	ld	hl,_HELP_MSG
 	call	LISPRT
 ;
+ifdef	@D_PICOENHANCED
+	; Display the Basic Help Message
+	call	BASIC_HELP
+endif
+;
 	JP	@EXIT
 ;
 ; ----------------------------------------------------------------------
 ;
 _HELP_MSG:
-	defb 'kDOS (Beta.1) Help', ENTER
+	; Version Information Included
+	defb 'kDOS - (ver Beta.2)', ENTER
 	defb '  Press <Enter> to switch from BASIC to DOS : prompt', ENTER
 	defb '  Programs can be run by typing name of CMD file', ENTER
 	defb 'DOS Commands', ENTER
-	defb '  CD <path> - change directory   MD <path> - make new directory', ENTER
-	defb '  DIR <filter> - show dir files  PWD - show current path', ENTER
+	defb '  DIR <filter> - show dir files  LOAD <file.cmd> - load binary', ENTER
+ifdef	@D_PICOENHANCED
+	defb '  CD <path> - change directory   MD <path> - make directory', ENTER
 	defb '  COPY <file1> <file2> - single  REN <file1> <file2> - rename', ENTER
-	defb '  LOAD <file.cmd> - load binary  DEL <file> - delete a file', ENTER
-;	defb '  DI EI - disable/enable Clock', ENTER
-	defb 'BASIC Commands', ENTER
-	defb '  LOAD "<file.bas>" SAVE "<file.bas>" RUN "<file.bas>"', ENTER
-;	defb '  LOAD - SAVE - RUN "<file.bas>"', ENTER
-	defb '  &Hxx &Oxxx DEF FN USR INSTR$ MID$ TIME$ LINE INPUT ', ENTER
+	defb '  DEL <file> - delete a file     PWD - show current path', ENTER
+endif
+	defb '  DI EI - disable/enable Clock', ENTER
 	defb 0
-;
 ;
 ; ======================================================================
 ; 4700 - End Of Overlay

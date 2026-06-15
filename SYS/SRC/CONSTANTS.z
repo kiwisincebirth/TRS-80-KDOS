@@ -107,13 +107,13 @@ DOSPRMPT	EQU	$447F ; holds CMD prompt state dos/basic (OverlayC)
 ; must be consistent with code located at $4480
 ; which is a jump table to these internal routines
 ;
-enh_VER   	equ	(0*3) + $4480
+enh_VER   	equ	(0*3) + CORE2
 ;
-api_OPEN   	equ	(1*3) + $4480	; These routines are for the Legacy File
-api_CLOSE 	equ	(2*3) + $4480
-api_READ	equ	(3*3) + $4480
-api_READBYTE	equ	(4*3) + $4480
-api_WAIT	equ	(5*3) + $4480
+api_OPEN   	equ	(1*3) + CORE2	; These routines are for the Legacy File
+api_CLOSE 	equ	(2*3) + CORE2
+api_READ	equ	(3*3) + CORE2
+api_READBYTE	equ	(4*3) + CORE2
+api_WAIT	equ	(5*3) + CORE2
 ;
 ; ======================================================================
 ; MAIN MEMORY MAP - LAYOUT
@@ -436,6 +436,7 @@ PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
 ;
 PAGE_INTERRUPT	EQU	193	; Interrupt Service Routing
 PAGE_KEYBDRV	EQU	194	; (Optional) Keyboard Driver
+PAGE_BASICHELP	EQU	195	; Text for HELP command (Basic)
 ;
 PAGE_AMPERSAND	EQU	207
 PAGE_CVI	EQU	208
@@ -479,3 +480,14 @@ VIRTUAL_END macro
 	assert $ <= $3600
 endm
 
+; Call routine in Page
+PAGE_CALL macro pagenum
+	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	CALL  	$3000 + (pagenum * 4)		; Trampoline address
+endm
+
+; Jump to routine in Page
+PAGE_JP macro pagenum
+	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	JP  	$3000 + (pagenum * 4)		; Trampoline address
+endm

@@ -59,6 +59,12 @@ cp zout/overlayl.cim ~/Documents/FreHD/SYS/overlayl.sys
 cp zout/overlayo.cim ~/Documents/FreHD/SYS/overlayo.sys
 cp zout/keyboard.cmd ~/Documents/FreHD/KEYBOARD.CMD
 
+echo TRS80GP
+
+open -a trs80gp --args -m1 \
+  -frehd -frehd_dir ~/Documents/FreHD \
+  -rom ~/GITHUB/TRS-80-ROMS/MDL1REV4.bin \
+
 if mount | grep -q "/Volumes/KDOS"; then
 
 echo Copying Files to KDOS
@@ -83,14 +89,6 @@ echo Unmounting KDOS
 diskutil unmount /Volumes/KDOS
 
 fi
-
-echo TRS80GP
-
-open -a trs80gp --args -m1 \
-  -frehd -frehd_dir ~/Documents/FreHD \
-  -rom ~/GITHUB/TRS-80-ROMS/MDL1REV4.bin \
-
-
 
 #  -b 441C -b 42e0 -b 4492 \
 #  -b 443C -b 4428 -b 44420 \

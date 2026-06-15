@@ -38,7 +38,7 @@ GETDIR:
 	; call    api_WAIT
 	;
 	ld      a,"/"		; Default to the "ROOT" directory
-	out     (APIDATA),A	; Directories are really for Oico Version only.
+	out     (APIDATA),A	; Directories are really for Pico Version only.
 	ld      a,0
 	out     (APIDATA),A
 	;

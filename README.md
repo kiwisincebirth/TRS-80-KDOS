@@ -123,7 +123,10 @@ or under the FreHD TRS80GP emulation only the "FreHD" marked features are suppor
 | COPY {f1} {f2}  | Copy a File (todo)            |       |
 | DEL {filename}  | delete file or directory      |       |
 | DIR {wildcard}  | display directory contents    | FreHD |
+| DI              | Disable Interrupts / RTC      | FreHD |
+| EI              | Enable Interrupts / RTC       | FreHD |
 | HELP            | Display a summary of commands | FreHD |
+| LOAD {filename} | Load a CMD program            | FreHD |
 | MKDIR {dirname} | Make a directory              |       |
 | MOVE {f1} {f2}  | move file or directory        |       |
 | PWD             | display current directory     |       |

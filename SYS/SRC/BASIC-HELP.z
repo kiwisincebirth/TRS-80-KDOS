@@ -1,0 +1,39 @@
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     BASIC message for DOS HELP command
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+;
+VIRTUAL_ROUTINE BASIC_HELP, PAGE_BASICHELP
+;
+; ======================================================================
+;
+	ld	hl,_HELP_MSG	; load the message
+	jp	LISPRT		; call and return
+;
+; ----------------------------------------------------------------------
+;
+_HELP_MSG:
+	defb 'BASIC Commands', ENTER
+;	defb '  LOAD "<file.bas>" SAVE "<file.bas>"', ENTER
+;	defb '  RUN "<file.bas>" MERGE "<file.bas>"', ENTER
+	defb '  LOAD - SAVE - RUN - MERGE "<file.bas>"', ENTER
+	defb '  &Hxx &Oxxx CVI$ DEF FN USR INSTR$ MKI MID$ TIME$ LINE INPUT', ENTER
+	defb 0
+
+; ------------------------------
+; End of Paged Routine
+; ------------------------------
+VIRTUAL_END
+;
