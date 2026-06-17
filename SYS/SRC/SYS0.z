@@ -312,12 +312,11 @@ _wait1:	in 	a, (APISTAT)	; read status
 	bit	STATB_BUSY,a	; BUSY status bit
 	jr 	nz, _wait1	; loop while busy, for correct status
 	;
-	; in 	a, (APISTAT)	; read status again
 	bit	STATB_ERR,a	; test the LSB bit (STATUS_ERR)
 	ret	z		; No error just return the status
 	;
 	in	a, (APIERROR)	; read the FF error code
-
+	;
 	; The error code is mapped in the following way (bit 7 removed)
 	;   as 0 -  20 FF  Error -> map to 64- 128 by  setting Bit 6,
 	; and 64 - 192 TRS Error -> map to  0-  63 by removing Bit 6,

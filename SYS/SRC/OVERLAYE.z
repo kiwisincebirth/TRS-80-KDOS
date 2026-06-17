@@ -119,13 +119,15 @@ lookupt:
 	defb	ILLFILNAM$ , "Illegal Filename"		,ETX	; 19
 	defb	FILNOTFND$ , "File Not Found"		,ETX	; 24
 ;	defb	ACCESSDEN$ , "Access Denied"		,ETX	; 25
-	defb	DIRSPCFUL$ , "Directory Space Full"	,ETX	; 26
-	defb	DSCSPCFUL$ , "Disk Space Full"		,ETX	; 27
+;	defb	DIRSPCFUL$ , "Directory Space Full"	,ETX	; 26
+;	defb	DSCSPCFUL$ , "Disk Space Full"		,ETX	; 27
 	defb	ENDOFFILE$ , "End of File Encountered"	,ETX	; 28
 	defb	PRGNOTFND$ , "Program Not Found"	,ETX	; 31
 	defb	ILLDRINUM$ , "Illegal Drive Number"	,ETX	; 32
 	defb	LOAFILFMT$ , "Load File Format Error"	,ETX	; 34
 	;
+	defb	DENNOTEMP$ , "Denied, Not Empty"	,ETX	; 58 - Access Denied, Dir Not Empty
+	defb	FILEXISTS$ , "File Exists"		,ETX	; 59 - File or directory Exists
 	defb	PATNOTFOU$ , "Path Not Found"		,ETX	; 60 - Path not found, like File not found
 	defb	ILLDOSFUN$ , "Illegal DOS Function"	,ETX	; 61 - ND/80 for disabled functions
 	defb	INTDOSERR$ , "Internal DOS Error"	,ETX	; 62 - Something that should never happen

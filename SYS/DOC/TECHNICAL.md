@@ -1,4 +1,27 @@
 
+## Boot Process
+
+|            | Floppy 80 M1            | F80 & FHD              | FreHD                       |
+|------------|-------------------------|------------------------|-----------------------------|
+| ROM        | Uses a Standard L2 ROM  | ->                     | Requires FreHD Autoboot ROM |
+| ROM        | Loads Floppy Boot Block | ->                     | Loads FreHD Boot Block      |
+| ROM        | (BOOT.SYS loaded $4200) | BOOT.SYS loaded $5000  | FreHD boot loaded to $5000  |
+| Boot Block |                         |                        | Loads FREHD.ROM             |
+| Boot Block |                         |                        | -aka- BOOT/CMD to $5200     |
+| Boot.SYS   | Relocates to $5200      | <-                     |                             |
+| Boot.SYS   | Detects Hardware        | <-                     | Detects Hardware            |
+| Boot.SYS   | Loads /SYS/SYSP.SYS     | <-                     | Loads /SYS/SYS0.SYS         |
+| SYS0.SYS   | SYSP Starts at $5400    | <-                     | SYS0 Starts at $5400        |
+| Overlays   | -included in SYSP-      | <-                     | Loads /SYS/SYS(A-Z).SYS     |
+
+* BOOT.SYS - 256 byte binary image, with ORG = $6000
+* FreHD.ROM - is a direct copy of BOOT.SYS in CMD format
+* SYSP.SYS - Enhanced PICO full DOS, using virtual memory
+* SYS0.SYS - FreHD Limited version (same source code)
+* Overlays are pre-loaded into Pages RAM, not dynamically
+  * Are preloaded into Paged RAM as part of SYSP on Floppy80
+  * Are loaded (on demand) into normal RAM, like a normal DOS
+
 ## Enhanced Filename & Path Handling
 
 The DOS features a filename and path sanitiser that allows the TRS-80 to interact with a modern SD card.
@@ -32,29 +55,6 @@ The following inputs all result in the same FAT filename CONFIG.SYS:
 * CONFIG/SYS (Legacy TRS-DOS style)
 * CONFIG/SYS.PASSWORD (Legacy with password ignored)
 
-## Boot Process
-
-|            | Floppy 80 M1            | F80 & FHD              | FreHD                       |
-|------------|-------------------------|------------------------|-----------------------------|
-| ROM        | Uses a Standard L2 ROM  | ->                     | Requires FreHD Autoboot ROM |
-| ROM        | Loads Floppy Boot Block | ->                     | Loads FreHD Boot Block      |
-| ROM        | (BOOT.SYS loaded $4200) | BOOT.SYS loaded $5000  | FreHD boot loaded to $5000  |
-| Boot Block |                         |                        | Loads FREHD.ROM             |
-| Boot Block |                         |                        | -aka- BOOT/CMD to $5200     |
-| Boot.SYS   | Relocates to $5200      | <-                     |                             |
-| Boot.SYS   | Detects Hardware        | <-                     | Detects Hardware            |
-| Boot.SYS   | Loads /SYS/SYSP.SYS     | <-                     | Loads /SYS/SYS0.SYS         |
-| SYS0.SYS   | SYSP Starts at $5400    | <-                     | SYS0 Starts at $5400        |
-| Overlays   | -included in SYSP-      | <-                     | Loads /SYS/SYS(A-Z).SYS     |
-
-* BOOT.SYS - 256 byte binary image, with ORG = $6000
-* FreHD.ROM - is a direct copy of BOOT.SYS in CMD format
-* SYSP.SYS - Enhanced PICO full DOS, using virtual memory
-* SYS0.SYS - FreHD Limited version (same source code)
-* Overlays are pre-loaded into Pages RAM, not dynamically
-    * Are preloaded into Paged RAM as part of SYSP on Floppy80
-    * Are loaded (on demand) into normal RAM, like a normal DOS
-
 ## DOS Memory Map
 
 The high level Memory map
@@ -73,7 +73,7 @@ The high level Memory map
 |             |                        | 4500 - 4700 Overlays |
 | 44D0        | BASIC Program Start    | 4700 - Basic Program |
 
-DOS Entry Points (4400-4480)
+## DOS Entry Points
 
 | Address |        | Contents                   | Issues          |
 |---------|--------|----------------------------|-----------------|
@@ -112,6 +112,26 @@ DOS Entry Points (4400-4480)
 ; (4427) * ND8Ø $82 identifying ND(8)0v(2)                                        
 ; (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
 
+## DOS Error Codes 
+
+| Error Number | Error Message           | TRS-DOS |
+|--------------|-------------------------|---------|
+| 0            | No Error                | Yes     |
+| 15           | Write Protected Disk    | Yes     |
+| 16           | Illegal File Number     | Yes     |
+| 19           | Illegal Filename        | Yes     |
+| 24           | File Not Found          | Yes     |
+| 28           | End of File Encountered | Yes     |
+| 31           | Program Not Found       | Yes     |
+| 32           | Illegal Drive Number    | Yes     |
+| 34           | Load File Format Error  | Yes     |
+| 58           | Denied, Not Empty       |         |
+| 59           | File Exists             |         |
+| 60           | Path Not Found          |         |
+| 61           | Illegal DOS Function    |         |
+| 62           | Internal DOS Error      |         |
+| 63           | Unknown Error           |         |
+
 ## Hardware Address Map
 
 The following is provided by the RP2350 Pico Hardware
@@ -130,4 +150,3 @@ The following is provided by the RP2350 Pico Hardware
 | IO Port $C4 | Pico COMMAND Register           |
 | IO Port $C5 | Pico ERROR Register             |
 | IO Port $CF | Pico STATUS Register            |
-

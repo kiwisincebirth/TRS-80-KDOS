@@ -47,7 +47,8 @@ PATH=/BIN;/SYS
 * Add a #COPY file.ext:N file.ext:N command
 * Add a KILL basic statement, leveraging #DELETE
 * Add a MERGE basic statement
-* #DIR {optional: wildcard}{optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
+* #DIR {optional: wildcard}
+* #DIR {optional :dirNumber} - List contents of :0 or :1 - :9 -> rewrite
 
 
 ### Low Priority Commands

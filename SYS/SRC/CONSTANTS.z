@@ -236,8 +236,8 @@ ILLLOGFIL$	EQU	16	; Illegal Logical File Number
 ILLFILNAM$	EQU	19	; Illegal Filename
 FILNOTFND$	EQU	24	; File Not Found
 ACCESSDEN$	EQU	25	; Access Denied
-DIRSPCFUL$	EQU	26	; Directory Space Full
-DSCSPCFUL$	EQU	27	; Disk Space Full
+;DIRSPCFUL$	EQU	26	; Directory Space Full
+;DSCSPCFUL$	EQU	27	; Disk Space Full
 ENDOFFILE$	EQU	28	; End of File Encountered
 PRGNOTFND$	EQU	31	; Program not found
 ILLDRINUM$	EQU	32	; Illegal Drive Number
@@ -246,6 +246,8 @@ LOAFILFMT$	EQU	34 	; Load file format error
 ; Error Codes 39-62 are Undefined By TrsDOS
 ; but valid for the TRS-80
 ;
+DENNOTEMP$	EQU	58	; Access Denied,  Not Empty
+FILEXISTS$	EQU	59	; File Exists, cant create new file
 PATNOTFOU$	EQU	60	; Path Not Found, (like File Not Found)
 ILLDOSFUN$	EQU	61 	; Illegal (Unsupported) DOS Functon.
 INTDOSERR$	EQU	62	; Internal DOS Error - Super call id issue - overlay not found - Unexpected

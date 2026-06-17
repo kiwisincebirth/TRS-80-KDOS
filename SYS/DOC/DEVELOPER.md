@@ -20,9 +20,9 @@ Need to add these
   * (4470) @DATE todo Get the date "12/12/99" into (HL)
 * Filename Extension addition 
 
-### Issues
-* LOAD xxx.cmd from Emulator causes a FatFS Error 4
+### Improvement
 * typing LOAD "xx.bas" (basic command) from DOS causes a hang
+  * Ideally this should detect and block the operation.
 
 ### Improvement
 * Loader code in Extra Ram move it to $4000
@@ -32,11 +32,5 @@ Need to add these
 * running a program that has no END $ADDRESS - will run code based on last byte loaded - crash.
   * instead this should be detected and generate an error
 
-### Improvement - Error handling
-* #RM BASIC - removing a directory (not empty) produced "FF Error 7" Access denied due to prohibited
-  access or directory full -> Should provide better error.
-* #MKdir BASIC - FF Error 8 - Exists
-* Need "Access Denied" and "Exists" messages - but maybe
-    * in RM we MAP the Access Denied to "Directory Not Empty"
-    * in MKDIR we MAP the Exists     to "Directory Exists"
+
 
