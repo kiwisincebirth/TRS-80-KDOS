@@ -63,15 +63,16 @@ The high level Memory map
 |-------------|------------------------|----------------------|
 | 3400 - 3600 | DOS Overlay Area       | Moved to 4500-4700   |
 | 3600 - 37E0 | DOS Loader Utility     | In Overlay Code      |
-|             | RTC Clock Interrupt    | Not Supported        |
 | 4000 - 41E8 | As per Level 2 Basic   |                      |
-| 41E8 - 42E8 | String CMD Line Buffer |                      |
-| 42E0 - 43E0 | DOS Resident Code 1    |                      |
-| 43E0 - 4400 | System FCB Buffer      |                      |
+| 41E8 - 42F0 | DOS Resident Code 1    |                      |
+| 42F1 - 4311 | System FCB Buffer      |                      |
+| 4312 - 4314 | Undefined              |                      |
+| 4315 - 4317 | Basic Buffer Prefix    |                      |
+| 4318 - 43FF | Command Line Buffer    |                      |
 | 4400 - 4480 | DOS Entry Points       |                      |
 | 4480 - 44D0 | DOS Resident Code 2    |                      |
 |             |                        | 4500 - 4700 Overlays |
-| 44D0        | BASIC Program Start    | 4700 - Basic Program |
+| 44D4        | BASIC Program Start    | Moved up to 4704     |
 
 ## DOS Entry Points
 

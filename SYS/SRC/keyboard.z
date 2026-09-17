@@ -3,6 +3,11 @@
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
 ;     Keyboard Driver
+;	- CTRL Key can produce all 128 ASCII codes not available as normal keys,
+;		(brackets, braces, backslash, caret, underscore, tilde, grave,
+;		bar, the cursor-control codes, code 127 and code 0),
+;		reusing where possible the same keystrokes as LS-DOS/TRSDOS 6
+;	- CAPS Lock Key to toggle upper/lower case, requires lower case Mod
 ;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -16,7 +21,8 @@ import constants.z
 ; ----------------------------------------------------------------------
 KEYTAB		EQU	$0050	; Rom address of KB translation table
 ;
-KYBTSS		EQU	$4036
+KYBVEC		EQU	$4016	; Location of Keyboard Driver - Vector
+KYBTSS		EQU	$4036	; Location of saved keyboard rows.
 KYBTSS8		EQU	$412F	; Location of Saved 8th row of keyboard matrix
 ;
 ; ======================================================================
@@ -229,7 +235,7 @@ KB_CTRLTR:
 VIRTUAL_END
 
 ; Keyboard Driver Vector
-	org	$4016
+	org	KYBVEC
 	defw	KBDDRV
 
 ; Once Loaded Jump back to DOS
@@ -331,3 +337,4 @@ VIRTUAL_END
 ; CTRL 9	125	7D	}	Closing brace
 ; CTRL 6	126	7E	~	Equivalency sign - tilde
 ; CTRL 5	127	7F	DEL	Delete
+;

@@ -79,7 +79,7 @@ _read_result
 	; read the data from Pico into Buffer
 	in	a,(APISIZE)	; num bytes
 	ld	b,a		; count
-	ld      c,APIDATA		; C from data IO Port
+	ld      c,APIDATA	; C from data IO Port
 	ld      hl,_STR_BUFF	; to buffer
 	push	hl		; save the buffer address
 	inir			; transfer the data

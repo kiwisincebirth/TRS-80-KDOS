@@ -17,8 +17,8 @@ CMD_PROMPT_CHR	EQU	':'
 ; ----------------------------------------------------------------------
 ; Z-80 Op Codes
 ; ----------------------------------------------------------------------
-LDBCNN	EQU	$01	; LD BC,nnnn - skip 2 bytes
-OPRET	EQU	$C9	; RET (Opcode)
+LDBCNN		EQU	$01	; LD BC,nnnn - skip 2 bytes
+OPRET		EQU	$C9	; RET (Opcode)
 ;
 ; ----------------------------------------------------------------------
 ; Call Addresses
@@ -26,34 +26,34 @@ OPRET	EQU	$C9	; RET (Opcode)
 ;
 ; Level 2 Basic ROM Entry Addresses
 ;
-@WHERE	EQU	$000B	; Used for Code relocation.
-KBWAIT	EQU	$0049
-DELAY	EQU	$0060	; delay routine
-INIT2	EQU	$0075	; L2 Basic Non Disk Init
-L3ERR	EQU	$012D
-OUTDO	EQU	$032A
-INLIN	EQU	$0361
-RESETR	EQU	$06CC
-LINPRT	EQU	$0FAF
-CONSTR	EQU	$18F7	; address of L2 basic Math support routines
-READYM	EQU	$1929	; "READY" Message
-READYC	EQU	$1A88	; Continue Normal READY process loop
-FINI	EQU	$1AE8
-FINIDE	EQU	$1AE9
-LINKER	EQU	$1AF8
-SCRATH	EQU	$1B49
-SCRTCH	EQU	$1B4D
-RUNC	EQU	$1B5D
-NEWSTT	EQU	$1D1E
-FCERR	EQU	$1E4A
-CRDONZ	EQU	$20F9
-CRDO	EQU	$20FE
-FRMEVL	EQU	$2337
-STRINI	EQU	$2857
-PUTNEW	EQU	$2884
-STROUT	EQU	$28A7
-FRESTR	EQU	$29D7
-LISPRT	EQU	$2b75
+@WHERE		EQU	$000B	; Used for Code relocation.
+KBWAIT		EQU	$0049
+DELAY		EQU	$0060	; delay routine
+INIT2		EQU	$0075	; L2 Basic Non Disk Init
+L3ERR		EQU	$012D
+OUTDO		EQU	$032A
+INLIN		EQU	$0361
+RESETR		EQU	$06CC
+LINPRT		EQU	$0FAF
+CONSTR		EQU	$18F7	; address of L2 basic Math support routines
+READYM		EQU	$1929	; "READY" Message
+READYC		EQU	$1A88	; Continue Normal READY process loop
+FINI		EQU	$1AE8
+FINIDE		EQU	$1AE9
+LINKER		EQU	$1AF8
+SCRATH		EQU	$1B49
+SCRTCH		EQU	$1B4D
+RUNC		EQU	$1B5D
+NEWSTT		EQU	$1D1E
+FCERR		EQU	$1E4A
+CRDONZ		EQU	$20F9
+CRDO		EQU	$20FE
+FRMEVL		EQU	$2337
+STRINI		EQU	$2857
+PUTNEW		EQU	$2884
+STROUT		EQU	$28A7
+FRESTR		EQU	$29D7
+LISPRT		EQU	$2B75
 
 ;
 GETCHR	macro
@@ -68,21 +68,21 @@ SCR_LOADOADER	EQU PICOSCRATCH + 0	; entry point for Standalone Binary Loader
 ;
 ; Level 2 Basic Communications region
 ;
-@EXIT	EQU	$402D	; Exit program normally return to DOS
-@ABORT	EQU	$4030	; Abort program DONT display error message, dont continue JCL
-TICKCNT	EQU	$4040	; storage location for the RTC master Tick
-XTIME	EQU	$4041	; storage location for the current time and date
-MEMEND	EQU	$4049	; DOS High Memory
-FDIVC	EQU	$4080	; Subtraction routine used by division code...
-ERRFLG	EQU	$409A	; Current Error Code. See ERR function
-CURLIN	EQU	$40A2	; Current Line Number in a BASIC Program
-TXTTAB	EQU	$40A4
-BUFPNT	EQU	$40A7	; pointer to Keyboard Input buffer
-MEMSIZ	EQU	$40B1	; Basic - MEMORY SIZE ?
-AUTFLG	EQU	$40E1	; AUTO on or off flag. 0=AUTO is off.
-ERRLIN	EQU	$40EA	; Line no. In which error occurred
-VARTAB	EQU	$40F9
-PRGFIN	EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
+@EXIT		EQU	$402D	; Exit program normally return to DOS
+@ABORT		EQU	$4030	; Abort program DONT display error message, dont continue JCL
+TICKCNT		EQU	$4040	; storage location for the RTC master Tick
+XTIME		EQU	$4041	; storage location for the current time and date
+MEMEND		EQU	$4049	; DOS High Memory
+FDIVC		EQU	$4080	; Subtraction routine used by division code...
+ERRFLG		EQU	$409A	; Current Error Code. See ERR function
+CURLIN		EQU	$40A2	; Current Line Number in a BASIC Program
+TXTTAB		EQU	$40A4
+BUFPNT		EQU	$40A7	; pointer to Keyboard Input buffer
+MEMSIZ		EQU	$40B1	; Basic - MEMORY SIZE ?
+AUTFLG		EQU	$40E1	; AUTO on or off flag. 0=AUTO is off.
+ERRLIN		EQU	$40EA	; Line no. In which error occurred
+VARTAB		EQU	$40F9
+PRGFIN		EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 ;
 ; DOS Entry Points Routines
 ;
@@ -107,13 +107,13 @@ DOSPRMPT	EQU	$447F ; holds CMD prompt state dos/basic (OverlayC)
 ; must be consistent with code located at $4480
 ; which is a jump table to these internal routines
 ;
-enh_VER   	equ	(0*3) + CORE2
+enh_VER   	EQU	(0*3) + CORE2
 ;
-api_OPEN   	equ	(1*3) + CORE2	; These routines are for the Legacy File
-api_CLOSE 	equ	(2*3) + CORE2
-api_READ	equ	(3*3) + CORE2
-api_READBYTE	equ	(4*3) + CORE2
-api_WAIT	equ	(5*3) + CORE2
+api_OPEN   	EQU	(1*3) + CORE2	; These routines are for the Legacy File
+api_CLOSE 	EQU	(2*3) + CORE2
+api_READ	EQU	(3*3) + CORE2
+api_READBYTE	EQU	(4*3) + CORE2
+api_WAIT	EQU	(5*3) + CORE2
 ;
 ; ======================================================================
 ; MAIN MEMORY MAP - LAYOUT
@@ -258,37 +258,37 @@ UNKNOWN$	EQU	63
 ;   ASCII Codes for Keyboard and Display
 ; Comments (In Brackets) are the Keyboard mappings,
 ; ----------------------------------------------------------------------
-BREAK	EQU	$01	; (BREAK Key)
-ETX	EQU	$03	; End Of Text (Ascii)
+BREAK		EQU	$01	; (BREAK Key)
+ETX		EQU	$03	; End Of Text (Ascii)
 ;
-BACKS	EQU	$08	; (LEFT  Arrow) - Backspace
-TAB	EQU	$09	; (RIGHT Arrow) - Tab
-LINEF	EQU	$0A	; (DOWN  Arrow)
-VERTAB	EQU	$0B	; Vertical Tab (Ascii)
-FORMF	EQU	$0C	; Form Feed (Ascii)
-ENTER	EQU	$0D	; (ENTER Key) - Return
+BACKS		EQU	$08	; (LEFT  Arrow) - Backspace
+TAB		EQU	$09	; (RIGHT Arrow) - Tab
+LINEF		EQU	$0A	; (DOWN  Arrow)
+VERTAB		EQU	$0B	; Vertical Tab (Ascii)
+FORMF		EQU	$0C	; Form Feed (Ascii)
+ENTER		EQU	$0D	; (ENTER Key) - Return
 ;
 ; Following are special meaning CHR codes, not ASCII standard
-CURON	EQU	$0E	; turn on cursor.
-CUROFF	EQU	$0F 	; turn off cursor.
-TOGTAB	EQU	$15 	; (M3) toggles TAB and Alternate characters
-MODE32	EQU	$17	; select line size of 32 char/line.
-ARLEFT	EQU	$18	; (Shift-LEFT Arrow) backspace one character
-ARIGHT	EQU	$19	; (Shift-RIGHT Arrow) skip forward one character
-ARDOWN	EQU	$1A	; (Shift-DOWN Arrow) skip down one line
-ARUP	EQU	$1B	; (Shift-UP  Arrow) skip up one line
-CHOME	EQU	$1C	; home cursor. select 64 char/line.
-CLINE	EQU	$1D	; position cursor to Start of current line
-ELINE	EQU	$1E	; erase from cursor to end of line
-CLRKEY	EQU	$1F	; (CLEAR Key) erase from Cursor to end of frame
+CURON		EQU	$0E	; turn on cursor.
+CUROFF		EQU	$0F 	; turn off cursor.
+TOGTAB		EQU	$15 	; (M3) toggles TAB and Alternate characters
+MODE32		EQU	$17	; select line size of 32 char/line.
+ARLEFT		EQU	$18	; (Shift-LEFT Arrow) backspace one character
+ARIGHT		EQU	$19	; (Shift-RIGHT Arrow) skip forward one character
+ARDOWN		EQU	$1A	; (Shift-DOWN Arrow) skip down one line
+ARUP		EQU	$1B	; (Shift-UP  Arrow) skip up one line
+CHOME		EQU	$1C	; home cursor. select 64 char/line.
+CLINE		EQU	$1D	; position cursor to Start of current line
+ELINE		EQU	$1E	; erase from cursor to end of line
+CLRKEY		EQU	$1F	; (CLEAR Key) erase from Cursor to end of frame
 ;
-SPACE	EQU	$20	; A space character
-DQUOTE	EQU	$22	; A Double Quote ( " )
-SQUOTE	EQU	$27	; A Single Quote ( ' )
-SEMICO	EQU	$3B	; Note ';' in code; was breaking some assemblers
-UPARRW	EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
-BQUOTE	EQU	$60	; A Back Quote ( ` )
-BSLASH	EQU	$5C	; A Back Slash ( \ )
+SPACE		EQU	$20	; A space character
+DQUOTE		EQU	$22	; A Double Quote ( " )
+SQUOTE		EQU	$27	; A Single Quote ( ' )
+SEMICO		EQU	$3B	; Note ';' in code; was breaking some assemblers
+UPARRW		EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
+BQUOTE		EQU	$60	; A Back Quote ( ` )
+BSLASH		EQU	$5C	; A Back Slash ( \ )
 ;
 ; ======================================================================
 ; PICO API Definitions
