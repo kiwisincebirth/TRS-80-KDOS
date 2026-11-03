@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build" ToolsVersion="Current">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{80B53297-1707-4990-891C-672BE1AE3B64}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+    <RootNamespace>kDOS</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)/Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)/Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <NMakeBuildCommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)build.ps1" -Action Build</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)build.ps1" -Action Rebuild</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)build.ps1" -Action Clean</NMakeCleanCommandLine>
+    <NMakeOutput>$(ProjectDir)build/SD-CARD/SYS/SYSP.sys</NMakeOutput>
+    <OutDir>$(ProjectDir)build/SD-CARD/</OutDir>
+    <IntDir>$(ProjectDir)build/vs/$(Configuration)/</IntDir>
+    <BuildLogFile>$(IntDir)kDOS.log</BuildLogFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="SYS\SRC\BASIC-AMP.z" />
+    <None Include="SYS\SRC\BASIC-CVI.z" />
+    <None Include="SYS\SRC\BASIC-DEFFN.z" />
+    <None Include="SYS\SRC\BASIC-DEFINE.z" />
+    <None Include="SYS\SRC\BASIC-ERROR.z" />
+    <None Include="SYS\SRC\BASIC-HELP.z" />
+    <None Include="SYS\SRC\BASIC-INSTR.z" />
+    <None Include="SYS\SRC\BASIC-LINE.z" />
+    <None Include="SYS\SRC\BASIC-MID.z" />
+    <None Include="SYS\SRC\BASIC-MKI.z" />
+    <None Include="SYS\SRC\BASIC-TIME.z" />
+    <None Include="SYS\SRC\BASIC-USR.z" />
+    <None Include="SYS\SRC\BOOT.z" />
+    <None Include="SYS\SRC\CONSTANTS.z" />
+    <None Include="SYS\SRC\DOS-HISTORY.z" />
+    <None Include="SYS\SRC\INTERRUPT.z" />
+    <None Include="SYS\SRC\keyboard.z" />
+    <None Include="SYS\SRC\OVERLAYB.z" />
+    <None Include="SYS\SRC\OVERLAYC.z" />
+    <None Include="SYS\SRC\OVERLAYD.z" />
+    <None Include="SYS\SRC\OVERLAYE.z" />
+    <None Include="SYS\SRC\OVERLAYF.z" />
+    <None Include="SYS\SRC\OVERLAYG.z" />
+    <None Include="SYS\SRC\OVERLAYH.z" />
+    <None Include="SYS\SRC\OVERLAYL.z" />
+    <None Include="SYS\SRC\OVERLAYM.z" />
+    <None Include="SYS\SRC\OVERLAYO.z" />
+    <None Include="SYS\SRC\PICO-WORK.z" />
+    <None Include="SYS\SRC\STARTUP.z" />
+    <None Include="SYS\SRC\SYS0.z" />
+    <None Include="SYS\SRC\SYS0F.z" />
+    <None Include="SYS\SRC\SYS0P.z" />
+    <None Include="README.md" />
+    <None Include="QUICKREF.md" />
+    <None Include="build.ps1" />
+    <None Include="BUILDING.txt" />
+    <None Include="tests\test_console.py" />
+    <None Include="tests\requirements.txt" />
+    <None Include="tests\README.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)/Microsoft.Cpp.targets" />
+</Project>
