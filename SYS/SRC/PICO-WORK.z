@@ -112,6 +112,54 @@ _getadr:
 ;
 ; ----------------------------------------------------------------------
 ;
+        assert $ <= SCR_DOSINPUT
+        ORG SCR_DOSINPUT
+        ld a,(PICOPAGENUM)
+        ld (hist_restore+1),a
+        ld a,183
+        ld (PICOPAGENUM),a
+        call $3400
+        push af
+hist_restore:
+        ld a,0
+        ld (PICOPAGENUM),a
+        pop af
+        ret
+
+        assert $ <= SCR_HISTCOPY
+        ORG SCR_HISTCOPY
+; A=slot 0..8, B=0 read / 1 write. Registers clobbered.
+; Unpaged code is essential while copying across banks.
+        ld c,a
+        ld a,(PICOPAGENUM)
+        push af
+        ld a,c
+        rrca
+        rrca
+        and 3
+        add a,180
+        ld (PICOPAGENUM),a
+        ld hl,$3400
+        bit 1,c
+        jr z,hist_lowhalf
+        inc h
+hist_lowhalf:
+        bit 0,c
+        jr z,hist_aligned
+        ld l,$80
+hist_aligned:
+        ld de,STRBUFF
+        ld a,b
+        or a
+        jr z,hist_readslot
+        ex de,hl
+hist_readslot:
+        ld bc,128
+        ldir
+        pop af
+        ld (PICOPAGENUM),a
+        ret
+
 FREE_PICOWORK	EQU	PICOSCRDUSR - $
 	assert	FREE_PICOWORK > 0
 ;

@@ -32,3 +32,22 @@ Install the RP2350 firmware (from /SYS/FIRMWARE) onto the (RP2350) Floppy-80 M1
 Once started you should see the message "kDOS Loaded", and be dropped into a BASIC
 "READY>" Prompt. Pressing "ENTER" (without typing a command) will switch to the 
 DOS ":" prompt. To get a summary of DOS commands type the command "HELP"
+
+
+## DOS input and directory paging
+
+At a paused `DIR` listing, press **BREAK** to return to the DOS prompt while
+keeping the displayed filenames. Any other key continues the listing. The
+remaining Pico directory records are consumed silently before returning.
+
+In normal paged-memory mode, the DOS `:` prompt remembers the last eight
+submitted commands. **Up** recalls older commands and **Down** recalls newer
+ones. Down past the newest restores the draft entered before browsing history.
+Use **Left/Backspace** to delete from the end, type corrections, and press
+**ENTER** to execute. **CLEAR** erases the current input; **BREAK** cancels it.
+Empty ENTER still switches to BASIC. Empty and cancelled commands are not saved.
+
+History accepts up to 127 characters per command and lasts until kDOS is
+reloaded. It uses Pico pages 180-183 without reserving additional BASIC RAM.
+Holding CLEAR at startup disables history along with the other paged features;
+DIR cancellation still works. BASIC input and mid-line editing are unchanged.

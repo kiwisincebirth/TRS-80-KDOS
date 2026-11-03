@@ -1,0 +1,8 @@
+/.vs/
+/build/
+/tools/zmac.exe
+/.test-deps/
+**/zout/
+**/__pycache__/
+*.user
+*.suo

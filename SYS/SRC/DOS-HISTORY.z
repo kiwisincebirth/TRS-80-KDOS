@@ -1,0 +1,177 @@
+; DOS line input with eight-command history. kDOS extension, 2026.
+; Original kDOS by kiwisincebirth. Entered only through SCR_DOSINPUT.
+; Pages 180-181: eight 128-byte records; page 182: unsubmitted draft.
+; Page 183: this editor and persistent metadata. No main RAM reservation.
+VIRTUAL_PAGE dos_history_page, 183
+
+        xor a
+        ld (hist_len),a
+        ld (hist_age),a
+        ld a,CURON
+        call hist_out
+hist_key:
+        call KBWAIT
+        cp BREAK
+        jp z,hist_break
+        cp ENTER
+        jp z,hist_enter
+        cp UPARRW             ; Model I UP produces 5BH, not 0BH
+        jr z,hist_up
+        cp VERTAB             ; also accept ASCII vertical-tab UP
+        jr z,hist_up
+        cp LINEF
+        jr z,hist_down
+        cp BACKS
+        jp z,hist_back
+        cp CLRKEY
+        jr z,hist_clear
+        cp SPACE
+        jr c,hist_key
+        cp $7f
+        jr nc,hist_key
+        ld c,a
+        ld a,(hist_len)
+        cp 127
+        jr z,hist_key
+        call hist_endptr
+        ld (hl),c
+        inc a
+        ld (hist_len),a
+        ld a,c
+        call hist_out
+        jr hist_key
+
+hist_clear:
+        call hist_erase
+        jr hist_key
+hist_up:
+        ld a,(hist_count)
+        ld b,a
+        ld a,(hist_age)
+        cp b
+        jr z,hist_key          ; oldest entry reached (or no history)
+        or a
+        jr nz,hist_older
+        call hist_terminate
+        ld a,8                ; save draft before first UP
+        ld b,1
+        call SCR_HISTCOPY
+hist_older:
+        ld a,(hist_age)
+        inc a
+        jr hist_recall
+hist_down:
+        ld a,(hist_age)
+        or a
+        jr z,hist_key
+        dec a
+hist_recall:
+        ld (hist_age),a
+        call hist_erase
+        ld a,(hist_age)
+        or a
+        ld a,8                ; DOWN past newest restores original draft
+        jr z,hist_fetch
+        ld a,(hist_age)
+        ld b,a
+        ld a,(hist_next)
+        sub b
+        and 7
+hist_fetch:
+        ld b,0
+        call SCR_HISTCOPY
+        ld hl,STRBUFF
+        ld b,0
+hist_show:
+        ld a,(hl)
+        cp ENTER
+        jr z,hist_shown
+        call hist_out
+        inc hl
+        inc b
+        jr hist_show
+hist_shown:
+        ld a,b
+        ld (hist_len),a
+        jp hist_key
+
+hist_back:
+        ld a,(hist_len)
+        or a
+        jp z,hist_key
+        dec a
+        ld (hist_len),a
+        ld a,BACKS            ; ROM backspace also erases the character
+        call hist_out
+        jp hist_key
+hist_erase:
+        ld a,(hist_len)
+        or a
+        ret z
+        ld b,a
+hist_erasing:
+        ld a,BACKS
+        call hist_out
+        djnz hist_erasing
+        xor a
+        ld (hist_len),a
+        ret
+hist_enter:
+        call hist_terminate
+        ld a,(hist_len)
+        or a
+        jr z,hist_done         ; blank ENTER still toggles to BASIC
+        ld a,(hist_next)
+        ld b,1
+        call SCR_HISTCOPY
+        ld a,(hist_next)
+        inc a
+        and 7
+        ld (hist_next),a
+        ld a,(hist_count)
+        cp 8
+        jr z,hist_done
+        inc a
+        ld (hist_count),a
+hist_done:
+        ld a,CUROFF
+        call hist_out
+        ld a,ENTER
+        call hist_out
+        ld a,(hist_len)
+        ld b,a
+        ld hl,STRBUFF
+        or a                  ; clear carry; HL=start, B=length, like 0040H
+        ret
+hist_break:
+        ld a,CUROFF
+        call hist_out
+        ld a,ENTER
+        call hist_out
+        scf
+        ret                   ; cancelled command never enters history
+hist_terminate:
+        ld a,(hist_len)
+        call hist_endptr
+        ld (hl),ENTER
+        ret
+hist_endptr:
+        ld hl,STRBUFF
+        ld e,a
+        ld d,0
+        add hl,de
+        ret
+hist_out:
+        push bc
+        push de
+        push hl
+        call OUTDO
+        pop hl
+        pop de
+        pop bc
+        ret
+hist_len:   db 0
+hist_age:   db 0
+hist_count: db 0
+hist_next:  db 0
+VIRTUAL_END

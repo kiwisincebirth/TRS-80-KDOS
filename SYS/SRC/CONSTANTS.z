@@ -13,6 +13,8 @@
 ;
 ; The character used on the command prompt
 CMD_PROMPT_CHR	EQU	':'
+SCR_DOSINPUT EQU $3680
+SCR_HISTCOPY EQU $36A0
 ;
 ; ----------------------------------------------------------------------
 ; Z-80 Op Codes
