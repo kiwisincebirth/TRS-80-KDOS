@@ -12,7 +12,20 @@ if ($Action -in @('Clean','Rebuild') -and (Test-Path -LiteralPath $buildRoot)) {
     if ((Get-Item -LiteralPath $buildRoot).Attributes -band [IO.FileAttributes]::ReparsePoint) {
         throw 'Refusing to clean a linked build directory'
     }
-    Remove-Item -LiteralPath $buildRoot -Recurse -Force
+    # Visual Studio holds build/vs logs open during Clean/Rebuild.
+    # Remove only generated assembler files and the SD-card staging folder.
+    foreach ($generatedName in @('src','SD-CARD','test-results.json')) {
+        $generatedPath = [IO.Path]::GetFullPath((Join-Path $buildRoot $generatedName))
+        if ([IO.Path]::GetDirectoryName($generatedPath) -ne $buildRoot) {
+            throw 'Unexpected generated-output path'
+        }
+        if (Test-Path -LiteralPath $generatedPath) {
+            if ((Get-Item -LiteralPath $generatedPath).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                throw "Refusing to clean linked output: $generatedPath"
+            }
+            Remove-Item -LiteralPath $generatedPath -Recurse -Force
+        }
+    }
 }
 if ($Action -eq 'Clean') { return }
 if (-not $Assembler) { $Assembler = Join-Path $PSScriptRoot 'tools/zmac.exe' }

@@ -20,8 +20,8 @@ PowerShell alternatives
 
 Outputs: build/SD-CARD (14 binaries from 13 assembly targets).
 Listings and intermediate files: build/src/zout.
-Builds never copy to removable media or flash the Pico. Clean removes only
-this checkout's build directory. tools/zmac.exe is preserved.
+Builds never copy to removable media or flash the Pico. Clean removes only generated assembly and SD-card outputs under build;
+it preserves build/vs because Visual Studio may hold its logs open. tools/zmac.exe is preserved.
 These outputs are compiled from current upstream plus this branch's changes;
 they are not the earlier Beta1 test package. Keep a matching release backup
 and check upstream firmware requirements before testing on physical hardware.
