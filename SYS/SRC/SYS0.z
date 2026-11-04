@@ -226,6 +226,88 @@ CIODOS:
 	ret
 ;
 ; ======================================================================
+; File loader
+; Input:
+; - DE : pointer to filename
+; - B  : filename length
+; Return:
+; - Z  : no error ;    HL : contains transfer address
+; - NZ : error occurred, file not or partially loaded
+; ----------------------------------------------------------------------
+;
+_loader:
+
+ifdef @D_PICOENHANCED
+	; on Pico We need to save and restore the Page Number
+	; todo replace the code below with Command to PICO to start virtual load, and command to restore prior state
+	ld	a,(PICOPAGENUM)		; get current virtual page number
+	ld	(_picopagnum+1),a		; save it into instruction below
+	call	_loader2
+	push	af
+_picopagnum:
+	ld	a,0			; self modifying saved page number
+	ld	(PICOPAGENUM),a		; set the virtual page number
+	pop	af
+	ret
+endif
+
+_loader2:
+	; the main loader STARTS HERE
+	ld	c,FA_OPEN_EXIST|FA_READ
+	call	api_OPEN	; open file command
+	ret	nz		; error, then return
+	;
+_load:	call	api_READBYTE	; get type code
+	jr	nz,_load9	; no byte so assume finished and return
+	;
+	dec	a
+	jr	nz,_load2	; bypass if not type 1
+	;
+_load1:	call	_getadr		; Type 1 get address; HL Addr and B Size
+	ret	nz
+	;
+_load1a: call	api_READBYTE
+	ret	nz
+	ld	(hl),a		; save that byte
+	inc	hl
+	djnz	_load1a
+	jr	_load
+	;
+_load2:	dec	a		; test if type 2 (TRADDR)
+	jr	z,_load8		; yes consume transfer address
+	;
+	call	api_READBYTE	; Type 3 and above: assume comment
+	ret	nz
+	ld	b,a		; get comment length
+_load2a:
+	call	api_READBYTE	; read comment character
+	ret	nz
+	djnz	_load2a		; read and ignore
+	jr	_load
+	;
+_load8:	call	_getadr		; get transfer address
+	ret	nz
+	;
+_load9:	call	api_CLOSE
+	xor	a		; set Z for success !
+	ret
+	;
+_getadr:
+	call	api_READBYTE	; get block length
+	ret	nz
+	ld	b,a		; get length and
+	dec	b		; adjust length
+	dec	b		; adjust length
+	call	api_READBYTE	; get low-order load addr
+	ret	nz
+	ld	l,a
+	call	api_READBYTE	; get high-order load addr
+	ret	nz
+	ld	h,a		; address into HL
+	xor	a		; success
+	ret
+;
+; ======================================================================
 ;
 ; Open A file
 ; de pointer to the filename
@@ -331,31 +413,6 @@ _waitTRS
 	and	$3F		; TRS Err -> Mask as 00xxxxxx
 	ret
 ;
-; ----------------------------------------------------------------------
-;
-; ENTRY POINT FOR ALL INTERRUPTS (4012)
-;
-INTERRUP_SR:
-	push	af
-	ld	a,($37e0) 	; clear the RTC interrupt latch
-	rlca			; mve bit 7 into the CARRY regster
-	jr	nc,INTERRUP_EXIT ; If NO timer interrupt, skip
-;
-ifdef @D_PICOENHANCED
-	call	ISR_SERVICE
-else
-;
-	; SIMPLE Interrupt Handler
-	push	hl
-	ld	hl,TICKCNT	; timer tick
-	inc	(hl)		; increment the timer tick
-	pop	hl
-endif
-INTERRUP_EXIT:
-	pop	af
-	ei
-	RET			; todo reti
-;
 ; ======================================================================
 ;
 $FREE_CORE1	EQU	SYSFCB - $
@@ -452,8 +509,35 @@ $FREE_CORE1	EQU	SYSFCB - $
 	JP	_api_READ
 	JP	_api_READBYTE
 	JP	_api_WAIT
+	JP	_loader
+;
 ;
 ; ----------------------------------------------------------------------
+; ----------------------------------------------------------------------
+;
+; ENTRY POINT FOR ALL INTERRUPTS (4012)
+;
+INTERRUP_SR:
+	push	af
+	ld	a,($37e0) 	; clear the RTC interrupt latch
+	rlca			; mve bit 7 into the CARRY regster
+	jr	nc,INTERRUP_EXIT ; If NO timer interrupt, skip
+;
+ifdef @D_PICOENHANCED
+	call	ISR_SERVICE
+else
+;
+	; SIMPLE Interrupt Handler
+	push	hl
+	ld	hl,TICKCNT	; timer tick
+	inc	(hl)		; increment the timer tick
+	pop	hl
+endif
+INTERRUP_EXIT:
+	pop	af
+	ei
+	RET			; todo reti
+;
 ; ----------------------------------------------------------------------
 ;
 ; Supervisor Execution based on RST Vector

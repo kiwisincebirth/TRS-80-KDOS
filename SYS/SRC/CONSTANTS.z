@@ -60,12 +60,6 @@ GETCHR	macro
 	rst	10h
 	endm
 ;
-;
-; Pico Scratch RAM $3600 - Entry Points
-;
-;
-SCR_LOADOADER	EQU PICOSCRATCH + 0	; entry point for Standalone Binary Loader
-;
 ; Level 2 Basic Communications region
 ;
 @EXIT		EQU	$402D	; Exit program normally return to DOS
@@ -115,6 +109,8 @@ api_READ	EQU	(3*3) + CORE2
 api_READBYTE	EQU	(4*3) + CORE2
 api_WAIT	EQU	(5*3) + CORE2
 ;
+api_LOADER	EQU	(6*3) + CORE2	; Main Binary File Loader
+;
 ; ======================================================================
 ; MAIN MEMORY MAP - LAYOUT
 ; Memory Locations for Regions
@@ -126,9 +122,9 @@ api_WAIT	EQU	(5*3) + CORE2
 ;4318H. This 63-byte buffer will receive the user's keyboard input.
 
 PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
-PICOSCRDUSR	EQU	$37C8		; Holds Def USR 0-9 jump Addresses 20 bytes
 					; 37E0 - 37EF Gap Here
 PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
+PICOPAGEDAT	EQU	$37F1		; Pico Virtual Data Page Number
 ;
 KBDMATRX	EQU	$3800
 ;
@@ -410,7 +406,7 @@ NOP3 	macro
 ; Memory Banking
 ; ======================================================================
 
-; Bank Pages
+; Bank Pages ($3400)
 ; ----------------------------------------------------------------------
 
 ; DOS Overlays (32 of them) $00 - $1F
@@ -457,6 +453,14 @@ PAGE_MKD	EQU	220
 PAGE_TIMEDOLL	EQU	221
 PAGE_USRN	EQU	222
 
+; Data Bank Pages ($3600)
+; ----------------------------------------------------------------------
+;
+; Page 0 is reserved for the time being, General Purpose
+; Pages 1-31 are reserved for Disk Basic File Handling
+;
+DPAGE_DEFFN	EQU	32	; Page for Basic Def FN Def User
+
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------
 
@@ -492,4 +496,23 @@ endm
 PAGE_JP macro pagenum
 	assert pagenum>=0 && pagenum<$100	; Parameter validation
 	JP  	$3000 + (pagenum * 4)		; Trampoline address
+endm
+
+; DATA BANK PAGING MACROS
+; ----------------------------------------------------------------------
+
+; Define a Data Page
+VIRTUAL_DATA macro pagenum
+	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	ORG  	PICOPAGEDAT	; The Data Page Register
+	DEFB 	pagenum		; Write the page number to the Data Page Reg
+	ORG  	$3600		; All tables reside at this 480-byte window
+endm
+
+; Change to a specified Data Page
+; NOTE: destroys the A register!
+PAGE_DATA macro pagenum
+	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	LD	a,pagenum
+	LD	(PICOPAGEDAT),a	; Write the page number to the Data Page Reg
 endm
