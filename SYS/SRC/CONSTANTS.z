@@ -13,8 +13,6 @@
 ;
 ; The character used on the command prompt
 CMD_PROMPT_CHR	EQU	':'
-SCR_DOSINPUT EQU $3680
-SCR_HISTCOPY EQU $36A0
 ;
 ; ----------------------------------------------------------------------
 ; Z-80 Op Codes
@@ -61,12 +59,6 @@ LISPRT		EQU	$2B75
 GETCHR	macro
 	rst	10h
 	endm
-;
-;
-; Pico Scratch RAM $3600 - Entry Points
-;
-;
-SCR_LOADOADER	EQU PICOSCRATCH + 0	; entry point for Standalone Binary Loader
 ;
 ; Level 2 Basic Communications region
 ;
@@ -117,6 +109,8 @@ api_READ	EQU	(3*3) + CORE2
 api_READBYTE	EQU	(4*3) + CORE2
 api_WAIT	EQU	(5*3) + CORE2
 ;
+api_LOADER	EQU	(6*3) + CORE2	; Main Binary File Loader
+;
 ; ======================================================================
 ; MAIN MEMORY MAP - LAYOUT
 ; Memory Locations for Regions
@@ -128,9 +122,9 @@ api_WAIT	EQU	(5*3) + CORE2
 ;4318H. This 63-byte buffer will receive the user's keyboard input.
 
 PICOSCRATCH	EQU	$3600		; Start of Pico Scratch RAM
-PICOSCRDUSR	EQU	$37C8		; Holds Def USR 0-9 jump Addresses 20 bytes
 					; 37E0 - 37EF Gap Here
 PICOPAGENUM	EQU	$37F0		; Pico Virtual Page Number
+PICOPAGEDAT	EQU	$37F1		; Pico Virtual Data Page Number
 ;
 KBDMATRX	EQU	$3800
 ;
@@ -288,7 +282,7 @@ SPACE		EQU	$20	; A space character
 DQUOTE		EQU	$22	; A Double Quote ( " )
 SQUOTE		EQU	$27	; A Single Quote ( ' )
 SEMICO		EQU	$3B	; Note ';' in code; was breaking some assemblers
-UPARRW		EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
+UPARRW		EQU	$5B	; (UP Arrow) Special Up Arrow â†‘ Character in TRS Charset
 BQUOTE		EQU	$60	; A Back Quote ( ` )
 BSLASH		EQU	$5C	; A Back Slash ( \ )
 ;
@@ -412,7 +406,7 @@ NOP3 	macro
 ; Memory Banking
 ; ======================================================================
 
-; Bank Pages
+; Bank Pages ($3400)
 ; ----------------------------------------------------------------------
 
 ; DOS Overlays (32 of them) $00 - $1F
@@ -434,6 +428,9 @@ PAGE_OVERLAYL	EQU	$EC	; @LOAD @RUN CMD File
 PAGE_OVERLAYM	EQU	$ED	; -unused
 PAGE_OVERLAYN	EQU	$EE	; -unused
 PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
+
+; DOS command input extension
+PAGE_DOSHISTORY EQU 183	; DOS command editor (code only)
 
 ; Basic Extensions & other Misc Pages (32)
 ; Pages - C0 (192) to DF (223)
@@ -458,6 +455,16 @@ PAGE_MKS	EQU	219
 PAGE_MKD	EQU	220
 PAGE_TIMEDOLL	EQU	221
 PAGE_USRN	EQU	222
+
+; Data Bank Pages ($3600)
+; ----------------------------------------------------------------------
+;
+; Page 0 is reserved for the time being, General Purpose
+; Pages 1-31 are reserved for Disk Basic File Handling
+;
+DPAGE_DEFFN	EQU	32	; Page for Basic Def FN Def User
+DPAGE_DOSHISTORY EQU 33	; Three consecutive pages: history/draft and state
+; History reserves data pages 33-35; each exposes only $3600-$37DF.
 
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------
@@ -494,4 +501,23 @@ endm
 PAGE_JP macro pagenum
 	assert pagenum>=0 && pagenum<$100	; Parameter validation
 	JP  	$3000 + (pagenum * 4)		; Trampoline address
+endm
+
+; DATA BANK PAGING MACROS
+; ----------------------------------------------------------------------
+
+; Define a Data Page
+VIRTUAL_DATA macro pagenum
+	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	ORG  	PICOPAGEDAT	; The Data Page Register
+	DEFB 	pagenum		; Write the page number to the Data Page Reg
+	ORG  	$3600		; All tables reside at this 480-byte window
+endm
+
+; Change to a specified Data Page
+; NOTE: destroys the A register!
+PAGE_DATA macro pagenum
+	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	LD	a,pagenum
+	LD	(PICOPAGEDAT),a	; Write the page number to the Data Page Reg
 endm

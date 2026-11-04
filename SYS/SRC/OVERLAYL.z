@@ -64,7 +64,7 @@ LOAD_CMD
 LOAD_FIL
 	call	_STR_LEN	; count the length of the string
 	;
-	call	file_loader	; attempt to load the file
+	call	api_LOADER	; attempt to load the file
 	;
 	ret			; (to caller) with NZ if error occurred.
 				; no error. HL contains transfer address
@@ -86,7 +86,7 @@ RUN_FIL:
 	push	hl		; save the string pointer passed in
 	;
 	call	_STR_LEN	; count the length of the DE (FCB) string -> B
-	call	file_loader	; attempt to load the file
+	call	api_LOADER	; attempt to load the file
 	jr	nz,RUN_FAIL	; error handler and exit to @ERROR
 	;
 	; todo BUG. If the cmd file doest define a transfer address, then
@@ -129,85 +129,6 @@ _STR_TERM
 	ld 	(de),a		; replace CR with 0 terminator
 	pop	de
 	ret
-;
-ifdef	@D_PICOENHANCED
-;
-; ON a PICo this code has to be in the SCRATCH RAM
-; as keeping it in the Paged Ram (with the overlay)
-; caused issues, specifically with loading code
-; into he virtal ram pages themselves
-file_loader	EQU	SCR_LOADOADER
-;
-else
-;
-; File loader
-;
-; Input:
-; - DE : pointer to filename
-; - B  : filename length
-;
-; Return:
-; - HL : The Load address, execution address.
-; - Z  : no error. HL contains transfer address
-; - NZ : error occurred, file not or partially loaded
-;
-file_loader:
-	ld	c,FA_OPEN_EXIST|FA_READ
-	call	api_OPEN	; open file command
-	ret	nz		; error, then return
-	;
-_load:	call	api_READBYTE	; get type code
-	jr	nz,_load9	; no byte so assume finished and return
-	;
-	dec	a
-	jr	nz,_load2	; bypass if not type 1
-	;
-_load1:	call	_getadr		; Type 1 get address; HL Addr and B Size
-	ret	nz
-	;
-_load1a:
-	call	api_READBYTE
-	ret	nz
-	ld	(hl),a		; save that byte
-	inc	hl
-	djnz	_load1a
-	jr	_load
-	;
-_load2:	dec	a		; test if type 2 (TRADDR)
-	jr	z,_load8		; yes consume transfer address
-	;
-	call	api_READBYTE	; Type 3 and above: assume comment
-	ret	nz
-	ld	b,a		; get comment length
-_load2a:
-	call	api_READBYTE	; read comment character
-	ret	nz
-	djnz	_load2a		; read and ignore
-	jr	_load
-	;
-_load8:	call	_getadr		; get transfer address
-	ret	nz
-	;
-_load9:	call	api_CLOSE
-	xor	a		; set Z for success !
-	ret
-	;
-_getadr:
-	call	api_READBYTE	; get block length
-	ret	nz
-	ld	b,a		; get length and
-	dec	b		; adjust length
-	dec	b		; adjust length
-	call	api_READBYTE	; get low-order load addr
-	ret	nz
-	ld	l,a
-	call	api_READBYTE	; get high-order load addr
-	ret	nz
-	ld	h,a		; address into HL
-	xor	a		; success
-	ret
-;
-endif
 ;
 ; ======================================================================
 ; 4700 - End Of Overlay

@@ -61,8 +61,8 @@ _5699
 _56a4
 	ex	de,hl       ; 56a4:
 
-	ld	hl,PICOSCRDUSR    ; 56a5: Address of Jump Table for USR 0-9
-				; Stored in Non Paged RAM $3600 - $3800
+	PAGE_DATA DPAGE_DEFFN	; Set the Data Page for DEFFN
+	ld	hl,PICOSCRATCH	; Scratch Ram for USR 0-9
 
 	add	hl,bc       ; 56a8:
 	ex	de,hl       ; 56a9:

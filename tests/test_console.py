@@ -12,22 +12,48 @@ BUILD=parser.parse_args().build_dir
 sys.path.insert(0,str(ROOT/'.test-deps'))
 from z80 import Z80Machine
 LISTING=(BUILD/'src/zout/SYS0P.lst').read_text(encoding='utf-8')
-HIST_LEN=int(re.search(r'^hist_len\s+([0-9A-F]+)',LISTING,re.M)[1],16)
+def symbol(name):
+ return int(re.search(r'^'+re.escape(name)+r'\s*=?\s*([0-9A-F]+)',LISTING,re.M)[1],16)
+HIST_LEN=symbol('hist_len')
+HIST_ENTRY=symbol('dos_history_page')
+HIST_CODE=symbol('PAGE_DOSHISTORY')
+HIST_DATA=symbol('DPAGE_DOSHISTORY')
 
 class Rig:
  def __init__(self):
   self.m=Z80Machine(); self.mem=self.m.memory
-  self.banks=[bytearray(512) for _ in range(256)]; self.page=0
+  self.banks=[bytearray(512) for _ in range(256)]; self.page=0; self.dpage=0
+  self.page_returns=[]; self.page_writes=[]
   self.hooks={}; self.keys=deque(); self.output=[]; self.checkpoints=[]
-  self.m.mark_addr(0x37f0,self.m.WRITE_MARK)
+  self.m.mark_addrs(0x37e0,32,self.m.WRITE_MARK)
   self.m.set_write_callback(self.write)
   self.hook(0x49,self.key); self.hook(0x32a,self.out)
   self.m.set_breakpoint(0xffff)
- def write(self,addr,value):
-  assert addr==0x37f0
+  self.hook(HIST_ENTRY,self.page_enter)
+  self.hook(HIST_ENTRY+3,self.page_return)
+ def flush(self):
   self.banks[self.page][:]=self.mem[0x3400:0x3600]
-  self.page=value; self.mem[0x3400:0x3600]=self.banks[value]
+  self.banks[self.dpage][:480]=self.mem[0x3600:0x37e0]
+ def write(self,addr,value):
+  assert addr in (0x37f0,0x37f1),f'Write into hardware area: {addr:04x}'
+  self.page_writes.append((addr,value))
+  # Code/data banks share the page pool but have independent selectors.
+  if addr==0x37f0:
+   self.banks[self.page][:]=self.mem[0x3400:0x3600]
+   self.page=value; self.mem[0x3400:0x3600]=self.banks[value]
+  else:
+   self.banks[self.dpage][:480]=self.mem[0x3600:0x37e0]
+   self.dpage=value; self.mem[0x3600:0x37e0]=self.banks[value][:480]
   self.mem[addr]=value
+ def page_enter(self):
+  assert self.mem[HIST_ENTRY]==0xcd,'History must use VIRTUAL_ROUTINE'
+  self.page_returns.append(self.page)
+  self.write(0x37f0,HIST_CODE)
+  self.m.sp-=2
+  self.mem[self.m.sp:self.m.sp+2]=(HIST_ENTRY+3).to_bytes(2,'little')
+  self.m.pc=0x3400
+ def page_return(self):
+  self.write(0x37f0,self.page_returns.pop());self.ret()
  def hook(self,addr,fn):
   self.hooks[addr]=fn; self.m.set_breakpoint(addr)
  def ret(self):
@@ -36,7 +62,8 @@ class Rig:
   assert self.keys,'Unexpected extra keyboard read'
   item=self.keys.popleft()
   while isinstance(item,str):
-   n=self.banks[183][HIST_LEN-0x3400] if self.page!=183 else self.mem[HIST_LEN]
+   assert self.dpage==HIST_DATA
+   n=self.mem[HIST_LEN]
    self.checkpoints.append(bytes(self.mem[0x4318:0x4318+n]).decode('ascii'))
    item=self.keys.popleft()
   self.m.a=item; self.ret()
@@ -60,15 +87,31 @@ class Rig:
     addr=int.from_bytes(data[p:p+2],'little'); p+=2
     for v in data[p:p+n]:
      if 0x3000<=addr<0x3400: self.write(0x37f0,(addr-0x3000)//4)
-     self.mem[addr]=v; addr+=1
+     if addr==0x37f1:self.write(addr,v)
+     else:
+      assert not 0x37e0<=addr<0x3800,hex(addr)
+      self.mem[addr]=v
+     addr+=1
     p+=n
    elif typ==2:break
    else:p+=n or 256
  def line(self,keys):
   self.keys=deque(keys); self.output=[]; self.checkpoints=[]
-  previous=self.page
-  self.call(0x3680)
-  assert self.page==previous and self.m.sp==0xf002
+  previous=self.page; previous_data=self.dpage
+  self.flush()
+  saved_banks=[bytes(b) for b in self.banks]
+  reserved=bytes(self.mem[0x37e0:0x3800])
+  self.page_writes=[]
+  self.call(HIST_ENTRY)
+  self.flush()
+  assert self.page==previous and self.dpage==previous_data and self.m.sp==0xf002
+  assert not self.page_returns
+  assert bytes(self.mem[0x37e0:0x3800])==reserved
+  # Only the three allocated data pages may change. Code, DEF USR pointers,
+  # unrelated data pages and hardware bytes must remain untouched.
+  for i,b in enumerate(saved_banks):
+   if i not in range(HIST_DATA,HIST_DATA+3):assert bytes(self.banks[i])==b,i
+  assert [v for a,v in self.page_writes if a==0x37f0]==[HIST_CODE,previous]
   assert not self.keys
   assert 0x1f not in self.output and 0x1c not in self.output
   if self.m.f&1:return None
@@ -79,6 +122,10 @@ class Rig:
 def history_tests():
  r=Rig(); r.load_cmd(BUILD/'SD-CARD/SYS/SYSP.sys')
  r.write(0x37f0,227)  # history is called from the separate command-shell bank
+ r.write(0x37f1,32)   # BASIC's existing DEF FN / USR pointer bank
+ assert bytes(r.mem[0x3600:0x3614])==b'\x4a\x1e'*10
+ # Canaries include the inaccessible tail of every physical bank.
+ for page in range(HIST_DATA,HIST_DATA+3):r.banks[page][480:]=b'\xa5'*32
  shell_before=bytes(r.mem[0x3400:0x3600])
  assert r.line([91,10,13])==''
  assert r.line(b'DIR\r')=='DIR'
@@ -103,6 +150,17 @@ def history_tests():
  # Cancelled input must not displace the eight retained commands.
  assert r.line(b'CANCEL\x01') is None
  assert r.line([91,13])=='CMD11'
+ # Invoke the same code with different preselected data banks.
+ for page in (0,1,31,32,77,HIST_DATA,HIST_DATA+1,HIST_DATA+2):
+  r.write(0x37f1,page)
+  assert r.line([91,1]) is None
+  assert r.line([13])==''
+ r.write(0x37f1,32)
+ for codepage in (214,222,227):
+  r.write(0x37f0,codepage)
+  assert r.line([91,1]) is None
+ assert bytes(r.mem[0x3600:0x3614])==b'\x4a\x1e'*10
+ for page in range(HIST_DATA,HIST_DATA+3):assert r.banks[page][480:]==b'\xa5'*32
  # Full console parser integration: the colon shell invokes our editor and DIR.
  r.keys=deque(b'DIR\r'); r.output=[]
  assert bytes(r.mem[0x3400:0x3600])==shell_before
@@ -122,7 +180,7 @@ def history_tests():
   r.hooks[r.m.pc]()
  else:raise AssertionError('Shell never dispatched')
  assert r.m.a==0x24  # S_DIRCMD, not merely any supervisor call
- return {'history':'PASS: 8-entry ring, UP/DOWN boundaries, draft, editing, cancel, empty input, 127-character limit, shell dispatch'}
+ return {'history':'PASS: 8-entry ring, UP/DOWN boundaries, draft, editing, cancel, empty input, 127-character limit, shell dispatch, independent code/data banks, caller data-page restoration, DEF USR preservation, hardware boundary guards'}
 
 def dir_case(total,keys,enhanced=True,hidden=0):
  r=Rig();r.mem[0x4500:0x4700]=(BUILD/'SD-CARD/SYS/overlayd.sys').read_bytes()

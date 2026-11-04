@@ -48,6 +48,6 @@ Use **Left/Backspace** to delete from the end, type corrections, and press
 Empty ENTER still switches to BASIC. Empty and cancelled commands are not saved.
 
 History accepts up to 127 characters per command and lasts until kDOS is
-reloaded. It uses Pico pages 180-183 without reserving additional BASIC RAM.
+reloaded. It uses code page 183 and data pages 33-35 without reserving additional BASIC RAM.
 Holding CLEAR at startup disables history along with the other paged features;
 DIR cancellation still works. BASIC input and mid-line editing are unchanged.

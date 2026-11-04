@@ -58,7 +58,6 @@
     <None Include="SYS\SRC\OVERLAYL.z" />
     <None Include="SYS\SRC\OVERLAYM.z" />
     <None Include="SYS\SRC\OVERLAYO.z" />
-    <None Include="SYS\SRC\PICO-WORK.z" />
     <None Include="SYS\SRC\STARTUP.z" />
     <None Include="SYS\SRC\SYS0.z" />
     <None Include="SYS\SRC\SYS0F.z" />

@@ -1,8 +1,13 @@
 ; DOS line input with eight-command history. kDOS extension, 2026.
-; Original kDOS by kiwisincebirth. Entered only through SCR_DOSINPUT.
-; Pages 180-181: eight 128-byte records; page 182: unsubmitted draft.
-; Page 183: this editor and persistent metadata. No main RAM reservation.
-VIRTUAL_PAGE dos_history_page, 183
+; Original kDOS by kiwisincebirth. Uses the standard callable page entry.
+; Code and data windows are independent. No executable code at $3600.
+; Three data pages hold three 128-byte records each (slots 0..7 + draft 8).
+; State follows the records in the first data page. Never use $37E0-$37FF.
+VIRTUAL_ROUTINE dos_history_page, PAGE_DOSHISTORY
+
+        ld a,(PICOPAGEDAT)
+        push af               ; restore caller's data bank on every exit
+        PAGE_DATA DPAGE_DOSHISTORY
 
         xor a
         ld (hist_len),a
@@ -55,7 +60,7 @@ hist_up:
         call hist_terminate
         ld a,8                ; save draft before first UP
         ld b,1
-        call SCR_HISTCOPY
+        call hist_copy
 hist_older:
         ld a,(hist_age)
         inc a
@@ -79,7 +84,7 @@ hist_recall:
         and 7
 hist_fetch:
         ld b,0
-        call SCR_HISTCOPY
+        call hist_copy
         ld hl,STRBUFF
         ld b,0
 hist_show:
@@ -123,7 +128,7 @@ hist_enter:
         jr z,hist_done         ; blank ENTER still toggles to BASIC
         ld a,(hist_next)
         ld b,1
-        call SCR_HISTCOPY
+        call hist_copy
         ld a,(hist_next)
         inc a
         and 7
@@ -142,14 +147,22 @@ hist_done:
         ld b,a
         ld hl,STRBUFF
         or a                  ; clear carry; HL=start, B=length, like 0040H
-        ret
+        jp hist_return
 hist_break:
         ld a,CUROFF
         call hist_out
         ld a,ENTER
         call hist_out
         scf
-        ret                   ; cancelled command never enters history
+        ; cancelled command never enters history
+hist_return:
+        push af               ; preserve carry (cancel) and length flags
+        pop de
+        pop af                ; entry's saved data page
+        ld (PICOPAGEDAT),a
+        push de
+        pop af
+        ret
 hist_terminate:
         ld a,(hist_len)
         call hist_endptr
@@ -170,8 +183,56 @@ hist_out:
         pop de
         pop bc
         ret
+hist_copy:
+; A=slot 0..8, B=0 read / 1 write. Registers clobbered.
+; Three records per page: a fourth would overlap the hardware registers.
+        ld c,a
+        ld a,(PICOPAGEDAT)
+        push af
+        ld a,c
+        ld c,DPAGE_DOSHISTORY
+hist_slotpage:
+        cp 3
+        jr c,hist_slotfound
+        sub 3
+        inc c
+        jr hist_slotpage
+hist_slotfound:
+        ld hl,PICOSCRATCH
+        or a
+        jr z,hist_slotready
+        dec a
+        ld l,$80              ; slot 1: $3680
+        jr z,hist_slotready
+        ld hl,PICOSCRATCH+$100 ; slot 2: $3700, ends at $377F
+hist_slotready:
+        ld a,c
+        ld (PICOPAGEDAT),a
+        ld de,STRBUFF
+        ld a,b
+        or a
+        jr z,hist_readslot
+        ex de,hl
+hist_readslot:
+        ld bc,128
+        ldir
+        pop af
+        ld (PICOPAGEDAT),a
+        ret
+VIRTUAL_END
+
+; These records are initialized by the CMD loader through PICOPAGEDAT,
+; following BASIC-DEFINE's VIRTUAL_DATA convention.
+VIRTUAL_DATA DPAGE_DOSHISTORY
+        ds 3*128,0
 hist_len:   db 0
 hist_age:   db 0
 hist_count: db 0
 hist_next:  db 0
-VIRTUAL_END
+        assert $ <= $37E0
+VIRTUAL_DATA DPAGE_DOSHISTORY+1
+        ds 3*128,0
+        assert $ <= $37E0
+VIRTUAL_DATA DPAGE_DOSHISTORY+2
+        ds 3*128,0
+        assert $ <= $37E0

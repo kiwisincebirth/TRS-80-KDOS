@@ -42,3 +42,15 @@ add that fork as a remote named fork, and push the contribution branch there.
 Keep origin pointing at the author's repository to fetch future updates.
 You can then open a pull request from your fork's branch to upstream main.
 All upstream author credits remain in the sources.
+
+November 4 data-bank migration
+The current branch incorporates upstream c26463b. PICO-WORK.z is removed.
+History uses PAGE_CALL/VIRTUAL_ROUTINE for code bank 183 and VIRTUAL_DATA for
+data banks 33-35. $37E0-$37FF remain reserved for hardware.
+Compared with the previously tested 655970e feature build, three compiled
+files change: SYS/SYSP.sys, SYS/SYS0.sys, and SYS/overlayl.sys. Keep these
+matched when testing; the former two-file feature-only instructions do not
+cover this upstream loader/memory change. SYS/overlayd.sys is unchanged.
+Back up the three existing files before copying this build's versions.
+Re-test DIR/BREAK, command recall/editing, BASIC DEF USR/FN, and loading a CMD
+program, because the upstream change relocates the binary loader too.

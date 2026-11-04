@@ -1,4 +1,24 @@
 
+## System Files
+
+| File                | Description                               | Type   | Source       |
+|---------------------|-------------------------------------------|--------|--------------|
+| FREHD.ROM           | Relocating Boot Loader (FreHd)            | CMD    | BOOT.z       |
+| /SYS/BOOT.SYS       | Relocating Boot Loader (Floppy Disk)      | Binary | BOOT.z       |
+| /SYS/HARDWARE.CFG   | Used by Pico Firmware to Configure itself | TXT    |              |
+| /SYS/KEYBOARD.CMD   | Loads /SYS/SYSP.SYS                       | CMD    | KEYBOARD.z   |
+| /SYS/OVERLAY{x}.SYS | Non Banked RAM Runtime Overlays           | Binary | OVERLAY{x}.z |
+| /SYS/SYS0.SYS       | Non Banked RAM Kernal Only                | CMD    | SYS0F.z      |
+| /SYS/SYSP.SYS       | Full Banked RAM System, incl all overlays | CMD    |              |
+
+* FreHD.ROM - is a direct copy of BOOT.SYS in CMD format
+* BOOT.SYS - 256 byte binary image, with ORG = $6000
+* SYS0.SYS - FreHD Limited version (same source code)
+* SYSP.SYS - Enhanced PICO full DOS, using banked memory
+* Overlays are pre-loaded into Pages RAM, not dynamically
+  * Are preloaded into Paged RAM as part of SYSP on Floppy80
+  * Are loaded (on demand) into normal RAM, like a normal DOS
+
 ## Boot Process
 
 |            | Floppy 80 M1            | F80 & FHD              | FreHD                       |
@@ -13,14 +33,6 @@
 | Boot.SYS   | Loads /SYS/SYSP.SYS     | <-                     | Loads /SYS/SYS0.SYS         |
 | SYS0.SYS   | SYSP Starts at $5400    | <-                     | SYS0 Starts at $5400        |
 | Overlays   | -included in SYSP-      | <-                     | Loads /SYS/SYS(A-Z).SYS     |
-
-* BOOT.SYS - 256 byte binary image, with ORG = $6000
-* FreHD.ROM - is a direct copy of BOOT.SYS in CMD format
-* SYSP.SYS - Enhanced PICO full DOS, using virtual memory
-* SYS0.SYS - FreHD Limited version (same source code)
-* Overlays are pre-loaded into Pages RAM, not dynamically
-  * Are preloaded into Paged RAM as part of SYSP on Floppy80
-  * Are loaded (on demand) into normal RAM, like a normal DOS
 
 ## Enhanced Filename & Path Handling
 
@@ -59,20 +71,22 @@ The following inputs all result in the same FAT filename CONFIG.SYS:
 
 The high level Memory map
 
-| Address     | Contents               | For FreHD            |
-|-------------|------------------------|----------------------|
-| 3400 - 3600 | DOS Overlay Area       | Moved to 4500-4700   |
-| 3600 - 37E0 | DOS Loader Utility     | In Overlay Code      |
-| 4000 - 41E8 | As per Level 2 Basic   |                      |
-| 41E8 - 42F0 | DOS Resident Code 1    |                      |
-| 42F1 - 4311 | System FCB Buffer      |                      |
-| 4312 - 4314 | Undefined              |                      |
-| 4315 - 4317 | Basic Buffer Prefix    |                      |
-| 4318 - 43FF | Command Line Buffer    |                      |
-| 4400 - 4480 | DOS Entry Points       |                      |
-| 4480 - 44D0 | DOS Resident Code 2    |                      |
-|             |                        | 4500 - 4700 Overlays |
-| 44D4        | BASIC Program Start    | Moved up to 4704     |
+| Address     | Contents              | For FreHD            |
+|-------------|-----------------------|----------------------|
+| 3400 - 3600 | DOS Overlay Area      | Moved to 4500-4700   |
+|             | Disk Basic Extensions | n/a                  |
+|             | Other DOS extensions  | n/a                  |
+| 3600 - 37E0 | DOS Working Data      | n/a                  |
+| 4000 - 41E8 | As per Level 2 Basic  |                      |
+| 41E8 - 42F0 | DOS Resident Code 1   |                      |
+| 42F1 - 4311 | System FCB Buffer     |                      |
+| 4312 - 4314 | Undefined             |                      |
+| 4315 - 4317 | Basic Buffer Prefix   |                      |
+| 4318 - 43FF | Command Line Buffer   |                      |
+| 4400 - 4480 | DOS Entry Points      |                      |
+| 4480 - 44D0 | DOS Resident Code 2   |                      |
+|             |                       | 4500 - 4700 Overlays |
+| 44D4        | BASIC Program Start   | Moved up to 4704     |
 
 ## DOS Entry Points
 
@@ -137,17 +151,18 @@ The high level Memory map
 
 The following is provided by the RP2350 Pico Hardware
 
-| Address     |                                 |
-|-------------|---------------------------------|
-| 3000 - 3400 | Virtual Memory (page entry)     |
-| 3400 - 3600 | Virtual Memory (page swappable) |
-| 3600 - 37E0 | Scratch Memory (static)         |
-| 37E0        | Read and Reset RTC Interrupt    |
-| 37EC        | FDC Command Status              |
-| 37EF        | FDC Data Register               |
-| 37F0        | Virtual Memory Page Register    |
-| IO Port $C2 | Pico DATA IO Port               |
-| IO Port $C3 | Pico SIZE Register              |
-| IO Port $C4 | Pico COMMAND Register           |
-| IO Port $C5 | Pico ERROR Register             |
-| IO Port $CF | Pico STATUS Register            |
+| Address     |                                  |
+|-------------|----------------------------------|
+| 3000 - 3400 | Banked Memory Entry Points       |
+| 3400 - 3600 | Banked Code Memory (swappable)   |
+| 3600 - 37E0 | Banked Data Memory (swappable)   |
+| 37E0        | Read and Reset RTC Interrupt     |
+| 37EC        | FDC Command Status               |
+| 37EF        | FDC Data Register                |
+| 37F0        | Banked Code Memory Page Register |
+| 37F1        | Banked Data Memory Page Register |
+| IO Port $C2 | Pico DATA IO Port                |
+| IO Port $C3 | Pico SIZE Register               |
+| IO Port $C4 | Pico COMMAND Register            |
+| IO Port $C5 | Pico ERROR Register              |
+| IO Port $CF | Pico STATUS Register             |

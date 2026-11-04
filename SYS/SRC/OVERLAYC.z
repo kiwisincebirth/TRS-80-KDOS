@@ -87,7 +87,7 @@ _promptDOS
 	; **** Get User Command
 ;	call	INLIN		; Actually read a Line of input
 ifdef @D_PICOENHANCED
-        call SCR_DOSINPUT
+        PAGE_CALL PAGE_DOSHISTORY
 else
 	LD	HL,STRBUFF	;the DOS command input buffer
 	LD	B,7FH 		;max chars in buffer.

@@ -19,6 +19,13 @@ and actual DOS shell dispatch. Directory cases cover first/later page BREAK,
 normal continuation, hidden entries, empty/short/exact-page directories,
 FreHD early exit, Pico stream consumption, and absence of screen-clear codes.
 
-The equivalent changes on Beta1 were tested successfully by Rusty on a 48K
-Model I K with the author's Floppy80. This branch applies them to current
-upstream; that combined version still needs a physical hardware check.
+Banking tests model the separate code/data selectors and the firmware's
+callable-page entry/return contract. They verify restoration of the caller's
+data selector, calls from different code banks, preservation of DEF USR
+pointers and unrelated banks, and no access to reserved hardware addresses.
+The paging logic is modeled, not a test of the actual Pico firmware.
+
+The original features were tested successfully by Rusty on a 48K Model I K
+with the author's Floppy80, both on Beta1 and on upstream 655970e. This revision
+incorporates upstream c26463b and migrates history to the independent data-bank
+window. It still needs a new physical hardware check.
