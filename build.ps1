@@ -59,5 +59,6 @@ try {
     foreach ($entry in $copies.GetEnumerator()) {
         Copy-Item -LiteralPath (Join-Path $source "zout/$($entry.Key)") -Destination (Join-Path $destination $entry.Value)
     }
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'SYS/HARDWARE.cfg') -Destination (Join-Path $destination 'SYS/HARDWARE.cfg') -Force
 } finally { Pop-Location }
 Write-Output "Built $($targets.Count) targets. SD-card binaries: $destination"

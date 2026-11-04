@@ -1,14 +1,20 @@
-; DOS line input with eight-command history. kDOS extension, 2026.
+; DOS line input with configurable command history. kDOS extension, 2026.
 ; Original kDOS by kiwisincebirth. Uses the standard callable page entry.
 ; Code and data windows are independent. No executable code at $3600.
-; Three data pages hold three 128-byte records each (slots 0..7 + draft 8).
+; Seven data pages hold three 128-byte records each (up to 20 + draft).
 ; State follows the records in the first data page. Never use $37E0-$37FF.
 VIRTUAL_ROUTINE dos_history_page, PAGE_DOSHISTORY
 
         ld a,(PICOPAGEDAT)
         push af               ; restore caller's data bank on every exit
         PAGE_DATA DPAGE_DOSHISTORY
-
+        ld a,(hist_cfg_loaded)
+        or a
+        jr nz,hist_configured
+        ld a,1
+        ld (hist_cfg_loaded),a ; try once per kDOS load, never during boot
+        PAGE_CALL PAGE_HISTORYCFG
+hist_configured:
         xor a
         ld (hist_len),a
         ld (hist_age),a
@@ -58,7 +64,7 @@ hist_up:
         or a
         jr nz,hist_older
         call hist_terminate
-        ld a,8                ; save draft before first UP
+        ld a,(hist_limit)     ; draft follows the configured history slots
         ld b,1
         call hist_copy
 hist_older:
@@ -75,13 +81,16 @@ hist_recall:
         call hist_erase
         ld a,(hist_age)
         or a
-        ld a,8                ; DOWN past newest restores original draft
+        ld a,(hist_limit)     ; DOWN past newest restores original draft
         jr z,hist_fetch
         ld a,(hist_age)
         ld b,a
         ld a,(hist_next)
         sub b
-        and 7
+        jr nc,hist_fetch
+        ld c,a
+        ld a,(hist_limit)
+        add a,c               ; wrap negative slot index by configured size
 hist_fetch:
         ld b,0
         call hist_copy
@@ -129,12 +138,17 @@ hist_enter:
         ld a,(hist_next)
         ld b,1
         call hist_copy
+        ld a,(hist_limit)
+        ld b,a
         ld a,(hist_next)
         inc a
-        and 7
+        cp b
+        jr c,hist_store_next
+        xor a
+hist_store_next:
         ld (hist_next),a
         ld a,(hist_count)
-        cp 8
+        cp b
         jr z,hist_done
         inc a
         ld (hist_count),a
@@ -184,7 +198,7 @@ hist_out:
         pop bc
         ret
 hist_copy:
-; A=slot 0..8, B=0 read / 1 write. Registers clobbered.
+; A=slot 0..HISTORY_MAX, B=0 read / 1 write. Registers clobbered.
 ; Three records per page: a fourth would overlap the hardware registers.
         ld c,a
         ld a,(PICOPAGEDAT)
@@ -229,10 +243,32 @@ hist_len:   db 0
 hist_age:   db 0
 hist_count: db 0
 hist_next:  db 0
+hist_limit: db HISTORY_DEFAULT
+hist_cfg_left:   db 0
+hist_cfg_value:  db 0
+hist_cfg_digits: db 0
+hist_cfg_loaded: db 0
+hist_cfg_budget: db 0
         assert $ <= $37E0
 VIRTUAL_DATA DPAGE_DOSHISTORY+1
         ds 3*128,0
         assert $ <= $37E0
 VIRTUAL_DATA DPAGE_DOSHISTORY+2
+        ds 3*128,0
+        assert $ <= $37E0
+
+VIRTUAL_DATA DPAGE_DOSHISTORY+3
+        ds 3*128,0
+        assert $ <= $37E0
+
+VIRTUAL_DATA DPAGE_DOSHISTORY+4
+        ds 3*128,0
+        assert $ <= $37E0
+
+VIRTUAL_DATA DPAGE_DOSHISTORY+5
+        ds 3*128,0
+        assert $ <= $37E0
+
+VIRTUAL_DATA DPAGE_DOSHISTORY+6
         ds 3*128,0
         assert $ <= $37E0

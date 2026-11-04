@@ -28,4 +28,12 @@ The paging logic is modeled, not a test of the actual Pico firmware.
 The original features were tested successfully by Rusty on a 48K Model I K
 with the author's Floppy80, both on Beta1 and on upstream 655970e. This revision
 incorporates upstream c26463b and migrates history to the independent data-bank
-window. It still needs a new physical hardware check.
+window. That data-bank revision passed hardware testing; the configurable-history retry still needs its own physical hardware check.
+
+Configurable-history tests exercise all capacities 1-20, rollover, draft
+restoration, maximum-length commands, malformed/missing configuration,
+UTF-8 BOM, 256-byte block boundaries, and one-time initialization on DOS input.
+Persistent BUSY and oversized input cases verify bounded return to the prompt.
+An integration test executes the actual BOOT.SYS machine code and streams
+SYSP.sys through mocked SD ports, checking the resulting banks and transfer
+to STARTUP. It does not emulate BASIC ROM initialization or real board timing.

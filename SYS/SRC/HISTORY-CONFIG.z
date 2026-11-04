@@ -1,0 +1,230 @@
+; Optional DOS history setting in /SYS/HARDWARE.cfg, read once on first DOS input.
+; Original kDOS by kiwisincebirth; HistorySize reader is a local extension.
+; This uses the existing file API; the Pico does not interpret HistorySize.
+VIRTUAL_ROUTINE history_config_page, PAGE_HISTORYCFG
+        ld a,(PICOPAGEDAT)
+        push af
+        PAGE_DATA DPAGE_DOSHISTORY
+        ld a,HISTORY_DEFAULT
+        ld (hist_limit),a
+        xor a
+        ld (hist_cfg_left),a
+        ld a,64               ; at most 16 KiB of config, even if EOF is faulty
+        ld (hist_cfg_budget),a
+        ld a,hcfg_filename_end-hcfg_filename+2
+        out (APISIZE),a
+        ld a,OPENFILE
+        out (APICMND),a
+        ld a,FA_READ|FA_OPEN_EXIST
+        out (APIDATA),a
+        ld hl,hcfg_filename
+        ld bc,(hcfg_filename_end-hcfg_filename)*256+APIDATA
+        otir
+        xor a
+        out (APIDATA),a
+        call hcfg_wait
+        jp nz,hcfg_return       ; absent/unreadable config is not a boot error
+        call hcfg_get
+        jp c,hcfg_finish
+        cp $EF                ; optional UTF-8 BOM at start of file
+        jr nz,hcfg_first
+        call hcfg_get
+        jp c,hcfg_finish
+        cp $BB
+        jp nz,hcfg_skip
+        call hcfg_get
+        jp c,hcfg_finish
+        cp $BF
+        jp nz,hcfg_skip
+hcfg_line:
+        call hcfg_get
+        jp c,hcfg_finish
+hcfg_first:
+        cp ENTER
+        jr z,hcfg_line
+        cp LINEF
+        jr z,hcfg_line
+        cp SPACE
+        jr z,hcfg_line
+        cp TAB
+        jr z,hcfg_line
+        ld hl,hcfg_key
+hcfg_keychar:
+        and $DF                ; case-insensitive ASCII key
+        cp (hl)
+        jp nz,hcfg_skip
+        inc hl
+        call hcfg_get
+        jp c,hcfg_finish
+        ld b,a
+        ld a,(hl)
+        or a
+        ld a,b
+        jr nz,hcfg_keychar
+hcfg_equals:
+        cp SPACE
+        jr z,hcfg_eqnext
+        cp TAB
+        jr z,hcfg_eqnext
+        cp '='
+        jp nz,hcfg_skip
+        ld a,HISTORY_DEFAULT   ; invalid recognized assignment uses default
+        ld (hist_limit),a
+        xor a
+        ld (hist_cfg_value),a
+        ld (hist_cfg_digits),a
+        jr hcfg_value_start
+hcfg_eqnext:
+        call hcfg_get
+        jp c,hcfg_finish
+        jr hcfg_equals
+hcfg_value_start:
+        call hcfg_get
+        jr c,hcfg_accept_eof
+        cp SPACE
+        jr z,hcfg_value_start
+        cp TAB
+        jr z,hcfg_value_start
+hcfg_digit:
+        cp '0'
+        jr c,hcfg_tail
+        cp '9'+1
+        jr nc,hcfg_tail
+        sub '0'
+        ld b,a
+        ld a,1
+        ld (hist_cfg_digits),a
+        ld a,(hist_cfg_value)
+        cp HISTORY_MAX+1       ; saturate before arithmetic can overflow
+        jr nc,hcfg_nextdigit
+        ld c,a
+        add a,a
+        add a,a
+        add a,c
+        add a,a
+        add a,b
+        cp HISTORY_MAX+1
+        jr c,hcfg_storevalue
+        ld a,HISTORY_MAX+1
+hcfg_storevalue:
+        ld (hist_cfg_value),a
+hcfg_nextdigit:
+        call hcfg_get
+        jr nc,hcfg_digit
+hcfg_accept_eof:
+        call hcfg_accept
+        jr hcfg_finish
+hcfg_tail:
+        cp ENTER
+        jr z,hcfg_accept_line
+        cp LINEF
+        jr z,hcfg_accept_line
+        cp '#'
+        jr z,hcfg_accept_comment
+        cp ';'
+        jr z,hcfg_accept_comment
+        cp SPACE
+        jr z,hcfg_tailnext
+        cp TAB
+        jr nz,hcfg_skip         ; reject suffixes such as 12abc or 1 2
+hcfg_tailnext:
+        call hcfg_get
+        jr c,hcfg_accept_eof
+        jr hcfg_tail
+hcfg_accept_line:
+        call hcfg_accept
+        jp hcfg_line
+hcfg_accept_comment:
+        push af
+        call hcfg_accept
+        pop af
+hcfg_skip:
+        cp ENTER
+        jp z,hcfg_line
+        cp LINEF
+        jp z,hcfg_line
+        call hcfg_get
+        jr nc,hcfg_skip
+hcfg_finish:
+        ld a,CLOSEFILE
+        out (APICMND),a
+        call hcfg_wait
+hcfg_return:
+        pop af
+        ld (PICOPAGEDAT),a
+        ret
+hcfg_accept:
+        ld a,(hist_cfg_digits)
+        or a
+        ret z
+        ld a,(hist_cfg_value)
+        or a
+        ret z                  ; zero is invalid; retain the default
+        cp HISTORY_MAX+1
+        jr c,hcfg_setlimit
+        ld a,HISTORY_MAX
+hcfg_setlimit:
+        ld (hist_limit),a
+        ret
+hcfg_get:
+; Read using actual block length and DRQ, not api_READBYTE's fixed 256 bytes.
+; C=EOF/read failure; NC=byte in A. NUL terminates padded/text data safely.
+        ld a,(hist_cfg_left)
+        or a
+        jr nz,hcfg_readbyte
+        ld a,(hist_cfg_budget)
+        or a
+        jr z,hcfg_readerror
+        dec a
+        ld (hist_cfg_budget),a
+        xor a
+        out (APISIZE),a
+        ld a,READFILE
+        out (APICMND),a
+        call hcfg_wait
+        jr nz,hcfg_readerror
+        and STATUS_DRQ
+        jr z,hcfg_eof
+        in a,(APISIZE)          ; zero represents a full 256-byte block
+        ld (hist_cfg_left),a
+hcfg_readbyte:
+        ld a,(hist_cfg_left)
+        dec a
+        ld (hist_cfg_left),a
+        in a,(APIDATA)
+        or a
+        ret nz                 ; OR clears carry
+hcfg_eof:
+        scf
+        ret
+hcfg_readerror:
+        xor a
+        ld (hist_cfg_digits),a
+        ld a,HISTORY_DEFAULT
+        ld (hist_limit),a
+        jr hcfg_eof
+; Configuration is optional: bound BUSY polling rather than using the
+; general api_WAIT (which deliberately has no timeout). Preserve BC/HL/DE.
+hcfg_wait:
+        push bc
+        ld bc,0
+hcfg_poll:
+        in a,(APISTAT)
+        bit STATB_BUSY,a
+        jr z,hcfg_ready
+        dec bc
+        ld a,b
+        or c
+        jr nz,hcfg_poll
+        ld a,1
+        or a                  ; timeout returns NZ, like a file API error
+        pop bc
+        ret
+hcfg_ready:
+        bit STATB_ERR,a
+        pop bc
+        ret
+hcfg_key: db 'HISTORYSIZE',0
+hcfg_filename: db '/SYS/HARDWARE.cfg'
+hcfg_filename_end:
+VIRTUAL_END

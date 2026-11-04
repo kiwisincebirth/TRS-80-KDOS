@@ -18,6 +18,12 @@ HIST_LEN=symbol('hist_len')
 HIST_ENTRY=symbol('dos_history_page')
 HIST_CODE=symbol('PAGE_DOSHISTORY')
 HIST_DATA=symbol('DPAGE_DOSHISTORY')
+HIST_PAGES=symbol('HISTORY_PAGES')
+HIST_MAX=symbol('HISTORY_MAX')
+HIST_LIMIT=symbol('hist_limit')
+CFG_ENTRY=symbol('history_config_page')
+CFG_CODE=symbol('PAGE_HISTORYCFG')
+CFG_LOADED=symbol('hist_cfg_loaded')
 
 class Rig:
  def __init__(self):
@@ -27,10 +33,13 @@ class Rig:
   self.hooks={}; self.keys=deque(); self.output=[]; self.checkpoints=[]
   self.m.mark_addrs(0x37e0,32,self.m.WRITE_MARK)
   self.m.set_write_callback(self.write)
+  self.m.set_input_callback(lambda port:0x41 if port&255==0xcf else 0)
   self.hook(0x49,self.key); self.hook(0x32a,self.out)
   self.m.set_breakpoint(0xffff)
   self.hook(HIST_ENTRY,self.page_enter)
   self.hook(HIST_ENTRY+3,self.page_return)
+  self.hook(CFG_ENTRY,lambda:self.page_enter(CFG_ENTRY,CFG_CODE))
+  self.hook(CFG_ENTRY+3,self.page_return)
  def flush(self):
   self.banks[self.page][:]=self.mem[0x3400:0x3600]
   self.banks[self.dpage][:480]=self.mem[0x3600:0x37e0]
@@ -45,12 +54,12 @@ class Rig:
    self.banks[self.dpage][:480]=self.mem[0x3600:0x37e0]
    self.dpage=value; self.mem[0x3600:0x37e0]=self.banks[value][:480]
   self.mem[addr]=value
- def page_enter(self):
-  assert self.mem[HIST_ENTRY]==0xcd,'History must use VIRTUAL_ROUTINE'
+ def page_enter(self,entry=HIST_ENTRY,page=HIST_CODE):
+  assert self.mem[entry]==0xcd,'Routine must use VIRTUAL_ROUTINE'
   self.page_returns.append(self.page)
-  self.write(0x37f0,HIST_CODE)
+  self.write(0x37f0,page)
   self.m.sp-=2
-  self.mem[self.m.sp:self.m.sp+2]=(HIST_ENTRY+3).to_bytes(2,'little')
+  self.mem[self.m.sp:self.m.sp+2]=(entry+3).to_bytes(2,'little')
   self.m.pc=0x3400
  def page_return(self):
   self.write(0x37f0,self.page_returns.pop());self.ret()
@@ -101,17 +110,18 @@ class Rig:
   self.flush()
   saved_banks=[bytes(b) for b in self.banks]
   reserved=bytes(self.mem[0x37e0:0x3800])
+  first_input=not self.banks[HIST_DATA][CFG_LOADED-0x3600]
   self.page_writes=[]
   self.call(HIST_ENTRY)
   self.flush()
   assert self.page==previous and self.dpage==previous_data and self.m.sp==0xf002
   assert not self.page_returns
   assert bytes(self.mem[0x37e0:0x3800])==reserved
-  # Only the three allocated data pages may change. Code, DEF USR pointers,
+  # Only the allocated history data pages may change. Code, DEF USR pointers,
   # unrelated data pages and hardware bytes must remain untouched.
   for i,b in enumerate(saved_banks):
-   if i not in range(HIST_DATA,HIST_DATA+3):assert bytes(self.banks[i])==b,i
-  assert [v for a,v in self.page_writes if a==0x37f0]==[HIST_CODE,previous]
+   if i not in range(HIST_DATA,HIST_DATA+HIST_PAGES):assert bytes(self.banks[i])==b,i
+  assert [v for a,v in self.page_writes if a==0x37f0]==([HIST_CODE,CFG_CODE,HIST_CODE,previous] if first_input else [HIST_CODE,previous])
   assert not self.keys
   assert 0x1f not in self.output and 0x1c not in self.output
   if self.m.f&1:return None
@@ -125,7 +135,7 @@ def history_tests():
  r.write(0x37f1,32)   # BASIC's existing DEF FN / USR pointer bank
  assert bytes(r.mem[0x3600:0x3614])==b'\x4a\x1e'*10
  # Canaries include the inaccessible tail of every physical bank.
- for page in range(HIST_DATA,HIST_DATA+3):r.banks[page][480:]=b'\xa5'*32
+ for page in range(HIST_DATA,HIST_DATA+HIST_PAGES):r.banks[page][480:]=b'\xa5'*32
  shell_before=bytes(r.mem[0x3400:0x3600])
  assert r.line([91,10,13])==''
  assert r.line(b'DIR\r')=='DIR'
@@ -160,7 +170,7 @@ def history_tests():
   r.write(0x37f0,codepage)
   assert r.line([91,1]) is None
  assert bytes(r.mem[0x3600:0x3614])==b'\x4a\x1e'*10
- for page in range(HIST_DATA,HIST_DATA+3):assert r.banks[page][480:]==b'\xa5'*32
+ for page in range(HIST_DATA,HIST_DATA+HIST_PAGES):assert r.banks[page][480:]==b'\xa5'*32
  # Full console parser integration: the colon shell invokes our editor and DIR.
  r.keys=deque(b'DIR\r'); r.output=[]
  assert bytes(r.mem[0x3400:0x3600])==shell_before
@@ -228,8 +238,164 @@ def directory_tests():
  s,o=dir_case(175,[1],enhanced=False);assert s['index']==60 and s['commands'].count(9)==60
  return {'directory':'PASS: first/second-page BREAK, normal paging, exact page, empty/short directory, hidden entries, FreHD exit, Pico stream drained, no screen clear'}
 
+def configure(content,fail_read=False,busy=None):
+ # Run the actual assembled file API, mocking only the board's I/O ports.
+ r=Rig();r.load_cmd(BUILD/'SD-CARD/SYS/SYSP.sys')
+ r.write(0x37f0,227);r.write(0x37f1,32);r.flush()
+ saved=[bytes(b) for b in r.banks]
+ state={'status':0x40,'chunk':deque(),'position':0,'length':0,
+        'close':0,'reads':0,'command':None,'open_args':bytearray()}
+ def inp(port):
+  port&=255
+  if port==0xcf:
+   if (busy=='open' and state['command']==3) or (busy=='read' and state['command']==4) or (busy=='close' and state['command']==6):return 0x80
+   return state['status']
+  if port==0xc5:return 4
+  if port==0xc3:return state['length']&255
+  assert port==0xc2
+  assert state['chunk'],'Read past end of SD transfer'
+  return state['chunk'].popleft()
+ def out(port,value):
+  port&=255
+  if port==0xc3:return
+  if port==0xc2:
+   assert state['command']==3
+   state['open_args'].append(value);return
+  assert port==0xc4
+  state['command']=value
+  if value==3:state['status']=0x41 if content is None else 0x40
+  elif value==4:
+   state['reads']+=1
+   if fail_read and state['reads']>=int(fail_read):state['status']=0x41;return
+   pos=state['position'];chunk=content[pos:pos+256]
+   state['position']+=len(chunk);state['length']=len(chunk)
+   state['chunk']=deque(chunk);state['status']=0x48 if chunk else 0x40
+  elif value==6:
+   state['close']+=1;state['chunk'].clear();state['status']=0x40
+  else:raise AssertionError(value)
+ r.m.set_input_callback(inp);r.m.set_output_callback(out)
+ assert r.line([13])=='';r.flush()
+ assert r.page==227 and r.dpage==32 and not r.page_returns
+ assert state['open_args']==b'\x01/SYS/HARDWARE.cfg\x00'
+ assert state['close']==(0 if content is None or busy=='open' else 1)
+ for i,b in enumerate(saved):
+  if i not in range(HIST_DATA,HIST_DATA+HIST_PAGES):assert bytes(r.banks[i])==b,i
+ limit=r.banks[HIST_DATA][HIST_LIMIT-0x3600]
+ reads=state['reads'];opens=bytes(state['open_args'])
+ assert r.line([13])==''  # subsequent prompts do not reopen the config
+ assert state['reads']==reads and bytes(state['open_args'])==opens
+ return r,limit,state
+
+def configuration_tests():
+ cases=[(None,8),(b'',8),(b'\xef\xbb\xbfHistorySize=20',20),(b'# comment\r\nEnableHighRAM=0\r\n',8),
+        (b'HistorySize=1',1),(b'HistorySize=20',20),
+        (b'  hIsToRySiZe \t= 13 # comment\r\n',13),
+        (b'HistorySize=13#HistorySize=20\n',13),
+        (b'HistorySize=21',20),(b'HistorySize=999999999999999',20),
+        (b'HistorySize=0',8),(b'HistorySize=-1',8),(b'HistorySize=+1',8),
+        (b'HistorySize=abc',8),(b'HistorySize=',8),(b'HistorySize=1 2',8),
+        (b'HistorySize=12abc',8),(b'HistorySizeExtra=20',8),
+        (b'# HistorySize=20\n;HistorySize=19\nHistorySize=00009',9),
+        (b'HistorySize=20\nHistorySize=4',4),
+        (b'HistorySize=20\nHistorySize=bad',8),
+        (b'HistorySize\rHistorySize=17\r',17),
+        (b'#'+b'x'*4096+b'\nHistorySize=19\n',19)]
+ for content,expected in cases:
+  _,actual,_=configure(content)
+  assert actual==expected,(content,actual,expected)
+ _,actual,_=configure(b'HistorySize=20',fail_read=True)
+ assert actual==8
+ _,actual,_=configure(b'HistorySize=20\n#'+b'x'*300,fail_read=2)
+ assert actual==8
+ # Place the key/value across every position around a 256-byte block edge.
+ for padding in range(240,266):
+  _,actual,_=configure(b'#'+b'x'*padding+b'\nHistorySize=17')
+  assert actual==17,padding
+ # Verify every supported size, including non-powers of two and maximum.
+ for capacity in range(1,HIST_MAX+1):
+  r,actual,_=configure(f'HistorySize={capacity}\n'.encode())
+  assert actual==capacity
+  for i in range(capacity+5):assert r.line(f'CMD{i}\r'.encode())==f'CMD{i}'
+  keys=[]
+  for i in range(capacity+2):keys.extend([91,'checkpoint'])
+  for i in range(capacity+2):keys.extend([10,'checkpoint'])
+  keys.append(13)
+  assert r.line(keys)==''
+  assert r.checkpoints[:capacity+2]==[f'CMD{i}' for i in range(capacity+4,4,-1)]+['CMD5','CMD5']
+  assert r.checkpoints[capacity+2:]==[f'CMD{i}' for i in range(6,capacity+5)]+['','','']
+  assert r.line(list(b'UNFINISHED')+[91,10,13])=='UNFINISHED'
+  assert r.line([91,8,ord('!'),13])=='UNFINISHE!'
+  assert r.line([91,1]) is None
+ # Longest lines in every maximum-capacity slot, plus the final draft slot.
+ r,_,_=configure(b'HistorySize=20')
+ for i in range(25):assert r.line([65+i]*127+[13])==chr(65+i)*127
+ keys=[]
+ for i in range(20):keys.extend([91,'checkpoint'])
+ keys.append(1)
+ assert r.line(keys) is None
+ assert r.checkpoints==[chr(65+i)*127 for i in range(24,4,-1)]
+ assert r.line([90]*127+[91,10,13])=='Z'*127
+ # BUSY forever is bounded; a bad optional setting cannot hang DOS input.
+ for phase in ('open','read','close'):
+  _,limit,_=configure(b'HistorySize=20',busy=phase)
+  assert limit==(20 if phase=='close' else 8)
+ _,limit,_=configure(b'#'+b'x'*17000)
+ assert limit==8
+ # Configuration is deliberately absent from normal startup.
+
+ r=Rig();r.load_cmd(BUILD/'SD-CARD/SYS/SYSP.sys')
+ assert r.mem[symbol('READYX')]==0x21 # original LD HL,_KDOSMSG
+ return {'configuration':'PASS: defaults, all sizes 1-20, clamp, invalid/missing settings, comments/whitespace/case, duplicate settings, read errors, block boundaries, rollover and 127-byte slots at capacity 20, lazy initialization, bounded BUSY/size fallback'}
+
+def boot_loader_test():
+ # Execute the real BOOT.SYS loader rather than the test CMD parser.
+ # Stop at STARTUP; BASIC ROM initialization itself is not emulated.
+ r=Rig();r.mem[0x5200:0x5300]=(BUILD/'SD-CARD/SYS/BOOT.SYS').read_bytes()
+ content=(BUILD/'SD-CARD/SYS/SYSP.sys').read_bytes()
+ state={'status':0x40,'data':deque(),'pos':0,'cmd':None,'open':bytearray()}
+ r.m.mark_addrs(0x3000,0x400,r.m.WRITE_MARK)
+ original_write=r.write
+ def write(addr,value):
+  if 0x3000<=addr<0x3400:
+   original_write(0x37f0,(addr-0x3000)//4);r.mem[addr]=value
+  else:original_write(addr,value)
+ r.m.set_write_callback(write)
+ def where():
+  r.m.hl=int.from_bytes(r.mem[r.m.sp:r.m.sp+2],'little');r.ret()
+ r.hook(0xb,where)
+ r.hook(0x75,lambda:(_ for _ in ()).throw(AssertionError('Boot fell back to BASIC')))
+ r.hook(0x5400,lambda:setattr(r.m,'pc',0xffff))
+ def inp(port):
+  port&=255
+  if port==0xcf:return state['status']
+  if port==0xc2:
+   assert state['data'],'Boot read beyond available data'
+   return state['data'].popleft()
+  raise AssertionError(port)
+ def out(port,value):
+  port&=255
+  if port==0xc3:return
+  if port==0xc2:state['open'].append(value);return
+  assert port==0xc4
+  state['cmd']=value
+  if value==0:state['data']=deque([1,0,0x55,0xaa]);state['status']=0x48
+  elif value==3:state['status']=0x40
+  elif value==4:
+   pos=state['pos'];chunk=content[pos:pos+256]
+   state['pos']+=len(chunk);state['data']=deque(chunk);state['status']=0x48 if chunk else 0x41
+  elif value==6:state['data'].clear();state['status']=0x40
+  else:raise AssertionError(value)
+ r.m.set_input_callback(inp);r.m.set_output_callback(out)
+ r.call(0x5200);r.flush()
+ assert state['open'][1:].split(b'\x00')[0]==b'/SYS/SYSP.SYS'
+ expected=Rig();expected.load_cmd(BUILD/'SD-CARD/SYS/SYSP.sys');expected.flush()
+ for page in [HIST_CODE,CFG_CODE,*range(HIST_DATA,HIST_DATA+HIST_PAGES),32]:
+  assert r.banks[page]==expected.banks[page],page
+ assert bytes(r.mem[0x5400:0x5480])==bytes(expected.mem[0x5400:0x5480])
+ return {'boot_loader':'PASS: actual BOOT.SYS loads SYSP.sys through SD ports and reaches STARTUP with code/data banks intact'}
+
 if __name__=='__main__':
- report=history_tests()|directory_tests()
+ report=history_tests()|directory_tests()|configuration_tests()|boot_loader_test()
  report['scope']='Compiled Z80 execution with mocked ROM console and Floppy80 API; no physical hardware or interrupt/timing validation.'
  (BUILD/'test-results.json').write_text(json.dumps(report,indent=2))
  print(json.dumps(report,indent=2))

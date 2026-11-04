@@ -18,7 +18,7 @@ PowerShell alternatives
   .\build.ps1 -Action Clean
   .\build.ps1 -Assembler 'C:\path\to\zmac.exe'
 
-Outputs: build/SD-CARD (14 binaries from 13 assembly targets).
+Outputs: build/SD-CARD (14 binaries from 13 assembly targets, plus SYS/HARDWARE.cfg).
 Listings and intermediate files: build/src/zout.
 Builds never copy to removable media or flash the Pico. Clean removes only generated assembly and SD-card outputs under build;
 it preserves build/vs because Visual Studio may hold its logs open. tools/zmac.exe is preserved.
@@ -54,3 +54,19 @@ cover this upstream loader/memory change. SYS/overlayd.sys is unchanged.
 Back up the three existing files before copying this build's versions.
 Re-test DIR/BREAK, command recall/editing, BASIC DEF USR/FN, and loading a CMD
 program, because the upstream change relocates the binary loader too.
+
+Configurable history retry (uncommitted until hardware testing)
+Normal startup is unchanged from the tested b6522c9 version. The optional
+HistorySize setting is read once on first DOS input, using bounded I/O waits
+and a 16 KiB input limit. Default 8; supported range 1-20. Code page 184 and
+data pages 33-39 are reserved in addition to editor code page 183.
+
+For the first hardware test, keep the known-working SD-card HARDWARE.cfg.
+Copy only the newly built SYS/SYSP.sys after backing up the working version.
+Confirm kDOS loads and the DOS prompt works with the default eight entries.
+Then add HistorySize=20 to the same SD-card config, preserving its other
+options, reboot, and test recall beyond eight commands.
+
+The build also stages SYS/HARDWARE.cfg for future deployment. Copying the
+entire generated configuration replaces board settings, so match it to your
+working card before doing so. No Pico firmware changes are included.

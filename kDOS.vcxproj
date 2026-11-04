@@ -46,6 +46,7 @@
     <None Include="SYS\SRC\BOOT.z" />
     <None Include="SYS\SRC\CONSTANTS.z" />
     <None Include="SYS\SRC\DOS-HISTORY.z" />
+    <None Include="SYS\SRC\HISTORY-CONFIG.z" />
     <None Include="SYS\SRC\INTERRUPT.z" />
     <None Include="SYS\SRC\keyboard.z" />
     <None Include="SYS\SRC\OVERLAYB.z" />
