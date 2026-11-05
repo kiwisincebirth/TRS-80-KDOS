@@ -86,10 +86,14 @@ _promptDOS
 	;
 	; **** Get User Command
 ;	call	INLIN		; Actually read a Line of input
+ifdef @D_PICOENHANCED
+        PAGE_CALL PAGE_DOSHISTORY
+else
 	LD	HL,STRBUFF	;the DOS command input buffer
 	LD	B,7FH 		;max chars in buffer.
 	CALL	0040H		;line input routine On return, HL points past the last character entered, and the buffer is terminated with 0DH.
 
+endif
 	jr	c,_promptdos	; loop back if BREAK pressed
 
 	xor	a

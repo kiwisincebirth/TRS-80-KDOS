@@ -1,0 +1,73 @@
+Building kDOS with Visual Studio 2026 on Windows
+
+Open kDOS.sln, then use Build Solution (Ctrl+Shift+B). The Makefile project
+calls build.ps1, which runs zmac. Debug and Release produce the same Z80
+binaries; x64 describes the Windows project configuration, not the target CPU.
+F5 debugging of TRS-80 programs is not configured. The standard .z editor may
+show plain text unless you install a suitable assembly-language extension.
+
+Prerequisites
+* Visual Studio 2026 with C++ project support (Desktop development with C++).
+* zmac: https://48k.ca/zmac.html (validated with version 18oct2022).
+  Put zmac.exe in tools/zmac.exe (ignored by Git), or set ZMAC_EXE to its
+  absolute path before starting Visual Studio. No assembler is redistributed.
+
+PowerShell alternatives
+  .\build.ps1
+  .\build.ps1 -Action Rebuild
+  .\build.ps1 -Action Clean
+  .\build.ps1 -Assembler 'C:\path\to\zmac.exe'
+
+Outputs: build/SD-CARD (14 binaries from 13 assembly targets, plus SYS/HARDWARE.cfg and SYS/settings.cfg).
+Listings and intermediate files: build/src/zout.
+Builds never copy to removable media or flash the Pico. Clean removes only generated assembly and SD-card outputs under build;
+it preserves build/vs because Visual Studio may hold its logs open. tools/zmac.exe is preserved.
+These outputs are compiled from current upstream plus this branch's changes;
+they are not the earlier Beta1 test package. Keep a matching release backup
+and check upstream firmware requirements before testing on physical hardware.
+
+Regression tests (optional; Python 3.10+)
+  python -m pip install -r tests/requirements.txt
+  python tests/test_console.py
+See tests/README.txt for scope and hardware-validation limitations.
+
+Git workflow
+The first contribution commit adds DIR BREAK and DOS history, documentation,
+and regression tests. The second adds this Windows/Visual Studio build setup.
+The author's existing commit history is preserved. Build output, downloaded
+tools, and personal Visual Studio settings are excluded from Git.
+
+For a pull request, create a fork of kiwisincebirth/TRS-80-KDOS on GitHub,
+add that fork as a remote named fork, and push the contribution branch there.
+Keep origin pointing at the author's repository to fetch future updates.
+You can then open a pull request from your fork's branch to upstream main.
+All upstream author credits remain in the sources.
+
+November 4 data-bank migration
+The current branch incorporates upstream c26463b. PICO-WORK.z is removed.
+History uses PAGE_CALL/VIRTUAL_ROUTINE for code bank 183 and VIRTUAL_DATA for
+data banks 33-35. $37E0-$37FF remain reserved for hardware.
+Compared with the previously tested 655970e feature build, three compiled
+files change: SYS/SYSP.sys, SYS/SYS0.sys, and SYS/overlayl.sys. Keep these
+matched when testing; the former two-file feature-only instructions do not
+cover this upstream loader/memory change. SYS/overlayd.sys is unchanged.
+Back up the three existing files before copying this build's versions.
+Re-test DIR/BREAK, command recall/editing, BASIC DEF USR/FN, and loading a CMD
+program, because the upstream change relocates the binary loader too.
+
+Software settings configuration
+Normal startup remains unchanged. HistorySize is read once on first DOS input
+from /SYS/settings.cfg, using bounded I/O waits and a 16 KiB input limit.
+Default 8; supported range 1-20. Code pages 183-184 and data pages 33-39
+are reserved for history and configuration.
+
+To test this update, back up and replace SYS/SYSP.sys and copy SYS/settings.cfg
+from build/SD-CARD to the SD card. Keep the working HARDWARE.cfg, which now
+contains hardware options only. Remove its old HistorySize entry if present.
+Set HistorySize = 20 in settings.cfg, reboot, and test recall beyond eight
+commands. Missing settings.cfg defaults to eight. Re-test DIR/BREAK too.
+
+Build/Rebuild stages both configuration files. Preserve your card's hardware
+settings when deploying; do not replace HARDWARE.cfg with generic defaults.
+No Pico firmware changes are included. Leave changes uncommitted until
+physical hardware testing passes.

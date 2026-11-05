@@ -282,7 +282,7 @@ SPACE		EQU	$20	; A space character
 DQUOTE		EQU	$22	; A Double Quote ( " )
 SQUOTE		EQU	$27	; A Single Quote ( ' )
 SEMICO		EQU	$3B	; Note ';' in code; was breaking some assemblers
-UPARRW		EQU	$5B	; (UP Arrow) Special Up Arrow ↑ Character in TRS Charset
+UPARRW		EQU	$5B	; (UP Arrow) Special Up Arrow Ã¢â€ â€˜ Character in TRS Charset
 BQUOTE		EQU	$60	; A Back Quote ( ` )
 BSLASH		EQU	$5C	; A Back Slash ( \ )
 ;
@@ -429,6 +429,15 @@ PAGE_OVERLAYM	EQU	$ED	; -unused
 PAGE_OVERLAYN	EQU	$EE	; -unused
 PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
 
+; DOS command input extension
+PAGE_DOSHISTORY EQU 183	; DOS command editor (code only)
+PAGE_HISTORYCFG EQU 184	; Read HistorySize on first DOS input
+HISTORY_DEFAULT EQU 8
+HISTORY_MAX     EQU 20
+HISTORY_PAGES   EQU 7	; 20 commands + draft, three 128-byte slots/page
+        assert HISTORY_DEFAULT >= 1 && HISTORY_DEFAULT <= HISTORY_MAX
+        assert HISTORY_MAX+1 <= HISTORY_PAGES*3
+
 ; Basic Extensions & other Misc Pages (32)
 ; Pages - C0 (192) to DF (223)
 ;
@@ -460,6 +469,8 @@ PAGE_USRN	EQU	222
 ; Pages 1-31 are reserved for Disk Basic File Handling
 ;
 DPAGE_DEFFN	EQU	32	; Page for Basic Def FN Def User
+DPAGE_DOSHISTORY EQU 33	; Seven consecutive pages: history/draft and state
+; History reserves data pages 33-39; each exposes only $3600-$37DF.
 
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------
@@ -507,6 +518,11 @@ VIRTUAL_DATA macro pagenum
 	ORG  	PICOPAGEDAT	; The Data Page Register
 	DEFB 	pagenum		; Write the page number to the Data Page Reg
 	ORG  	$3600		; All tables reside at this 480-byte window
+endm
+
+; End a data page before the reserved hardware registers.
+VIRTUAL_DATA_END macro
+	assert $ <= $37E0
 endm
 
 ; Change to a specified Data Page
