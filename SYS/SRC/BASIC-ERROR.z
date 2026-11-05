@@ -96,9 +96,9 @@ VIRTUAL_PAGE L2ERRORHAND2, PAGE_DOSERROR2
 
 	; called from the prior routine to handle DISK BASIC errors
 
-	; TODO NOTE THIS CODE IS NOT COMPLETE
-	; TODO We HAVE NOT DIS BASIC CODE THAT GENERATES ERRORS
-	; TODO in future we can enable DISK BASIC errors
+	; TODO THIS CODE IS NOT COMPLETE
+	; TODO We have not added DISK BASIC FILE operations
+	; TODO in future we need to add DISK BASIC FILE IO errors
 
 	ld 	hl,UNPRINTABLE
 	call	$28a7                ; 5805: Here is where we display the message

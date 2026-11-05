@@ -26,7 +26,7 @@ VIRTUAL_PAGE timedollar, PAGE_TIMEDOLL
 	push	hl                    ; 5746:
 	ld	a,$11                 ; 5747:
 	call	STRINI                ; 5749:
-	ld	hl,($40d4)            ; 574c: - todo $40d4 may not be initialised. appears to have $1929 (ROM)
+	ld	hl,($40d4)            ; 574c:
 	ld	de,XTIME+5            ; 574f:
 	call	_5776                 ; 5752:
 	ld	(hl),'/'              ; 5755:

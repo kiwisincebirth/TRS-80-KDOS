@@ -32,7 +32,8 @@ import	constants.z
 	jp	CIODOS		; (4033) DOS Char I/O Driver for Disk Files
 
 	; ORG	$403E
-	; todo on TRSDOS $403E holds a version number
+	; todo we should put a reasonable value in this location
+	; TRSDOS - 4Ø3EH Holds a version number
 	; LDOS - Contains the operating system version Number
 	; In  ND80 V1, 4Ø3EH contained either 8Ø (5ØH) or 128 (8ØH).
 	; FOR ND80 V2 this contains FF or 00 -> SEE 4427 442B
@@ -457,7 +458,7 @@ $FREE_CORE1	EQU	SYSFCB - $
 	SUPERV	S_OPENFILE	; (4424) @OPEN (Open Existing File) Vector
 	defb	$00		; (4427) todo ND8Ø $82 identifying ND(8)0v(2)
 	SUPERV	S_CLOSEFILE	; (4428) @CLOSE Close an Open File
-        defb	$01		; (442B) ND8Ø V2 $Ø1 if Model I and $Ø3 if Model III.
+        defb	$01		; (442B) todo ND8Ø V2 $Ø1 if Model I and $Ø3 if Model III.
 	SUPERV	S_KILLFILE	; (442C) @KILL Delete (Kill) FCB's associated file .
 	nop
 	SUPERV	S_LOADFILE	; (4430) @LOAD The LOAD CMD File Vector
