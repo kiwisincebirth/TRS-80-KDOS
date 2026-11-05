@@ -1,6 +1,8 @@
 
 ## Version - Beta 2
 
+#### Unreleased
+
 * Improved HELP command, added some missing commands
 * Improved HELP command, emulated version now excludes unsupported commands
 * Improved error message, when removing a directory that isnt empty
@@ -10,5 +12,6 @@
 
 ## Version - Beta 1
 
-#### 
+#### June 2026
+
 Original Version

@@ -50,129 +50,47 @@ Core Features
 
 This solution requires:
 * Model 1 computer with 16K (or 48k) RAM
-* Floppy80 for Model 1 for storage.
-* SD Card for file storage.
+* Floppy80 for Model 1 board for storage.
+* SD Card for OS and user file storage.
 * Expansion Interface is NOT required
 
 While the Floppy 80 is the primary hardware required by this solution,
-the FreHD is supported in a very basic form, mainly for emulation and testing purposes
+the FreHD is supported in a very basic form, mainly for emulation 
+and testing purposes
 
-## Provided
+## Operation and Use
 
-The solution provides Software that runs on TRS-80, 
-* It provides a DOS like environment, with connectivity to RP2350  
-* The software is stored and loaded fom SD card 
+See the Seperate ![Quick Reference](./QUICKREF.md) for a getting started,
+and the full ![User Guide](./USERGUIDE.md) for detailed operation
 
-An Pi Pico v2 (RP2350) firmware provides
-* A command API similar to (but a superset of) FreHD, to provide needed File capabilities.
-* 128KB Paged Memory (in the $3000 - $37DF memory region), for low DOS overhead
-* Optional 32 Kb of High Memory, for use in 16KB machines
-* A small Floppy Disk emulation to support the loading of a boot block at start
+## Work In Progress
 
-## Operation
-
-### Startup
-
-At startup holding the `CLEAR` key will :
-* Disable Virtual RAM and instead use Liner Overlay RAM.
-* Reduce available ram by 512 bytes needed for overlay loading
-* Disable Extended basic features, which require virtual memory.
-* Disable any AUTO processing
-
-The `BREAK` key will disable loading entirely, like a Floppy disk
-boot disable in a traditional setup.
-
-### General Operation
-
-The system will startup as a normal Level 2 basic system. You can type in a basic program
-as you would normally on a non-disk system.
-
-```shell
-READY
->_
-```
-
-Pressing `ENTER` (without typing a command) will switch between DOS and BASIC prompts.
-The `:` prompt is the equivalent of the DOS prompt, where disk commands are entered.
-
-```shell
-:_
-```
-
-### Filenames
-
-Files names (including directories) should follow the 8.3 naming convention.
-Longer file names will be truncated to 8.3 format. While this is supported
-it is not recommended as the '~' character is not consistently displayed
-or available on the standard keyboard.
-
-When entering filenames the preference is to use a modern format.
-e.g. FILENAME.EXT , but the tradition format of FILENAME/EXT
-is generally supported within constrains e.g. PATH/FILENAME/EXT
-will be interpreted as PATH/FILENAME.EXT
-
-## Supported
-
-Below is a summary of the suppoerted DOS commands. Noting if running on a FreHD
-or under the FreHD TRS80GP emulation only the "FreHD" marked features are supported 
-
-| Command         | Description                   |       |
-|-----------------|-------------------------------|-------|
-| {filename}      | Runs a CMD program            | FreHD |
-| CD {dirName}    | Set working directory         |       |
-| COPY {f1} {f2}  | Copy a File (todo)            |       |
-| DEL {filename}  | delete file or directory      |       |
-| DIR {wildcard}  | display directory contents    | FreHD |
-| DI              | Disable Interrupts / RTC      | FreHD |
-| EI              | Enable Interrupts / RTC       | FreHD |
-| HELP            | Display a summary of commands | FreHD |
-| LOAD {filename} | Load a CMD program            | FreHD |
-| MKDIR {dirname} | Make a directory              |       |
-| MOVE {f1} {f2}  | move file or directory        |       |
-| PWD             | display current directory     |       |
-| REN {f1} {f2}   | rename file or directory      |       |
-
-As well as the DOS commands, BASIC itself has been upgraded with 
-the non-disk I/O statements and extensions. The following are supported
-
-|            | Command             | Description            |       |
-|------------|---------------------|------------------------|-------|
-| Commands   | LOAD "filename.BAS" | Load a basic Program   | FreHD |
-|            | SAVE "filename.BAS" | Save a program to Disk | FreHD |
-|            | RUN "filename.BAS"  | Load and Run a program | FreHD |
-|            | KILL "filename"     | Delete a file (todo)   | FreHD | 
-|            | MERGE "filename"    | Merge a file (todo)    | FreHD | 
-|            | -                   | -                      |       |
-| Statements | &Hxx                | Hexadecimal Constant   |       |
-|            | &Oxx                | Octo-decimal Constant  |       |
-|            | CVI CVS CVD         | Convert from String    |       |
-|            | DEF FNn(A)=A        | Define a User Function |       |
-|            | DEF USRn=ADDR       | Define a Call address  |       |
-|            | FNn(A)              | Invoke a User Function |       |
-|            | INSTR(X$,Y$)        | String Search function |       |
-|            | LINE INPUT A$       | Input an entire line   |       |
-|            | MID(X$,N,N)=""      | Mid String Assignment  |       |
-|            | MKI$ MKS$ MKD$      | Convert to String      |       |
-|            | TIME$               | RTC Current DateTime   |       |
-|            | USRn(A)             | Invoke a Call address  |       |
-
-As well as this BASIC will display the descriptive error messages.
-Disk Basic I/O function are a future feature
-
-## Caveats
-
-### Work In Progress
 This is a work in progress not all features are implemented at this time.
-See the separate Compatibility document for what is and isn't supported.
+Please use it at your own risk.
+See the separate ![Compatibility](./SYS/DOC/COMPATIBILITY.md) document 
+for what is and isn't supported.
 
-### FreHD solution
-When running this on a FreHD there are several limitations
-* Only provides a small sub set of functions (frehd limited firmware)
-* Consumes 512 bytes more RAM for overlays (no paged ram)
-* file management, and sub-Directories are not supported
-* Many DOS API's (support File IO) are not supported
-* Doesn't support Disk Basic extensions.
+## References
 
+### Floppy80
 
+The ![Floppy80-M1](https://github.com/MichaelM4/Floppy80-M1) project 
+provides the hardware design on which this project relies. 
+Any PCB can be used which conforms to this specification can be used. 
+Other notable designs include.
+* ![Model 1K Floppy 80](https://github.com/kiwisincebirth/TRS-80-MODEL-1-K/tree/main/floppy80)
 
+### Floppy90
 
+The companion ![Floppy90](https://github.com/kiwisincebirth/Floppy90) project 
+provides the Firmware that runs on the RP2350. In summary, it provides 
+* A command API similar to (but a superset of) FreHD, to provide needed File capabilities.
+* 256KB of Banked Memory (in the $3000 - $37FF memory region)
+* Optional 32 Kb of High Memory, for use in 16KB machines
+* Support for loading a Boot sector at startup
+
+## Credits
+
+Thanks to the following for supporting and aiding in this project
+- @dusty2050 for his code contributions to this project
+- The Tandy Discord Channel for feedback, help and support

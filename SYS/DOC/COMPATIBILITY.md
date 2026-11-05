@@ -34,3 +34,12 @@ Tested and not working
 ### ZVM
 
 Tested and not working
+
+## FreHD solution
+
+When running this on a FreHD there are several limitations
+* Only provides a small sub set of functions (frehd limited firmware)
+* Consumes 512 bytes more RAM for overlays (no paged ram)
+* file management, and sub-Directories are not supported
+* Many DOS API's (support File IO) are not supported
+* Doesn't support Disk Basic extensions.
