@@ -20,8 +20,8 @@ import	constants.z
 	ORG	OVERLY
 
 	EX	DE, HL		; get the pointer into DE
-        xor a
-        ld (DIRABORT),a
+	xor	a
+	ld	(DIRABORT),a
 	;
 	; test if enhance rom	; todo this should be conditional compile
 	call	enh_VER		; call the Enhanced Pico check
@@ -58,9 +58,9 @@ GETDIR2
 	jr      z,GETDIR3       ; No DRQ so done
 	;
 	call	PROCESSDIR
-        ld a,(DIRABORT)
-        or a
-        jp nz,@EXIT
+	ld	a,(DIRABORT)
+	or	a
+	jp	nz,@EXIT
 	jr	GETDIR2
 	;
 GETDIR3
@@ -99,9 +99,9 @@ NEWDIR2
 	jr	NEWDIR2
 	;
 NEWDIR3
-        ld a,(DIRABORT)
-        or a
-        jp nz,@EXIT
+	ld	a,(DIRABORT)
+	or	a
+	jp	nz,@EXIT
 	ld      hl,BUFFER       ; Force a new line at the end
 	ld      (hl),ENTER
 	call    @DSPLY
@@ -115,9 +115,9 @@ PROCESSDIR:
 	ld      c,APIDATA		; BC is count, from data IO Port
 	ld      hl,BUFFER	; to buffer
 	inir			; transfer the data
-        ld a,(DIRABORT)
-        or a
-        ret nz                 ; silently drain Pico stream after BREAK
+	ld	a,(DIRABORT)
+	or	a
+	ret	nz                 ; silently drain Pico stream after BREAK
 	;
 	ld	hl,BUFFER+8
 	ld      a,(hl)		; Check File attribute for Volume label/hidden
@@ -166,10 +166,10 @@ PROCES6
 	ret	nz		; not zero so finished
 	;
 	call	KBWAIT		; wait for user keypress
-        cp BREAK
-        jr nz,DIRCONTINUE
-        ld a,1
-        ld (DIRABORT),a
+	cp	BREAK
+	jr	nz,DIRCONTINUE
+	ld	a,1
+	ld	(DIRABORT),a
         ret
 DIRCONTINUE:
 	call    SETROWS         ; reset the column ro counter

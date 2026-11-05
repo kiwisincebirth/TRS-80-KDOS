@@ -520,6 +520,11 @@ VIRTUAL_DATA macro pagenum
 	ORG  	$3600		; All tables reside at this 480-byte window
 endm
 
+; End a data page before the reserved hardware registers.
+VIRTUAL_DATA_END macro
+	assert $ <= $37E0
+endm
+
 ; Change to a specified Data Page
 ; NOTE: destroys the A register!
 PAGE_DATA macro pagenum

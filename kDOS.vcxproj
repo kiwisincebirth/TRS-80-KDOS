@@ -65,6 +65,7 @@
     <None Include="SYS\SRC\SYS0P.z" />
     <None Include="README.md" />
     <None Include="QUICKREF.md" />
+    <None Include="SYS\settings.cfg" />
     <None Include="build.ps1" />
     <None Include="BUILDING.txt" />
     <None Include="tests\test_console.py" />

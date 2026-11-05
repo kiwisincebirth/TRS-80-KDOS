@@ -276,7 +276,7 @@ def configure(content,fail_read=False,busy=None):
  r.m.set_input_callback(inp);r.m.set_output_callback(out)
  assert r.line([13])=='';r.flush()
  assert r.page==227 and r.dpage==32 and not r.page_returns
- assert state['open_args']==b'\x01/SYS/HARDWARE.cfg\x00'
+ assert state['open_args']==b'\x01/SYS/settings.cfg\x00'
  assert state['close']==(0 if content is None or busy=='open' else 1)
  for i,b in enumerate(saved):
   if i not in range(HIST_DATA,HIST_DATA+HIST_PAGES):assert bytes(r.banks[i])==b,i

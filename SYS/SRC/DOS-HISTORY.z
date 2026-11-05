@@ -5,240 +5,241 @@
 ; State follows the records in the first data page. Never use $37E0-$37FF.
 VIRTUAL_ROUTINE dos_history_page, PAGE_DOSHISTORY
 
-        ld a,(PICOPAGEDAT)
-        push af               ; restore caller's data bank on every exit
-        PAGE_DATA DPAGE_DOSHISTORY
-        ld a,(hist_cfg_loaded)
-        or a
-        jr nz,hist_configured
-        ld a,1
-        ld (hist_cfg_loaded),a ; try once per kDOS load, never during boot
-        PAGE_CALL PAGE_HISTORYCFG
-hist_configured:
-        xor a
-        ld (hist_len),a
-        ld (hist_age),a
-        ld a,CURON
-        call hist_out
-hist_key:
-        call KBWAIT
-        cp BREAK
-        jp z,hist_break
-        cp ENTER
-        jp z,hist_enter
-        cp UPARRW             ; Model I UP produces 5BH, not 0BH
-        jr z,hist_up
-        cp VERTAB             ; also accept ASCII vertical-tab UP
-        jr z,hist_up
-        cp LINEF
-        jr z,hist_down
-        cp BACKS
-        jp z,hist_back
-        cp CLRKEY
-        jr z,hist_clear
-        cp SPACE
-        jr c,hist_key
-        cp $7f
-        jr nc,hist_key
-        ld c,a
-        ld a,(hist_len)
-        cp 127
-        jr z,hist_key
-        call hist_endptr
-        ld (hl),c
-        inc a
-        ld (hist_len),a
-        ld a,c
-        call hist_out
-        jr hist_key
+	ld	a,(PICOPAGEDAT)
+	push	af               ; restore caller's data bank on every exit
+	PAGE_DATA	DPAGE_DOSHISTORY
+	ld	a,(hist_cfg_loaded)
+	or	a
+	jr	nz,_configured
+	ld	a,1
+	ld	(hist_cfg_loaded),a ; try once per kDOS load, never during boot
+	PAGE_CALL	PAGE_HISTORYCFG
+_configured:
+	xor	a
+	ld	(hist_len),a
+	ld	(hist_age),a
+	ld	a,CURON
+	call	_out
+_key:
+	call	KBWAIT
+	cp	BREAK
+	jp	z,_break
+	cp	ENTER
+	jp	z,_enter
+	cp	UPARRW             ; Model I UP produces 5BH, not 0BH
+	jr	z,_up
+	cp	VERTAB             ; also accept ASCII vertical-tab UP
+	jr	z,_up
+	cp	LINEF
+	jr	z,_down
+	cp	BACKS
+	jp	z,_back
+	cp	CLRKEY
+	jr	z,_clear
+	cp	SPACE
+	jr	c,_key
+	cp	$7f
+	jr	nc,_key
+	ld	c,a
+	ld	a,(hist_len)
+	cp	127
+	jr	z,_key
+	call	_endptr
+	ld	(hl),c
+	inc	a
+	ld	(hist_len),a
+	ld	a,c
+	call	_out
+	jr	_key
 
-hist_clear:
-        call hist_erase
-        jr hist_key
-hist_up:
-        ld a,(hist_count)
-        ld b,a
-        ld a,(hist_age)
-        cp b
-        jr z,hist_key          ; oldest entry reached (or no history)
-        or a
-        jr nz,hist_older
-        call hist_terminate
-        ld a,(hist_limit)     ; draft follows the configured history slots
-        ld b,1
-        call hist_copy
-hist_older:
-        ld a,(hist_age)
-        inc a
-        jr hist_recall
-hist_down:
-        ld a,(hist_age)
-        or a
-        jr z,hist_key
-        dec a
-hist_recall:
-        ld (hist_age),a
-        call hist_erase
-        ld a,(hist_age)
-        or a
-        ld a,(hist_limit)     ; DOWN past newest restores original draft
-        jr z,hist_fetch
-        ld a,(hist_age)
-        ld b,a
-        ld a,(hist_next)
-        sub b
-        jr nc,hist_fetch
-        ld c,a
-        ld a,(hist_limit)
-        add a,c               ; wrap negative slot index by configured size
-hist_fetch:
-        ld b,0
-        call hist_copy
-        ld hl,STRBUFF
-        ld b,0
-hist_show:
-        ld a,(hl)
-        cp ENTER
-        jr z,hist_shown
-        call hist_out
-        inc hl
-        inc b
-        jr hist_show
-hist_shown:
-        ld a,b
-        ld (hist_len),a
-        jp hist_key
+_clear:
+	call	_erase
+	jr	_key
+_up:
+	ld	a,(hist_count)
+	ld	b,a
+	ld	a,(hist_age)
+	cp	b
+	jr	z,_key          ; oldest entry reached (or no history)
+	or	a
+	jr	nz,_older
+	call	_terminate
+	ld	a,(hist_limit)     ; draft follows the configured history slots
+	ld	b,1
+	call	_copy
+_older:
+	ld	a,(hist_age)
+	inc	a
+	jr	_recall
+_down:
+	ld	a,(hist_age)
+	or	a
+	jr	z,_key
+	dec	a
+_recall:
+	ld	(hist_age),a
+	call	_erase
+	ld	a,(hist_age)
+	or	a
+	ld	a,(hist_limit)     ; DOWN past newest restores original draft
+	jr	z,_fetch
+	ld	a,(hist_age)
+	ld	b,a
+	ld	a,(hist_next)
+	sub	b
+	jr	nc,_fetch
+	ld	c,a
+	ld	a,(hist_limit)
+	add	a,c               ; wrap negative slot index by configured size
+_fetch:
+	ld	b,0
+	call	_copy
+	ld	hl,STRBUFF
+	ld	b,0
+_show:
+	ld	a,(hl)
+	cp	ENTER
+	jr	z,_shown
+	call	_out
+	inc	hl
+	inc	b
+	jr	_show
+_shown:
+	ld	a,b
+	ld	(hist_len),a
+	jp	_key
 
-hist_back:
-        ld a,(hist_len)
-        or a
-        jp z,hist_key
-        dec a
-        ld (hist_len),a
-        ld a,BACKS            ; ROM backspace also erases the character
-        call hist_out
-        jp hist_key
-hist_erase:
-        ld a,(hist_len)
-        or a
-        ret z
-        ld b,a
-hist_erasing:
-        ld a,BACKS
-        call hist_out
-        djnz hist_erasing
-        xor a
-        ld (hist_len),a
+_back:
+	ld	a,(hist_len)
+	or	a
+	jp	z,_key
+	dec	a
+	ld	(hist_len),a
+	ld	a,BACKS            ; ROM backspace also erases the character
+	call	_out
+	jp	_key
+_erase:
+	ld	a,(hist_len)
+	or	a
+	ret	z
+	ld	b,a
+_erasing:
+	ld	a,BACKS
+	call	_out
+	djnz	_erasing
+	xor	a
+	ld	(hist_len),a
         ret
-hist_enter:
-        call hist_terminate
-        ld a,(hist_len)
-        or a
-        jr z,hist_done         ; blank ENTER still toggles to BASIC
-        ld a,(hist_next)
-        ld b,1
-        call hist_copy
-        ld a,(hist_limit)
-        ld b,a
-        ld a,(hist_next)
-        inc a
-        cp b
-        jr c,hist_store_next
-        xor a
-hist_store_next:
-        ld (hist_next),a
-        ld a,(hist_count)
-        cp b
-        jr z,hist_done
-        inc a
-        ld (hist_count),a
-hist_done:
-        ld a,CUROFF
-        call hist_out
-        ld a,ENTER
-        call hist_out
-        ld a,(hist_len)
-        ld b,a
-        ld hl,STRBUFF
-        or a                  ; clear carry; HL=start, B=length, like 0040H
-        jp hist_return
-hist_break:
-        ld a,CUROFF
-        call hist_out
-        ld a,ENTER
-        call hist_out
+_enter:
+	call	_terminate
+	ld	a,(hist_len)
+	or	a
+	jr	z,_done         ; blank ENTER still toggles to BASIC
+	ld	a,(hist_next)
+	ld	b,1
+	call	_copy
+	ld	a,(hist_limit)
+	ld	b,a
+	ld	a,(hist_next)
+	inc	a
+	cp	b
+	jr	c,_store_next
+	xor	a
+_store_next:
+	ld	(hist_next),a
+	ld	a,(hist_count)
+	cp	b
+	jr	z,_done
+	inc	a
+	ld	(hist_count),a
+_done:
+	ld	a,CUROFF
+	call	_out
+	ld	a,ENTER
+	call	_out
+	ld	a,(hist_len)
+	ld	b,a
+	ld	hl,STRBUFF
+	or	a                  ; clear carry; HL=start, B=length, like 0040H
+	jp	_return
+_break:
+	ld	a,CUROFF
+	call	_out
+	ld	a,ENTER
+	call	_out
         scf
         ; cancelled command never enters history
-hist_return:
-        push af               ; preserve carry (cancel) and length flags
-        pop de
-        pop af                ; entry's saved data page
-        ld (PICOPAGEDAT),a
-        push de
-        pop af
+_return:
+	push	af               ; preserve carry (cancel) and length flags
+	pop	de
+	pop	af                ; entry's saved data page
+	ld	(PICOPAGEDAT),a
+	push	de
+	pop	af
         ret
-hist_terminate:
-        ld a,(hist_len)
-        call hist_endptr
-        ld (hl),ENTER
+_terminate:
+	ld	a,(hist_len)
+	call	_endptr
+	ld	(hl),ENTER
         ret
-hist_endptr:
-        ld hl,STRBUFF
-        ld e,a
-        ld d,0
-        add hl,de
+_endptr:
+	ld	hl,STRBUFF
+	ld	e,a
+	ld	d,0
+	add	hl,de
         ret
-hist_out:
-        push bc
-        push de
-        push hl
-        call OUTDO
-        pop hl
-        pop de
-        pop bc
+_out:
+	push	bc
+	push	de
+	push	hl
+	call	OUTDO
+	pop	hl
+	pop	de
+	pop	bc
         ret
-hist_copy:
+_copy:
 ; A=slot 0..HISTORY_MAX, B=0 read / 1 write. Registers clobbered.
 ; Three records per page: a fourth would overlap the hardware registers.
-        ld c,a
-        ld a,(PICOPAGEDAT)
-        push af
-        ld a,c
-        ld c,DPAGE_DOSHISTORY
-hist_slotpage:
-        cp 3
-        jr c,hist_slotfound
-        sub 3
-        inc c
-        jr hist_slotpage
-hist_slotfound:
-        ld hl,PICOSCRATCH
-        or a
-        jr z,hist_slotready
-        dec a
-        ld l,$80              ; slot 1: $3680
-        jr z,hist_slotready
-        ld hl,PICOSCRATCH+$100 ; slot 2: $3700, ends at $377F
-hist_slotready:
-        ld a,c
-        ld (PICOPAGEDAT),a
-        ld de,STRBUFF
-        ld a,b
-        or a
-        jr z,hist_readslot
-        ex de,hl
-hist_readslot:
-        ld bc,128
+	ld	c,a
+	ld	a,(PICOPAGEDAT)
+	push	af
+	ld	a,c
+	ld	c,DPAGE_DOSHISTORY
+_slotpage:
+	cp	3
+	jr	c,_slotfound
+	sub	3
+	inc	c
+	jr	_slotpage
+_slotfound:
+	ld	hl,PICOSCRATCH
+	or	a
+	jr	z,_slotready
+	dec	a
+	ld	l,$80              ; slot 1: $3680
+	jr	z,_slotready
+	ld	hl,PICOSCRATCH+$100 ; slot 2: $3700, ends at $377F
+_slotready:
+	ld	a,c
+	ld	(PICOPAGEDAT),a
+	ld	de,STRBUFF
+	ld	a,b
+	or	a
+	jr	z,_readslot
+	ex	de,hl
+_readslot:
+	ld	bc,128
         ldir
-        pop af
-        ld (PICOPAGEDAT),a
+	pop	af
+	ld	(PICOPAGEDAT),a
         ret
 VIRTUAL_END
 
 ; These records are initialized by the CMD loader through PICOPAGEDAT,
 ; following BASIC-DEFINE's VIRTUAL_DATA convention.
 VIRTUAL_DATA DPAGE_DOSHISTORY
-        ds 3*128,0
+	ds	3*128,0
+; Shared history state: global names allow the configuration page to access it.
 hist_len:   db 0
 hist_age:   db 0
 hist_count: db 0
@@ -249,26 +250,26 @@ hist_cfg_value:  db 0
 hist_cfg_digits: db 0
 hist_cfg_loaded: db 0
 hist_cfg_budget: db 0
-        assert $ <= $37E0
+VIRTUAL_DATA_END
 VIRTUAL_DATA DPAGE_DOSHISTORY+1
-        ds 3*128,0
-        assert $ <= $37E0
+	ds	3*128,0
+VIRTUAL_DATA_END
 VIRTUAL_DATA DPAGE_DOSHISTORY+2
-        ds 3*128,0
-        assert $ <= $37E0
+	ds	3*128,0
+VIRTUAL_DATA_END
 
 VIRTUAL_DATA DPAGE_DOSHISTORY+3
-        ds 3*128,0
-        assert $ <= $37E0
+	ds	3*128,0
+VIRTUAL_DATA_END
 
 VIRTUAL_DATA DPAGE_DOSHISTORY+4
-        ds 3*128,0
-        assert $ <= $37E0
+	ds	3*128,0
+VIRTUAL_DATA_END
 
 VIRTUAL_DATA DPAGE_DOSHISTORY+5
-        ds 3*128,0
-        assert $ <= $37E0
+	ds	3*128,0
+VIRTUAL_DATA_END
 
 VIRTUAL_DATA DPAGE_DOSHISTORY+6
-        ds 3*128,0
-        assert $ <= $37E0
+	ds	3*128,0
+VIRTUAL_DATA_END

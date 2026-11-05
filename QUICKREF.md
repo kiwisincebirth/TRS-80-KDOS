@@ -54,7 +54,7 @@ DIR cancellation still works. BASIC input and mid-line editing are unchanged.
 
 ### History capacity
 
-Add or edit `HistorySize=8` in `/SYS/HARDWARE.cfg` on the SD card. Valid values
+Add or edit `HistorySize=8` in `/SYS/settings.cfg` on the SD card. Valid values
 are 1-20. Missing or invalid settings use 8; larger values are capped at 20.
 kDOS reads this setting once, when you first enter the DOS prompt after boot.
 Reboot to apply a later change. Normal BASIC/kDOS startup does not read it.
@@ -62,7 +62,8 @@ Reboot to apply a later change. Normal BASIC/kDOS startup does not read it.
 Keys are case-insensitive; spaces around `=` and `#`/`;` comments are allowed.
 If repeated, the last matching assignment wins. Use a text file smaller than
 16 KiB. Read errors, a stuck BUSY response, or an oversized file fall back to
-the default. Keep all other options in your existing configuration unchanged.
+the default. Hardware options remain in `HARDWARE.cfg`; history no longer reads that file.
+Remove any old `HistorySize` entry there to avoid confusion.
 
-Edit the repository's `SYS/HARDWARE.cfg` to change the build's configuration
-copy. Build/Rebuild copies it to `build/SD-CARD/SYS/HARDWARE.cfg`.
+Edit the repository's `SYS/settings.cfg` to change the build's configuration
+copy. Build/Rebuild copies it to `build/SD-CARD/SYS/settings.cfg`.
