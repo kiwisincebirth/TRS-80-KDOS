@@ -8,6 +8,17 @@
 ;     [https://github.com/kiwisincebirth/TRS-80]
 ;
 ; ======================================================================
+;     DIR enumerates and displays directory entries with paged output.
+;     Any key advances a paused page; BREAK requests cancellation without
+;     clearing the filenames already displayed. DIRABORT suppresses further
+;     output and pagination until the command exits through @EXIT.
+;
+;     The two firmware protocols need different cancellation paths. The
+;     legacy interface requests each entry separately and can stop issuing
+;     requests immediately. Enhanced Pico DIR streams entries from one
+;     command, so cancellation must consume the remaining stream silently
+;     before returning. Leaving it unread could affect the next operation.
+;
 ;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
 ;
@@ -21,7 +32,7 @@ import	constants.z
 
 	EX	DE, HL		; get the pointer into DE
 	xor	a
-	ld	(DIRABORT),a
+	ld	(DIRABORT),a	; cancellation belongs only to this DIR invocation
 	;
 	; test if enhance rom	; todo this should be conditional compile
 	call	enh_VER		; call the Enhanced Pico check
@@ -60,7 +71,7 @@ GETDIR2
 	call	PROCESSDIR
 	ld	a,(DIRABORT)
 	or	a
-	jp	nz,@EXIT
+	jp	nz,@EXIT	; legacy API: no stream remains once we stop requesting
 	jr	GETDIR2
 	;
 GETDIR3
@@ -89,6 +100,7 @@ NEWDIR:
 	otir			; write all the bytes from (HL)
 	;
 NEWDIR2
+	; Even after BREAK, keep polling and consuming until DRQ is cleared.
 	call    api_WAIT
 	jp      nz,@ERROR	; Read Failed
 	;
@@ -97,11 +109,12 @@ NEWDIR2
 	;
 	call	PROCESSDIR
 	jr	NEWDIR2
+	; Even after BREAK, keep polling and consuming until DRQ is cleared.
 	;
 NEWDIR3
 	ld	a,(DIRABORT)
 	or	a
-	jp	nz,@EXIT
+	jp	nz,@EXIT	; cancelled listing needs no extra output/newline
 	ld      hl,BUFFER       ; Force a new line at the end
 	ld      (hl),ENTER
 	call    @DSPLY
@@ -165,6 +178,7 @@ PROCES6
 	dec	(hl)		;
 	ret	nz		; not zero so finished
 	;
+	; Mark cancellation here; the caller chooses immediate exit or drain.
 	call	KBWAIT		; wait for user keypress
 	cp	BREAK
 	jr	nz,DIRCONTINUE

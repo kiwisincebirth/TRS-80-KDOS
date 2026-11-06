@@ -91,6 +91,8 @@ _promptDOS
 	; **** Get User Command
 ;	call	INLIN		; Actually read a Line of input
 ifdef @D_PICOENHANCED
+        ; Same HL/B/carry contract as ROM line input: BREAK reprompts,
+        ; empty ENTER returns to BASIC, and nonempty input reaches the parser.
         PAGE_CALL PAGE_DOSHISTORY
 else
 	LD	HL,STRBUFF	;the DOS command input buffer
