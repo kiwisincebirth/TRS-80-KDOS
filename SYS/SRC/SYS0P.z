@@ -105,9 +105,14 @@ include	BASIC-INSTR.z		; $419D
 include	BASIC-LINE.z		; $41A3
 ;
 ; ----------------------------------------------------------------------
-; DOS Exits
+; Sequential Disk BASIC and DOS Exits
 ; ----------------------------------------------------------------------
 ;
+include	BASIC-FILE.z
+include	BASIC-FILE-PRINT.z
+include	BASIC-FILE-INPUT.z
+include	BASIC-FILE-ITEM.z
+
 include BASIC-ERROR.z		; $41A6
 include BASIC-USR.z		; $41A9
 include	BASIC-MID.z		; $41D9

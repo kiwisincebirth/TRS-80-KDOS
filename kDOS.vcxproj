@@ -39,6 +39,10 @@
     <None Include="SYS\SRC\BASIC-HELP.z" />
     <None Include="SYS\SRC\BASIC-INSTR.z" />
     <None Include="SYS\SRC\BASIC-LINE.z" />
+    <None Include="SYS\SRC\BASIC-FILE.z" />
+    <None Include="SYS\SRC\BASIC-FILE-PRINT.z" />
+    <None Include="SYS\SRC\BASIC-FILE-INPUT.z" />
+    <None Include="SYS\SRC\BASIC-FILE-ITEM.z" />
     <None Include="SYS\SRC\BASIC-MID.z" />
     <None Include="SYS\SRC\BASIC-MKI.z" />
     <None Include="SYS\SRC\BASIC-TIME.z" />
@@ -69,6 +73,8 @@
     <None Include="build.ps1" />
     <None Include="BUILDING.txt" />
     <None Include="tests\test_console.py" />
+    <None Include="tests\test_basic_io.py" />
+    <None Include="tests\IOCHECK.txt" />
     <None Include="tests\requirements.txt" />
     <None Include="tests\README.txt" />
   </ItemGroup>

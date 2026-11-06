@@ -1,0 +1,148 @@
+; Read one field or full line into work-bank BIO_TEXT (maximum 255 bytes).
+; Quoted fields preserve commas/spaces. CR/LF and CRLF are accepted.
+import	constants.z
+VIRTUAL_ROUTINE bio_item, PAGE_BIO_ITEM
+	PAGE_DATA	DPAGE_BIO_WORK
+	xor	a
+	ld	(BIO_LENGTH),a
+	call	_get
+	jp	c,_past_end
+	ld	b,a
+	ld	a,(BIO_LINE)
+	or	a
+	ld	a,b
+	jp	nz,_line
+_leading:
+	cp	SPACE
+	jp	z,_skip
+	cp	TAB
+	jp	nz,_first
+_skip:
+	call	_get
+	jp	c,_finish
+	jp	_leading
+_first:
+	cp	'"'
+	jp	nz,_unquoted
+_quoted:
+	call	_get
+	jp	c,_bad
+	cp	'"'
+	jp	z,_afterquote
+	call	_append
+	jp	_quoted
+_afterquote:
+	call	_get
+	jp	c,_finish
+	cp	SPACE
+	jp	z,_afterquote
+	cp	TAB
+	jp	z,_afterquote
+	cp	','
+	jp	z,_finish
+	cp	ENTER
+	jp	z,_finish
+	cp	LINEF
+	jp	z,_finish
+	jp	_bad
+_unquoted:
+	ld	b,a
+	ld	a,(BIO_TYPE)
+	cp	3
+	ld	a,b
+	jp	z,_field_character
+	cp	SPACE
+	jp	z,_numeric_separator
+	cp	TAB
+	jp	z,_numeric_separator
+_field_character:
+	cp	','
+	jp	z,_trim
+	cp	ENTER
+	jp	z,_trim
+	cp	LINEF
+	jp	z,_trim
+	call	_append
+	call	_get
+	jp	nc,_unquoted
+_trim:
+	ld	a,(BIO_LENGTH)
+	or	a
+	jp	z,_finish
+	ld	l,a
+	ld	h,BIO_TEXT / $100
+	dec	hl
+	ld	a,(hl)
+	cp	SPACE
+	jp	z,_remove
+	cp	TAB
+	jp	nz,_finish
+_remove:
+	ld	a,(BIO_LENGTH)
+	dec	a
+	ld	(BIO_LENGTH),a
+	jp	_trim
+; Numeric fields also terminate on whitespace (PRINT# comma zones).
+_numeric_separator:
+	call	_get
+	jp	c,_finish
+	cp	SPACE
+	jp	z,_numeric_separator
+	cp	TAB
+	jp	z,_numeric_separator
+	cp	','
+	jp	z,_finish
+	cp	ENTER
+	jp	z,_finish
+	cp	LINEF
+	jp	z,_finish
+	push	af
+	PAGE_CALL	PAGE_BIO_ACTIVE
+	pop	af
+	ld	(BIO_CACHE),a
+	ld	a,1
+	ld	(BIO_CACHED),a
+	PAGE_DATA	DPAGE_BIO_WORK
+	jp	_finish
+_line:
+	cp	ENTER
+	jp	z,_finish
+	cp	LINEF
+	jp	z,_finish
+	call	_append
+	call	_get
+	jp	nc,_line
+_finish:
+	ld	a,(BIO_LENGTH)
+	ld	l,a
+	ld	h,BIO_TEXT / $100
+	ld	(hl),0
+	ret
+_append:
+	ld	b,a
+	ld	a,(BIO_LENGTH)
+	cp	255
+	jp	z,_long
+	ld	l,a
+	ld	h,BIO_TEXT / $100
+	ld	(hl),b
+	inc	a
+	ld	(BIO_LENGTH),a
+	ret
+_get:
+	PAGE_CALL	PAGE_BIO_ACTIVE
+	PAGE_CALL	PAGE_BIO_READ
+	push	af
+	PAGE_DATA	DPAGE_BIO_WORK
+	pop	af
+	ret
+_past_end:
+	ld	e,BIO_ERREOF
+	jp	bio_error
+_bad:
+	ld	e,$2A
+	jp	bio_error
+_long:
+	ld	e,$1C
+	jp	bio_error
+VIRTUAL_END

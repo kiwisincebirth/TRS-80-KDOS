@@ -1,0 +1,125 @@
+; INPUT# and LINE INPUT#: values are copied into BASIC-owned storage.
+import	constants.z
+VIRTUAL_PAGE bio_input, PAGE_BIO_INPUT
+	cp	'#'
+	ret	nz				; retain ordinary INPUT
+	pop	af				; discard EXUNKN hook return
+	xor	a
+	jp	bio_input_engine
+VIRTUAL_END
+VIRTUAL_PAGE bio_input_engine, PAGE_BIO_INPUT_ENGINE
+	ld	b,a
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,b
+	ld	(BIO_LINE),a
+	GETCHR
+	PAGE_CALL	PAGE_BIO_NUMBER
+	push	af
+	rst	8
+	db	','
+	pop	af
+	ld	b,a
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,b
+	ld	(BIO_FILE),a
+_variable:
+	PAGE_CALL	PAGE_BIO_PTRGET		; PTRGET, DE=variable storage
+	push	hl				; next program delimiter
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	(BIO_VAR),de
+	ld	a,($40AF)			; VALTYP: 2 integer,3 string,4 single,8 double
+	ld	(BIO_TYPE),a
+	ld	b,a
+	ld	a,(BIO_LINE)
+	or	a
+	jr	z,_read
+	ld	a,b
+	cp	3
+	jp	nz,$0AF4			; CHKSTR raises type mismatch
+_read:
+	PAGE_CALL	PAGE_BIO_ITEM
+	ld	a,(BIO_TYPE)
+	cp	3
+	jr	nz,_numeric
+	ld	a,(BIO_LENGTH)
+	call	STRINI				; allocate string on BASIC heap, DE=storage
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_LENGTH)
+	ld	hl,(BIO_VAR)
+	ld	(hl),a
+	inc	hl
+	ld	(hl),e
+	inc	hl
+	ld	(hl),d
+	ld	c,a
+	ld	b,0
+	or	a
+	jr	z,_assigned
+	ld	hl,BIO_TEXT
+	ldir
+	jr	_assigned
+_numeric:
+	ld	hl,BIO_TEXT
+	ld	a,(BIO_LENGTH)
+	or	a
+	jr	z,_zero
+	ld	a,(hl)
+	cp	'+'
+	jr	z,_convert
+	cp	'-'
+	jr	z,_convert
+	cp	'.'
+	jr	z,_convert
+	cp	'0'
+	jr	c,_bad_data
+	cp	'9'+1
+	jr	nc,_bad_data
+_convert:
+	ld	a,(BIO_TYPE)
+	cp	8
+	jr	z,_double
+	call	$0E6C				; FIN (numeric text only; no expressions)
+	jr	_tail
+_double:
+	call	$0E65
+_tail:
+	ld	a,(hl)
+	or	a
+	jr	nz,_bad_data
+	jr	_store_number
+_zero:
+	ld	hl,0
+	call	$0A9A
+_store_number:
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_TYPE)
+	call	$2819				; convert FAC to target variable type
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	hl,(BIO_VAR)
+	call	$09FF				; VMOVAF: select single/double FAC and copy
+_assigned:
+	pop	hl
+	ld	a,(hl)
+	or	a
+	ret	z
+	cp	':'
+	ret	z
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_LINE)
+	or	a
+	jp	nz,$1997			; LINE INPUT has exactly one variable
+	rst	8
+	db	','
+	jp	_variable
+_bad_data:
+	ld	e,$2A
+	jp	bio_error
+VIRTUAL_END
+
+; LINE INPUT enters the shared engine with its full-line flag set.
+VIRTUAL_PAGE bio_lineinput, PAGE_BIO_LINE
+	ld	a,1
+	jp	bio_input_engine
+VIRTUAL_END
+	ORG	$41D6
+	jp	bio_input

@@ -1,0 +1,413 @@
+; Sequential Disk BASIC for kDOS. Original kDOS by kiwisincebirth.
+; ROM expression parsing remains in ROM; files use the enhanced Pico API.
+; Each file owns one data bank. Never retain a banked pointer across a
+; ROM expression evaluation: EOF() may select a different file bank.
+import	constants.z
+
+VIRTUAL_ROUTINE bio_number, PAGE_BIO_NUMBER
+	ld	a,(hl)
+	cp	'#'
+	jr	nz,_bio_number_number
+	GETCHR
+_bio_number_number:
+	PAGE_CALL	PAGE_BIO_GETBYTE	; GETBYT: evaluate expression, result A/E
+	or	a
+	jr	z,_bio_number_bad
+	cp	BIO_FILES+1
+	ret	c
+_bio_number_bad:
+	ld	e,BIO_ERRNUMBER
+	jp	bio_error
+VIRTUAL_END
+
+; Restore the statement's file selection after ROM evaluation.
+; Preserves BC/DE/HL; returns with the file bank selected, mode in A.
+VIRTUAL_ROUTINE bio_active, PAGE_BIO_ACTIVE
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_FILE)
+	ld	(PICOPAGEDAT),a
+	ld	a,(BIO_MODE)
+	ret
+VIRTUAL_END
+
+VIRTUAL_PAGE bio_open, PAGE_BIO_OPEN
+	PAGE_CALL	PAGE_BIO_EVAL
+	push	hl
+	call	FRESTR
+	ld	a,(hl)
+	cp	1
+	jp	nz,FCERR
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	ld	a,(de)
+	and	$DF
+	cp	'I'
+	jr	z,_bio_open_mode_ok
+	cp	'O'
+	jr	z,_bio_open_mode_ok
+	ld	e,BIO_ERRMODE
+	jp	bio_error
+_bio_open_mode_ok:
+	pop	hl
+	push	af
+	rst	8
+	db	','
+	PAGE_CALL	PAGE_BIO_NUMBER
+	push	af
+	rst	8
+	db	','
+	PAGE_CALL	PAGE_BIO_EVAL
+	ld	a,(hl)
+	or	a
+	jr	z,_bio_open_end_ok
+	cp	':'
+	jp	nz,$1997			; syntax error before any file mutation
+_bio_open_end_ok:
+	ex	(sp),hl				; HL=file number/flags, stack=text pointer
+	ld	a,h
+	ld	(PICOPAGEDAT),a
+	ld	a,(BIO_MODE)
+	or	a
+	jr	z,_bio_open_closed
+	ld	e,BIO_ERROPEN
+	jp	bio_error
+_bio_open_closed:
+	call	FRESTR
+	ld	a,(hl)
+	or	a
+	jr	z,_bio_open_badname
+	cp	32
+	jr	nc,_bio_open_badname
+	ld	b,a
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	push	de
+	ld	hl,BIO_FCB
+	ld	c,32
+	xor	a
+_bio_open_zero:
+	ld	(hl),a
+	inc	hl
+	dec	c
+	jr	nz,_bio_open_zero
+	pop	hl
+	ld	de,BIO_FCB
+_bio_open_name:
+	ld	a,(hl)
+	cp	SPACE
+	jr	c,_bio_open_badname
+	ld	(de),a
+	inc	hl
+	inc	de
+	djnz	_bio_open_name
+	pop	hl				; BASIC text pointer
+	pop	af				; mode
+	push	hl
+	push	af
+	cp	'I'
+	ld	a,FA_READ|FA_OPEN_EXIST
+	jr	z,_bio_open_options
+	ld	a,FA_WRITE|FA_CREATE_ALWAYS
+_bio_open_options:
+	ld	b,a
+	ld	a,TRS_FILE_OPEN
+	out	(APICMND),a
+	ld	a,b
+	out	(APIDATA),a
+	ld	a,1				; byte records: no padded final sector
+	out	(APIDATA),a
+	ld	a,BIO_BYTE & $FF
+	out	(APIDATA),a
+	ld	a,BIO_BYTE / $100
+	out	(APIDATA),a
+	ld	hl,BIO_FCB
+	ld	bc,$2000+APIDATA
+	otir
+	call	api_WAIT
+	jp	nz,bio_diskerror
+	ld	hl,BIO_FCB
+	ld	bc,$2000+APIDATA
+	inir
+	xor	a
+	ld	(BIO_CACHED),a
+	ld	(BIO_COLUMN),a
+	ld	(BIO_SKIPLF),a
+	pop	af
+	ld	(BIO_MODE),a
+	pop	hl
+	ret
+_bio_open_badname:
+	ld	e,BIO_ERRNAME
+	jp	bio_error
+VIRTUAL_END
+
+VIRTUAL_PAGE bio_close, PAGE_BIO_CLOSE
+	ld	a,(hl)
+	or	a
+	jr	z,_bio_close_all
+	cp	':'
+	jr	z,_bio_close_all
+_bio_close_list:
+	PAGE_CALL	PAGE_BIO_NUMBER
+	ld	(PICOPAGEDAT),a
+	PAGE_CALL	PAGE_BIO_CLOSE_ONE
+	ld	a,(hl)
+	or	a
+	ret	z
+	cp	':'
+	ret	z
+	rst	8
+	db	','
+	jr	_bio_close_list
+_bio_close_all:
+	ld	b,BIO_FILES
+_bio_close_loop:
+	ld	a,b
+	ld	(PICOPAGEDAT),a
+	PAGE_CALL	PAGE_BIO_CLOSE_ONE
+	djnz	_bio_close_loop
+	ret
+VIRTUAL_END
+
+VIRTUAL_ROUTINE bio_close_one, PAGE_BIO_CLOSE_ONE
+	ld	a,(BIO_MODE)
+	or	a
+	ret	z
+	push	hl
+	push	bc
+	ld	a,(BIO_FCB+FCB_FILEID)
+	out	(APIFILE),a
+	ld	a,TRS_FILE_CLOSE
+	out	(APICMND),a
+	call	api_WAIT
+	jp	nz,bio_diskerror
+	ld	hl,BIO_FCB
+	ld	bc,$2000+APIDATA
+	inir
+	xor	a
+	ld	(BIO_MODE),a
+	ld	(BIO_CACHED),a
+	pop	bc
+	pop	hl
+	ret
+VIRTUAL_END
+
+; Selected file bank, A=character result, carry=EOF. Preserves BC/DE/HL.
+VIRTUAL_ROUTINE bio_read, PAGE_BIO_READ
+	ld	a,(BIO_MODE)
+	cp	'I'
+	jr	nz,_bio_read_mode
+	ld	a,(BIO_CACHED)
+	or	a
+	jr	z,_bio_read_read
+	xor	a
+	ld	(BIO_CACHED),a
+	ld	a,(BIO_CACHE)
+	ret
+_bio_read_read:
+	ld	a,(BIO_FCB+FCB_FILEID)
+	out	(APIFILE),a
+	ld	a,TRS_FILE_READ
+	out	(APICMND),a
+	call	api_WAIT
+	jr	nz,_bio_read_error
+	in	a,(APIDATA)
+	push	bc
+	ld	b,a
+	ld	a,(BIO_SKIPLF)
+	or	a
+	jr	z,_bio_read_got
+	xor	a
+	ld	(BIO_SKIPLF),a
+	ld	a,b
+	cp	LINEF
+	jr	nz,_bio_read_got
+	pop	bc
+	jr	_bio_read_read
+_bio_read_got:
+	ld	a,b
+	cp	ENTER
+	jr	nz,_bio_read_return
+	ld	a,1
+	ld	(BIO_SKIPLF),a
+_bio_read_return:
+	ld	a,b
+	pop	bc
+	or	a
+	ret
+_bio_read_error:
+	cp	28
+	jr	z,_bio_read_eof
+	cp	29
+	jp	nz,bio_diskerror
+_bio_read_eof:
+	scf
+	ret
+_bio_read_mode:
+	ld	e,BIO_ERRMODE
+	jp	bio_error
+VIRTUAL_END
+
+; Selected output file bank; A=byte. Preserve BC/DE/HL.
+VIRTUAL_ROUTINE bio_write, PAGE_BIO_WRITE
+	push	af
+	ld	a,(BIO_MODE)
+	cp	'O'
+	jr	nz,_bio_write_mode
+	ld	a,(BIO_FCB+FCB_FILEID)
+	out	(APIFILE),a
+	ld	a,TRS_FILE_WRITE
+	out	(APICMND),a
+	pop	af
+	out	(APIDATA),a
+	push	af
+	call	api_WAIT
+	jp	nz,bio_diskerror
+	pop	af
+	cp	ENTER
+	jr	z,_bio_write_reset
+	cp	LINEF
+	jr	z,_bio_write_reset
+	ld	a,(BIO_COLUMN)
+	inc	a
+	ld	(BIO_COLUMN),a
+	ret
+_bio_write_reset:
+	xor	a
+	ld	(BIO_COLUMN),a
+	ret
+_bio_write_mode:
+	ld	e,BIO_ERRMODE
+	jp	bio_error
+VIRTUAL_END
+
+VIRTUAL_PAGE bio_eof, PAGE_BIO_EOF
+	push	hl
+	call	$0A7F				; FRCINT: ROM already evaluated EOF argument
+	ld	a,h
+	or	a
+	jr	nz,_bio_eof_bad
+	ld	a,l
+	or	a
+	jr	z,_bio_eof_bad
+	cp	BIO_FILES+1
+	jr	nc,_bio_eof_bad
+	ld	(PICOPAGEDAT),a
+	PAGE_CALL	PAGE_BIO_READ
+	jr	c,_bio_eof_end
+	ld	(BIO_CACHE),a
+	ld	a,1
+	ld	(BIO_CACHED),a
+	ld	hl,0
+	jr	_bio_eof_value
+_bio_eof_end:
+	ld	hl,$FFFF
+_bio_eof_value:
+	call	$0A9A				; MAKINT: integer result in FAC
+	pop	hl
+	ret
+_bio_eof_bad:
+	ld	e,BIO_ERRNUMBER
+	jp	bio_error
+VIRTUAL_END
+
+; Error entry is a JUMP page: the ROM error handler unwinds the BASIC stack.
+VIRTUAL_PAGE bio_error, PAGE_BIO_ERROR
+	jp	$19A2				; ERROR, E=standard Disk BASIC error code
+VIRTUAL_END
+VIRTUAL_PAGE bio_diskerror, PAGE_BIO_DISKERROR
+	ld	e,$88				; disk write protected
+	cp	WRITEPROT$
+	jp	z,bio_error
+	cp	$40+10				; FatFS FR_WRITE_PROTECTED
+	jp	z,bio_error
+	ld	e,$8A				; access denied
+	cp	ACCESSDEN$
+	jp	z,bio_error
+	cp	$40+7				; FatFS FR_DENIED
+	jp	z,bio_error
+	ld	e,$7A				; disk full
+	cp	27
+	jp	z,bio_error
+	ld	e,$74				; file already exists
+	cp	FILEXISTS$
+	jp	z,bio_error
+	cp	$40+8				; FatFS FR_EXIST
+	jp	z,bio_error
+	ld	e,BIO_ERRNOTFOUND
+	cp	$40+4				; FatFS FR_NO_FILE
+	jp	z,bio_error
+	cp	$40+5				; FatFS FR_NO_PATH
+	jp	z,bio_error
+	ld	e,BIO_ERRNOTFOUND
+	cp	FILNOTFND$
+	jp	z,bio_error
+	cp	PATNOTFOU$
+	jp	z,bio_error
+	ld	e,BIO_ERRIO
+	jp	bio_error
+VIRTUAL_END
+
+; ROM lifecycle hook: END, NEW, CLEAR and fresh RUN close files.
+; Callable page: LOAD also enters via ROM SCRTCH/RUNC and must resume
+; in its original code bank, not this close-hook bank.
+VIRTUAL_ROUTINE bio_close_all, PAGE_BIO_CLOSE_ALL
+	push	af
+	push	bc
+	push	de
+	push	hl
+	ld	a,(PICOPAGEDAT)
+	push	af
+	ld	b,BIO_FILES
+_close_all_loop:
+	ld	a,b
+	ld	(PICOPAGEDAT),a
+	PAGE_CALL	PAGE_BIO_CLOSE_ONE
+	djnz	_close_all_loop
+	pop	af
+	ld	(PICOPAGEDAT),a
+	pop	hl
+	pop	de
+	pop	bc
+	pop	af
+	ret
+VIRTUAL_END
+	ORG	$41BB
+	jp	bio_close_all
+
+; Data file blocks: mode is zero until OPEN succeeds.
+VIRTUAL_DATA 1
+	ds	38,0
+VIRTUAL_DATA_END
+VIRTUAL_DATA 2
+	ds	38,0
+VIRTUAL_DATA_END
+VIRTUAL_DATA 3
+	ds	38,0
+VIRTUAL_DATA_END
+VIRTUAL_DATA DPAGE_BIO_WORK
+	ds	262,0
+VIRTUAL_DATA_END
+
+	ORG	$4179
+	jp	bio_open
+	ORG	$4185
+	jp	bio_close
+	ORG	$4161
+	jp	bio_eof
+
+; A ROM expression can invoke a non-returning page (EOF, INSTR, DEF FN,
+; etc.). Wrap it in a callable page so its ROM RET restores our code bank.
+VIRTUAL_ROUTINE bio_eval, PAGE_BIO_EVAL
+	jp	FRMEVL
+VIRTUAL_END
+VIRTUAL_ROUTINE bio_getbyte, PAGE_BIO_GETBYTE
+	jp	$2B1C
+VIRTUAL_END
+VIRTUAL_ROUTINE bio_ptrget, PAGE_BIO_PTRGET
+	jp	$260D
+VIRTUAL_END

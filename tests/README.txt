@@ -37,3 +37,27 @@ Persistent BUSY and oversized input cases verify bounded return to the prompt.
 An integration test executes the actual BOOT.SYS machine code and streams
 SYSP.sys through mocked SD ports, checking the resulting banks and transfer
 to STARTUP. It does not emulate BASIC ROM initialization or real board timing.
+
+Sequential BASIC file I/O tests
+After building and installing the same Python dependency, supply your own
+12 KiB Model I Level II-compatible ROM. No ROM is distributed with this project.
+The development tests used the System 80 original ROM from the author's
+TRS-80-ROMS repository; other ROM variants have not been validated.
+
+PowerShell:
+  $env:KDOS_TEST_ROM = 'C:\path\to\system80_original.rom'
+  python tests/test_basic_io.py
+
+These tests execute the real ROM tokenizer, interpreter, expression evaluator,
+variables, arrays and string garbage collector, together with the compiled
+kDOS handlers. They cover three simultaneous files, repeated EOF lookahead,
+numeric/string fields, double precision, CR/LF variants, length boundaries,
+file errors, nested EOF expressions, and automatic close on END.
+The test harness intercepts errors at the ROM error entry; it does not prove
+full error recovery. Pico ports and banking are modeled, so hardware timing,
+firmware compatibility and actual SD-card persistence still require testing.
+
+The suite also executes tests/IOCHECK.txt and writes a tokenized copy to
+build/SD-CARD/IOCHECK.BAS. The .txt file is a source listing, not a LOADable
+BASIC file. This generated .BAS requires the test command above; a normal
+Visual Studio build alone does not regenerate it.

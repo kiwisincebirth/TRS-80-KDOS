@@ -32,8 +32,8 @@ VIRTUAL_PAGE basiclineinput, PAGE_LINEINP
 ; If we have a LINE INPUT #, then the the Z FLAG (Zero) will have been set,
 ; so JUMP to 5F4CH which is part of the LINE INPUT routine which will read
 ; code for item fetching from sequential input files
-;	cp	"#"          ; 578c:
-;	jp	z,$5f4c      ; 578e:
+	cp	"#"
+	jp	z,bio_lineinput
 
 	call	$21cd        ; 5791:
 	call	$260d        ; 5794:

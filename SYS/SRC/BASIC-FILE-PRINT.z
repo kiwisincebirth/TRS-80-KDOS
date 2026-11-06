@@ -1,0 +1,95 @@
+; PRINT# handler. ROM still evaluates expressions and formats numbers.
+import	constants.z
+VIRTUAL_PAGE bio_print, PAGE_BIO_PRINT
+	cp	'#'
+	ret	nz				; ordinary PRINT continues in ROM
+	pop	af				; discard FILGET hook return, handle statement
+	GETCHR
+	PAGE_CALL	PAGE_BIO_NUMBER
+	push	af
+	rst	8
+	db	','
+	pop	af
+	ld	b,a
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,b
+	ld	(BIO_FILE),a
+	PAGE_CALL	PAGE_BIO_ACTIVE
+	cp	'O'
+	jr	nz,_mode
+_next:
+	ld	a,(hl)
+	or	a
+	jr	z,_newline
+	cp	':'
+	jr	z,_newline
+	cp	';'
+	jr	z,_separator
+	cp	','
+	jr	z,_comma
+	PAGE_CALL	PAGE_BIO_EVAL
+	push	hl
+	rst	$20
+	jr	z,_string
+	call	$0FBD				; FOUT: numeric value to ASCII
+	PAGE_CALL	PAGE_BIO_ACTIVE
+_number:
+	ld	a,(hl)
+	or	a
+	jr	z,_number_end
+	PAGE_CALL	PAGE_BIO_WRITE
+	inc	hl
+	jr	_number
+_number_end:
+	ld	a,SPACE
+	PAGE_CALL	PAGE_BIO_WRITE
+	jr	_item_done
+_string:
+	call	FRESTR
+	ld	b,(hl)
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	ex	de,hl
+	PAGE_CALL	PAGE_BIO_ACTIVE
+	ld	a,b
+	or	a
+	jr	z,_item_done
+_chars:
+	ld	a,(hl)
+	PAGE_CALL	PAGE_BIO_WRITE
+	inc	hl
+	djnz	_chars
+_item_done:
+	pop	hl
+	jr	_next
+_comma:
+	PAGE_CALL	PAGE_BIO_ACTIVE
+	ld	a,(BIO_COLUMN)
+	and	15
+	ld	b,a
+	ld	a,16
+	sub	b
+	ld	b,a
+_spaces:
+	ld	a,SPACE
+	PAGE_CALL	PAGE_BIO_WRITE
+	djnz	_spaces
+_separator:
+	GETCHR
+	ret	z				; trailing separator suppresses CR/LF
+	jr	_next
+_newline:
+	PAGE_CALL	PAGE_BIO_ACTIVE
+	ld	a,ENTER
+	PAGE_CALL	PAGE_BIO_WRITE
+	ld	a,LINEF
+	PAGE_CALL	PAGE_BIO_WRITE
+	ret
+_mode:
+	ld	e,BIO_ERRMODE
+	jp	bio_error
+VIRTUAL_END
+	ORG	$41CA
+	jp	bio_print
