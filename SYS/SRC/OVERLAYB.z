@@ -181,7 +181,8 @@ _RUNFLAG	DEFB	0	; non-zero if want to run
 ;
 ; ======================================================================
 ;
-; todo also need the logic to insert the .BAS extension if not provided
+; todo When using LOAD SAVE RUN "file/BAS:N" /BAS could be added if not specified
+; todo the logic to insert the .BAS extension if not provided
 ;
 _GET_STRING:
 	call	FRMEVL		; evaluates an expression based on BASIC pointer

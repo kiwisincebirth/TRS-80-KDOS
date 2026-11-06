@@ -186,7 +186,7 @@ _NOTFND:
 	;
 	push	hl		; save the buffer "arguments" after #COMMAND
 	;
-	; todo the following needs to be MUCH improved
+	; todo Improve the code addition of .CMD to a filename
 	; todo TrsDOS (4FC0H) and ND80 (4F2AH) SYS1 both have good implementations
 	; ensure it has cmd attached to it.
 	ld	hl,DOTCMD	; copy the ".CMD" suffix

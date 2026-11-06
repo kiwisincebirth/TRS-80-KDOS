@@ -240,7 +240,8 @@ _loader:
 
 ifdef @D_PICOENHANCED
 	; on Pico We need to save and restore the Page Number
-	; todo replace the code below with Command to PICO to start virtual load, and command to restore prior state
+	; todo replace code below with Pico Command to start / stop virtual load
+	; todo saving and restoring current Page information
 	ld	a,(PICOPAGENUM)		; get current virtual page number
 	ld	(_picopagnum+1),a		; save it into instruction below
 	call	_loader2

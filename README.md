@@ -60,7 +60,7 @@ and testing purposes
 
 ## Operation and Use
 
-See the Seperate ![Quick Reference](./QUICKREF.md) for a getting started,
+See the Seperate ![Quick Start](./QUICKSTART.md) for a getting started,
 and the full ![User Guide](./USERGUIDE.md) for detailed operation
 
 ## Work In Progress

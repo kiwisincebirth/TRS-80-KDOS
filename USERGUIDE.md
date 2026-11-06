@@ -28,6 +28,43 @@ The `:` prompt is the equivalent of the DOS prompt, where disk commands are ente
 :_
 ```
 
+## DOS Input
+
+### Input History
+
+In normal paged-memory mode, the DOS `:` prompt remembers the last eight
+submitted commands by default (configurable from 1 to 20). 
+
+| Key                | Action                                                                                          |
+|--------------------|-------------------------------------------------------------------------------------------------|
+| **Up**             | Recalls older commands                                                                          |
+| **Down**           | Recalls newer commnads. Down past the newest restores the draft entered before browsing history. |
+| **ENTER**          | To execute. Empty Lines return to Basic.                                                        |
+| **Left/Backspace** | Delete from the end, type corrections                                                           |
+| **CLEAR**          | Erases the current input                                                                        |
+| **BREAK**          | Cancels current input. Cancelled commands are not saved.                                      |
+
+History accepts up to 127 characters per command and lasts until kDOS is
+reloaded. It uses code pages 183-184 and data pages 33-39 without reserving additional BASIC RAM.
+Holding CLEAR at startup disables history along with the other paged features;
+DIR cancellation still works. BASIC input and mid-line editing are unchanged.
+
+### History Capacity
+
+Add or edit `HistorySize=8` in `/SYS/settings.cfg` on the SD card. Valid values
+are 1-20. Missing or invalid settings use 8; larger values are capped at 20.
+kDOS reads this setting once, when you first enter the DOS prompt after boot.
+Reboot to apply a later change. Normal BASIC/kDOS startup does not read it.
+
+Keys are case-insensitive; spaces around `=` and `#`/`;` comments are allowed.
+If repeated, the last matching assignment wins. Use a text file smaller than
+16 KiB. Read errors, a stuck BUSY response, or an oversized file fall back to
+the default. Hardware options remain in `HARDWARE.cfg`; history no longer reads that file.
+Remove any old `HistorySize` entry there to avoid confusion.
+
+Edit the repository's `SYS/settings.cfg` to change the build's configuration
+copy. Build/Rebuild copies it to `build/SD-CARD/SYS/settings.cfg`.
+
 ## DOS Commands
 
 Below is a summary of the suppoerted DOS commands. Noting if running on a FreHD
@@ -48,6 +85,12 @@ or under the FreHD TRS80GP emulation only the "FreHD" marked features are suppor
 | MOVE {f1} {f2}  | move file or directory        |       |
 | PWD             | display current directory     |       |
 | REN {f1} {f2}   | rename file or directory      |       |
+
+### DIR Command
+
+At a paused `DIR` listing, press **BREAK** to return to the DOS prompt while
+keeping the displayed filenames. Any other key continues the listing. The
+remaining Pico directory records are consumed silently before returning.
 
 ## BASIC Extensions
 
