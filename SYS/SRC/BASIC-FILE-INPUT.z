@@ -1,14 +1,34 @@
-; INPUT# and LINE INPUT#: values are copied into BASIC-owned storage.
+; ======================================================================
+; BASIC INPUT# and LINE INPUT# statement handling
+;
+; Intercept file input while leaving ordinary keyboard INPUT in ROM. Both
+; file forms use a common engine: resolve the file and destination variable,
+; ask BASIC-FILE-ITEM.z to read a field/line, then assign its value using the
+; ROM's string allocator and numeric conversion routines.
+;
+; Strings must be copied into BASIC-owned heap memory. A descriptor pointing
+; into the banked input buffer would become invalid on a bank switch or the
+; next read. Numeric values pass through BASIC's accumulator (FAC), including
+; its separate double-precision representation, before assignment.
+;
+; The work bank saves the target address/type and selected file across ROM
+; calls. BASIC text pointers remain on the stack while fields are consumed.
+; INPUT# accepts a variable list; LINE INPUT# requires one string variable.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
 import	constants.z
 VIRTUAL_PAGE bio_input, PAGE_BIO_INPUT
 	cp	'#'
 	ret	nz				; retain ordinary INPUT
+	; The ROM called this extension from inside ordinary INPUT. Once # is
+	; recognized, discard that inner return and own the entire statement.
 	pop	af				; discard EXUNKN hook return
 	xor	a
 	jp	bio_input_engine
 VIRTUAL_END
 VIRTUAL_PAGE bio_input_engine, PAGE_BIO_INPUT_ENGINE
-	ld	b,a
+	ld	b,a				; PAGE_DATA overwrites A, so preserve it in B
 	PAGE_DATA	DPAGE_BIO_WORK
 	ld	a,b
 	ld	(BIO_LINE),a
@@ -18,7 +38,7 @@ VIRTUAL_PAGE bio_input_engine, PAGE_BIO_INPUT_ENGINE
 	rst	8
 	db	','
 	pop	af
-	ld	b,a
+	ld	b,a				; PAGE_DATA overwrites A, so preserve it in B
 	PAGE_DATA	DPAGE_BIO_WORK
 	ld	a,b
 	ld	(BIO_FILE),a
@@ -37,6 +57,7 @@ _variable:
 	cp	3
 	jp	nz,$0AF4			; CHKSTR raises type mismatch
 _read:
+	; bio_item returns with the work bank selected and BIO_TEXT populated.
 	PAGE_CALL	PAGE_BIO_ITEM
 	ld	a,(BIO_TYPE)
 	cp	3
@@ -45,6 +66,7 @@ _read:
 	call	STRINI				; allocate string on BASIC heap, DE=storage
 	PAGE_DATA	DPAGE_BIO_WORK
 	ld	a,(BIO_LENGTH)
+	; Write a standard string descriptor: length followed by heap pointer.
 	ld	hl,(BIO_VAR)
 	ld	(hl),a
 	inc	hl
@@ -59,6 +81,8 @@ _read:
 	ldir
 	jr	_assigned
 _numeric:
+	; Parse numeric text, not a BASIC expression. Reject nonnumeric starts
+	; and any unconsumed suffix so a field such as 12ABC is not accepted.
 	ld	hl,BIO_TEXT
 	ld	a,(BIO_LENGTH)
 	or	a
@@ -81,15 +105,16 @@ _convert:
 	call	$0E6C				; FIN (numeric text only; no expressions)
 	jr	_tail
 _double:
-	call	$0E65
+	call	$0E65				; FINDBL: parse directly at double precision
 _tail:
 	ld	a,(hl)
 	or	a
 	jr	nz,_bad_data
 	jr	_store_number
 _zero:
+	; An empty numeric field has the BASIC value zero.
 	ld	hl,0
-	call	$0A9A
+	call	$0A9A				; MAKINT: put HL into BASIC's accumulator
 _store_number:
 	PAGE_DATA	DPAGE_BIO_WORK
 	ld	a,(BIO_TYPE)
@@ -98,6 +123,7 @@ _store_number:
 	ld	hl,(BIO_VAR)
 	call	$09FF				; VMOVAF: select single/double FAC and copy
 _assigned:
+	; Restore the BASIC delimiter saved before reading/assigning this field.
 	pop	hl
 	ld	a,(hl)
 	or	a
@@ -112,7 +138,7 @@ _assigned:
 	db	','
 	jp	_variable
 _bad_data:
-	ld	e,$2A
+	ld	e,$2A				; Bad file data
 	jp	bio_error
 VIRTUAL_END
 

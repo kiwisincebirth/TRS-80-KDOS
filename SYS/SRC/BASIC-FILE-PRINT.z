@@ -1,8 +1,26 @@
-; PRINT# handler. ROM still evaluates expressions and formats numbers.
+; ======================================================================
+; BASIC PRINT# - sequential text output to an open file
+;
+; Recognize # at the ROM PRINT extension hook and handle the complete file
+; statement; ordinary screen PRINT stays in ROM. BASIC evaluates expressions
+; and formats numbers, while bio_write sends each byte to the selected file.
+;
+; Semicolons join items, commas insert spaces to the next 16-column zone,
+; and a trailing separator suppresses the final CR/LF. Commas are formatting
+; operators, not automatic CSV delimiters. Strings are written as-is without
+; added quotes. PRINT# USING, TAB and SPC are not implemented here.
+;
+; Save each expression's continuation pointer while its value is emitted.
+; Reselect the statement's file after expression evaluation because a nested
+; function such as EOF on another file can change the active data bank.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
 import	constants.z
 VIRTUAL_PAGE bio_print, PAGE_BIO_PRINT
 	cp	'#'
 	ret	nz				; ordinary PRINT continues in ROM
+	; Drop the inner ROM hook return so our final RET ends PRINT itself.
 	pop	af				; discard FILGET hook return, handle statement
 	GETCHR
 	PAGE_CALL	PAGE_BIO_NUMBER
@@ -29,7 +47,7 @@ _next:
 	jr	z,_comma
 	PAGE_CALL	PAGE_BIO_EVAL
 	push	hl
-	rst	$20
+	rst	$20				; ROM type test: Z means a string result
 	jr	z,_string
 	call	$0FBD				; FOUT: numeric value to ASCII
 	PAGE_CALL	PAGE_BIO_ACTIVE
@@ -41,10 +59,12 @@ _number:
 	inc	hl
 	jr	_number
 _number_end:
+	; Match BASIC numeric output by adding a space after the formatted value.
 	ld	a,SPACE
 	PAGE_CALL	PAGE_BIO_WRITE
 	jr	_item_done
 _string:
+	; FRESTR supplies length/address; emit exactly that many bytes, not NUL.
 	call	FRESTR
 	ld	b,(hl)
 	inc	hl
@@ -67,7 +87,7 @@ _item_done:
 _comma:
 	PAGE_CALL	PAGE_BIO_ACTIVE
 	ld	a,(BIO_COLUMN)
-	and	15
+	and	15				; column modulo 16; pad a full zone if already aligned
 	ld	b,a
 	ld	a,16
 	sub	b
@@ -81,6 +101,7 @@ _separator:
 	ret	z				; trailing separator suppresses CR/LF
 	jr	_next
 _newline:
+	; End-of-line or colon completes the statement unless a separator returned.
 	PAGE_CALL	PAGE_BIO_ACTIVE
 	ld	a,ENTER
 	PAGE_CALL	PAGE_BIO_WRITE

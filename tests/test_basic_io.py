@@ -1,7 +1,12 @@
 """ROM-integrated sequential BASIC file tests.
 Set KDOS_TEST_ROM to a 12 KiB Model I Level II-compatible ROM (not bundled).
-The real tokenizer/interpreter, expression engine, variables, GC and new Z80
-handlers execute. Pico file commands are simulated, not physical hardware.
+Run after building SYSP.sys; uses the z80 dependency from test_console.py.
+The real ROM tokenizer, interpreter, expressions, variables and garbage
+collector execute alongside compiled kDOS. BasicRig models page switching
+and Pico file commands with in-memory files; no host file data is modified.
+Tests cover typed input/output, EOF, boundaries, errors, lifecycle closes,
+and the existing LOAD/RUN path. The smoke program is exported as a tokenized
+IOCHECK.BAS under build/SD-CARD. Firmware timing still needs hardware tests.
 """
 import sys, os, json
 from pathlib import Path
@@ -12,14 +17,22 @@ sys.path.insert(0,str(root/'.test-deps'))
 import test_console as base
 
 class BasicError(Exception):
+ """Expose a ROM error number for assertions before normal error recovery."""
  def __init__(self,code):self.code=code;super().__init__(f'BASIC error {code:02x}')
 
 class BasicRig(base.Rig):
+ """Execute BASIC with simulated code/data banks, console and Pico file handles.
+
+ ROM entry addresses match the Model I Level II layout. CALL trampolines
+ restore the caller code page; JP trampolines deliberately leave it changed.
+ The filesystem model checks the one-byte enhanced-file protocol.
+ """
  def __init__(self):
   super().__init__()
   rom=Path(os.environ['KDOS_TEST_ROM']).read_bytes()
   if len(rom)!=0x3000:raise ValueError('KDOS_TEST_ROM must be a 12 KiB Level II-compatible ROM')
   self.mem[:0x3000]=rom
+  # Seed the communication vectors normally copied from ROM at cold boot.
   self.mem[0x4000:0x4036]=self.mem[0x6d2:0x708]
   self.files={};self.handles={};self.selected=0;self.data=deque();self.status=0x40;self.error=0;self.command=0;self.args=[]
   self.m.set_input_callback(self.inp); self.m.set_output_callback(self.outp)
@@ -83,6 +96,8 @@ class BasicRig(base.Rig):
     h=self.handles[self.selected];assert h['mode']&2
     self.files[h['name']].append(v);h['pos']+=1
  def program(self,lines):
+  # Build ROM-tokenized lines at TXTTAB with next-line pointers and numbers.
+  # A zero pointer ends the program; VARTAB marks the following variable area.
   start=int.from_bytes(self.mem[0x40a4:0x40a6],'little');address=start
   for number,text in lines:
    raw=text.encode()+b'\0';self.mem[0x6000:0x6000+len(raw)]=raw
@@ -104,6 +119,7 @@ class BasicRig(base.Rig):
   start=0x4316; end=start
   while self.mem[end]:end+=1
   tokens=bytes(self.mem[start:end+1]);self.mem[0x6100:0x6100+len(tokens)]=tokens
+  # GONE1 expects HL on a separator immediately before the statement.
   self.mem[0x60ff]=58
   self.mem[0x6100+len(tokens):0x6100+len(tokens)+2]=b'\0\0'
   self.mem[0x40a2:0x40a4]=(10).to_bytes(2,'little') # program-mode INPUT

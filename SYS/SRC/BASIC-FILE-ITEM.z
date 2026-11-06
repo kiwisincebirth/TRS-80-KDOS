@@ -1,5 +1,24 @@
-; Read one field or full line into work-bank BIO_TEXT (maximum 255 bytes).
-; Quoted fields preserve commas/spaces. CR/LF and CRLF are accepted.
+; ======================================================================
+; Sequential input field/line parser for BASIC file statements
+;
+; Read through bio_read into the shared work-bank buffer BIO_TEXT. The
+; caller supplies BIO_FILE, BIO_LINE and BIO_TYPE. Return with the work bank
+; selected, BIO_LENGTH set and a NUL after the text (255 characters maximum).
+; This module parses boundaries only; BASIC-FILE-INPUT.z assigns the value.
+;
+; LINE INPUT preserves every byte up to a line ending. INPUT recognizes
+; commas/line endings, trims unquoted surrounding whitespace, and preserves
+; commas/spaces inside quotes. Numeric fields also end at whitespace, which
+; allows PRINT# print-zone output to be read back. Quoted fields have no
+; CSV-style escaped-quote handling.
+;
+; The byte reader handles CR/LF pairs and EOF lookahead. Each fetch switches
+; to the file bank, then restores the work bank while preserving A/carry.
+; EOF before a field raises Input past end; EOF after a partial unquoted
+; field/line returns that final value. An unclosed quote is Bad file data.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
 import	constants.z
 VIRTUAL_ROUTINE bio_item, PAGE_BIO_ITEM
 	PAGE_DATA	DPAGE_BIO_WORK
@@ -32,6 +51,7 @@ _quoted:
 	call	_append
 	jp	_quoted
 _afterquote:
+	; Only whitespace, a delimiter or EOF may follow a closing quote.
 	call	_get
 	jp	c,_finish
 	cp	SPACE
@@ -66,6 +86,8 @@ _field_character:
 	call	_get
 	jp	nc,_unquoted
 _trim:
+	; BIO_TEXT is page-aligned: H selects its page, L indexes the buffer.
+	; Walk backward over trailing spaces/tabs without moving the contents.
 	ld	a,(BIO_LENGTH)
 	or	a
 	jp	z,_finish
@@ -96,6 +118,8 @@ _numeric_separator:
 	jp	z,_finish
 	cp	LINEF
 	jp	z,_finish
+	; This is the first byte of the next field, not a separator. Put it
+	; back in the file lookahead cache so the next read receives it.
 	push	af
 	PAGE_CALL	PAGE_BIO_ACTIVE
 	pop	af
@@ -119,6 +143,7 @@ _finish:
 	ld	(hl),0
 	ret
 _append:
+	; Reserve byte 255 for the NUL terminator; BASIC strings max out at 255.
 	ld	b,a
 	ld	a,(BIO_LENGTH)
 	cp	255
@@ -132,7 +157,7 @@ _append:
 _get:
 	PAGE_CALL	PAGE_BIO_ACTIVE
 	PAGE_CALL	PAGE_BIO_READ
-	push	af
+	push	af				; preserve the byte and EOF status across bank selection
 	PAGE_DATA	DPAGE_BIO_WORK
 	pop	af
 	ret
@@ -140,9 +165,9 @@ _past_end:
 	ld	e,BIO_ERREOF
 	jp	bio_error
 _bad:
-	ld	e,$2A
+	ld	e,$2A				; Bad file data
 	jp	bio_error
 _long:
-	ld	e,$1C
+	ld	e,$1C				; String too long
 	jp	bio_error
 VIRTUAL_END
