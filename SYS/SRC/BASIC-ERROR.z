@@ -100,11 +100,13 @@ VIRTUAL_PAGE L2ERRORHAND2, PAGE_DOSERROR2
 	jr	c,_unknown
 	cp	$8C
 	jr	nc,_unknown
+	; Disk BASIC codes are even values $64..$8A: convert to a zero-based
+	; index, then skip that many NUL-terminated messages below.
 	sub	$64
 	rrca
 	ld	b,a
 	ld	hl,_messages
-	inc	b
+	inc	b			; DJNZ loop needs index + 1 to select entry zero
 _next:
 	djnz	_skip
 	jr	_show

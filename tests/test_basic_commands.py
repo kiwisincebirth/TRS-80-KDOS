@@ -1,7 +1,12 @@
 """ROM-integrated CMD/KILL tests, independent of sequential file I/O.
 Set KDOS_TEST_ROM to a 12 KiB Model I Level II-compatible ROM (not bundled).
-The real tokenizer/interpreter, expression engine, variables, GC and new Z80
-handlers execute. Pico file commands are simulated, not physical hardware.
+Run after building SYSP.sys; uses the z80 dependency from test_console.py.
+The real ROM tokenizer, interpreter, expression and error routines execute
+alongside compiled kDOS. BasicRig models paging/console and CommandRig models
+the Pico directory/delete protocol with in-memory files: no host files are
+deleted. Tests cover continuation, errors, cleanup and existing LOAD/RUN.
+The final test exports a tokenized CMDKILL.BAS plus disposable CKTEST.TMP
+under build/SD-CARD for hardware testing. Board timing is not simulated.
 """
 import sys, os, json
 from pathlib import Path
@@ -12,18 +17,26 @@ sys.path.insert(0,str(root/'.test-deps'))
 import test_console as base
 
 class BasicError(Exception):
+ """Capture a ROM error code for assertions before its normal error unwind."""
  def __init__(self,code):self.code=code;super().__init__(f'BASIC error {code:02x}')
 
 class BasicRig(base.Rig):
+ """Run actual BASIC against compiled kDOS, with simulated page trampolines.
+
+ ROM addresses match the supported Model I Level II layout. Breakpoints
+ provide input/output and stop at READY rather than entering the UI loop.
+ """
  def __init__(self):
   super().__init__()
   rom=Path(os.environ['KDOS_TEST_ROM']).read_bytes()
   if len(rom)!=0x3000:raise ValueError('KDOS_TEST_ROM must be a 12 KiB Level II-compatible ROM')
   self.mem[:0x3000]=rom
+  # Seed the ROM communication vectors normally copied during cold boot.
   self.mem[0x4000:0x4036]=self.mem[0x6d2:0x708]
   self.files={};self.handles={};self.selected=0;self.data=deque();self.status=0x40;self.error=0;self.command=0;self.args=[]
   self.m.set_input_callback(self.inp); self.m.set_output_callback(self.outp)
   self.load_cmd(base.BUILD/'SD-CARD/SYS/SYSP.sys')
+  # CALL trampolines save/restore code pages; JP trampolines do not.
   for p in range(256):
    addr=0x3000+4*p
    if self.mem[addr] in (0xcd,0xc3):
@@ -36,6 +49,7 @@ class BasicRig(base.Rig):
   self.hook(0x1d1e,self.statement_end)
   self.output=[]
  def statement_end(self):
+  # Stop at end-of-statement; otherwise continue NEWSTT past its breakpoint.
   self.m.pc=0xffff if self.mem[self.m.hl]==0 else 0x1d25
  def enter(self,p):
   a=0x3000+4*p
@@ -60,6 +74,8 @@ class BasicRig(base.Rig):
   if port==0xff:return # ROM cassette/keyboard latch initialization
   raise AssertionError(('unexpected Pico write',port,v))
  def program(self,lines):
+  # Tokenize each line in ROM and construct its next-pointer/line-number
+  # header at TXTTAB. A zero pointer terminates the program; VARTAB follows.
   start=int.from_bytes(self.mem[0x40a4:0x40a6],'little');address=start
   for number,text in lines:
    raw=text.encode()+b'\0';self.mem[0x6000:0x6000+len(raw)]=raw
@@ -82,6 +98,7 @@ class BasicRig(base.Rig):
   while self.mem[end]:end+=1
   tokens=bytes(self.mem[start:end+1]);destination=0x4316 if direct else 0x6100
   self.mem[destination:destination+len(tokens)]=tokens
+  # GONE1 expects HL on the separator before the first statement token.
   self.mem[destination-1]=58
   self.mem[destination+len(tokens):destination+len(tokens)+2]=b'\0\0'
   self.mem[0x40a2:0x40a4]=(0xffff if direct else 10).to_bytes(2,'little')
@@ -102,6 +119,11 @@ def expect_error(r,text,code):
 
 
 class CommandRig(BasicRig):
+ """Provide directory records and an in-memory delete target for DOS services.
+
+ The existing Z80 command parser and overlays still execute; only board
+ ports are replaced. sent records the service ID and argument bytes.
+ """
  def __init__(self,count=2):
   self.dir_records=[];self.dir_offset=0;self.dir_index=0;self.sent=[];self.io_length=0
   for i in range(count):

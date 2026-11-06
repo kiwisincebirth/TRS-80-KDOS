@@ -175,6 +175,8 @@ _FOUND1:
 _FOUND2:
 ifdef @D_PICOENHANCED
 	; LOAD can overwrite the executing BASIC program. Keep it DOS-only.
+	; Read BCMD_ACTIVE only with its data bank selected; the same address
+	; in another bank may contain unrelated BASIC/history data.
 	ld	a,(PICOPAGEDAT)
 	cp	DPAGE_BASICCMD
 	jr	nz,_dispatch_found
