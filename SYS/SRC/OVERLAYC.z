@@ -19,6 +19,10 @@ import	constants.z
 ; ======================================================================
 ;
 	ORG	OVERLY
+ifdef @D_PICOENHANCED
+	cp	S_CMDSTRING
+	jp	z,_processDos        ; string supplied by BASIC, no keyboard prompt
+endif
 ;
 	; Continuation of Code in SYS 0 to Prompt the User and
 	; Process rthe Command. follows same structure as L2 Basic
@@ -169,11 +173,40 @@ _FOUND1:
 	cp	' '		; is a Also a space
 	jr	z,_FOUND1	; want to skip all spaces
 _FOUND2:
+ifdef @D_PICOENHANCED
+	; LOAD can overwrite the executing BASIC program. Keep it DOS-only.
+	ld	a,(PICOPAGEDAT)
+	cp	DPAGE_BASICCMD
+	jr	nz,_dispatch_found
+	ld	a,(BCMD_ACTIVE)
+	or	a
+	jr	z,_dispatch_found
+	ld	a,(de)
+	cp	$3E                 ; SUPERV starts with LD A,service (not JP)
+	jr	nz,_dispatch_found
+	push	de
+	inc	de                  ; second byte of SUPERV = service identifier
+	ld	a,(de)
+	pop	de
+	cp	S_LOADCMD
+	jp	z,basic_cmd_reject
+_dispatch_found:
+endif
 	push	de		; JP DE : save DE pointer to stack
 	ret			; ret / JUMP to the command
 
 ; ----------------------------------------------------------------------
 _NOTFND:
+ifdef @D_PICOENHANCED
+	; Native CMD programs have no BASIC memory-preservation contract.
+	ld	a,(PICOPAGEDAT)
+	cp	DPAGE_BASICCMD
+	jr	nz,_native_command
+	ld	a,(BCMD_ACTIVE)
+	or	a
+	jp	nz,basic_cmd_reject
+_native_command:
+endif
 	; todo also consider moving this into Overlay L
 	; parse the command line string as a file name
 	ld	hl,(SAVBUFF)	; get original address of command buffer

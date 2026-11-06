@@ -143,6 +143,9 @@ import	constants.z
 ; This allows the DOS to process commands via the L2 Basic Ready prompt
 ;
 NEWREADY
+ifdef @D_PICOENHANCED
+	call	basic_cmd_cancel	; discard any abandoned BASIC command bridge
+endif
 	;
 	; first some tests to see if not entering normal Ready command processing
 	; if So we return and let l2 basic handle these cases for us.

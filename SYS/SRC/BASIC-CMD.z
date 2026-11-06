@@ -1,0 +1,161 @@
+; CMD string: run an internal DOS command and resume the BASIC statement.
+; Original kDOS by kiwisincebirth. File operations use the existing shell.
+; Formatted with 8-column tab stops.
+import	constants.z
+
+VIRTUAL_PAGE basic_cmd, PAGE_BASICCMD
+	ld	a,(PICOPAGEDAT)
+	push	af				; restore caller's data bank after the command
+	PAGE_CALL	PAGE_CMDEVAL
+	ld	a,(hl)
+	or	a
+	jr	z,_end_ok
+	cp	':'
+	jp	nz,$1997
+_end_ok:
+	push	hl				; BASIC continuation (may point into STRBUFF)
+	call	FRESTR
+	ld	a,(hl)
+	or	a
+	jp	z,FCERR
+	cp	128
+	jp	nc,FCERR
+	ld	b,a
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	PAGE_DATA	DPAGE_BASICCMD
+	ld	hl,BCMD_BUFFER
+_copy:
+	ld	a,(de)
+	cp	SPACE
+	jp	c,FCERR				; no embedded NUL/CR/control characters
+	ld	(hl),a
+	inc	hl
+	inc	de
+	djnz	_copy
+	ld	(hl),ENTER
+	ld	hl,BCMD_BUFFER
+_leading:
+	ld	a,(hl)
+	cp	SPACE
+	jr	nz,_start
+	inc	hl
+	jr	_leading
+_start:
+	cp	ENTER
+	jp	z,FCERR
+	ld	(BCMD_STACK),sp
+	ld	a,(DOSPRMPT)
+	ld	(BCMD_PROMPT),a
+	ld	a,1
+	ld	(BCMD_ACTIVE),a
+	SUPERV	S_CMDSTRING
+VIRTUAL_END
+
+; Outside CMD these retain the original DOS reset/exit behavior.
+VIRTUAL_PAGE basic_cmd_return, PAGE_CMDRETURN
+	xor	a
+	jp	basic_cmd_finish
+VIRTUAL_END
+VIRTUAL_PAGE basic_cmd_abort, PAGE_CMDABORT
+	ld	a,$72
+	jp	basic_cmd_finish
+VIRTUAL_END
+VIRTUAL_PAGE basic_cmd_finish, PAGE_CMDFINISH
+	ld	b,a				; zero=success, otherwise BASIC error code
+	ld	a,(PICOPAGEDAT)
+	ld	c,a
+	PAGE_DATA	DPAGE_BASICCMD
+	ld	a,(BCMD_ACTIVE)
+	or	a
+	jr	nz,_resume
+	ld	a,c
+	ld	(PICOPAGEDAT),a
+	jp	RESETR
+_resume:
+	xor	a
+	ld	(BCMD_ACTIVE),a
+	ld	a,(BCMD_PROMPT)
+	ld	(DOSPRMPT),a
+	ld	sp,(BCMD_STACK)			; discard any DOS dispatcher stack frames
+	pop	hl				; original BASIC text pointer
+	pop	af				; original data bank
+	ld	(PICOPAGEDAT),a
+	ld	a,b
+	or	a
+	ret	z
+	ld	e,b
+	jp	$19A2
+VIRTUAL_END
+
+VIRTUAL_DATA DPAGE_BASICCMD
+	ds	132,0
+VIRTUAL_DATA_END
+	ORG	$4173
+	jp	basic_cmd
+	ORG	@EXIT
+	jp	basic_cmd_return
+	ORG	@ABORT
+	jp	basic_cmd_abort
+	ORG	@CMD
+	jp	basic_cmd_return
+
+; Restore the caller's code page even when a string expression invokes a
+; banked BASIC extension such as INSTR or a user-defined function.
+VIRTUAL_ROUTINE basic_cmd_eval, PAGE_CMDEVAL
+	jp	FRMEVL
+VIRTUAL_END
+
+; Clear abandoned bridge state on BASIC errors or return to READY. This is
+; a callable page because callers may themselves execute in banked code.
+VIRTUAL_ROUTINE basic_cmd_cancel, PAGE_CMDCANCEL
+	push	af
+	ld	a,(PICOPAGEDAT)
+	push	af
+	PAGE_DATA	DPAGE_BASICCMD
+	xor	a
+	ld	(BCMD_ACTIVE),a
+	pop	af
+	ld	(PICOPAGEDAT),a
+	pop	af
+	ret
+VIRTUAL_END
+
+VIRTUAL_PAGE basic_cmd_reject, PAGE_CMDREJECT
+	ld	a,$08				; Illegal function call: no BASIC-safe command
+	jp	basic_cmd_finish
+VIRTUAL_END
+
+; B contains the existing DOS error code (TRSDOS or $40 + FatFS code).
+VIRTUAL_PAGE basic_cmd_diskerror, PAGE_CMDERROR
+	ld	a,b
+	cp	FILNOTFND$
+	jr	z,_not_found
+	cp	PATNOTFOU$
+	jr	z,_not_found
+	cp	$40+4
+	jr	z,_not_found
+	cp	$40+5
+	jr	z,_not_found
+	cp	WRITEPROT$
+	jr	z,_protected
+	cp	$40+10
+	jr	z,_protected
+	cp	ACCESSDEN$
+	jr	z,_denied
+	cp	$40+7
+	jr	z,_denied
+	ld	a,$72
+	jp	basic_cmd_finish
+_not_found:
+	ld	a,$6A
+	jp	basic_cmd_finish
+_protected:
+	ld	a,$88
+	jp	basic_cmd_finish
+_denied:
+	ld	a,$8A
+	jp	basic_cmd_finish
+VIRTUAL_END

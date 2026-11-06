@@ -389,7 +389,7 @@ def boot_loader_test():
  r.call(0x5200);r.flush()
  assert state['open'][1:].split(b'\x00')[0]==b'/SYS/SYSP.SYS'
  expected=Rig();expected.load_cmd(BUILD/'SD-CARD/SYS/SYSP.sys');expected.flush()
- for page in [HIST_CODE,CFG_CODE,*range(HIST_DATA,HIST_DATA+HIST_PAGES),32]:
+ for page in [HIST_CODE,CFG_CODE,*range(HIST_DATA,HIST_DATA+HIST_PAGES),32,*range(179,183),*range(185,190),41]:
   assert r.banks[page]==expected.banks[page],page
  assert bytes(r.mem[0x5400:0x5480])==bytes(expected.mem[0x5400:0x5480])
  return {'boot_loader':'PASS: actual BOOT.SYS loads SYSP.sys through SD ports and reaches STARTUP with code/data banks intact'}

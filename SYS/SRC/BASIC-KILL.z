@@ -1,0 +1,56 @@
+; BASIC KILL filename: use the existing DOS delete service and resume BASIC.
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+import	constants.z
+
+VIRTUAL_PAGE basic_kill, PAGE_BASICKILL
+	ld	a,(PICOPAGEDAT)
+	push	af
+	PAGE_CALL	PAGE_CMDEVAL
+	ld	a,(hl)
+	or	a
+	jr	z,_end_ok
+	cp	':'
+	jp	nz,$1997
+_end_ok:
+	push	hl
+	call	FRESTR
+	ld	a,(hl)
+	or	a
+	jr	z,_badname
+	cp	32
+	jr	nc,_badname
+	ld	b,a
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	PAGE_DATA	DPAGE_BASICCMD
+	ld	hl,BCMD_BUFFER
+_copy:
+	ld	a,(de)
+	cp	SPACE+1
+	jr	c,_badname
+	cp	'*'
+	jr	z,_badname
+	cp	'?'
+	jr	z,_badname
+	cp	'"'
+	jr	z,_badname
+	ld	(hl),a
+	inc	hl
+	inc	de
+	djnz	_copy
+	ld	(hl),0
+	ld	(BCMD_STACK),sp
+	ld	a,(DOSPRMPT)
+	ld	(BCMD_PROMPT),a
+	ld	a,1
+	ld	(BCMD_ACTIVE),a
+	ld	hl,BCMD_BUFFER
+	SUPERV	S_DELCMD
+_badname:
+	ld	e,$80
+	jp	$19A2
+VIRTUAL_END
+	ORG	$4191
+	jp	basic_kill

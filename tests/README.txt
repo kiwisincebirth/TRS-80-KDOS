@@ -37,3 +37,24 @@ Persistent BUSY and oversized input cases verify bounded return to the prompt.
 An integration test executes the actual BOOT.SYS machine code and streams
 SYSP.sys through mocked SD ports, checking the resulting banks and transfer
 to STARTUP. It does not emulate BASIC ROM initialization or real board timing.
+
+BASIC CMD/KILL tests (independent of sequential file I/O)
+Use the same Python dependency, and supply your own 12 KiB Model I Level II-
+compatible ROM. Development tests used system80_original.rom from the
+author's TRS-80-ROMS repository. No ROM is included with this contribution.
+
+PowerShell, after building:
+  $env:KDOS_TEST_ROM = 'C:\path\to\system80_original.rom'
+  python tests/test_basic_commands.py
+
+Tests execute the real ROM tokenizer, expressions, interpreter and error
+handler, plus the compiled DOS command parser/directory/delete services.
+They cover direct mode, colon continuation, loops/GOSUB, nested expressions,
+directory paging/BREAK, invalid commands, delete errors, state cleanup, and
+existing BASIC LOAD/RUN. Pico ports/filesystem and paging are simulated;
+the tests do not replace physical Floppy80 verification.
+
+The suite generates build/SD-CARD/CMDKILL.BAS (tokenized, LOADable) and
+build/SD-CARD/CKTEST.TMP (disposable deletion target). tests/CMDKILL.txt is
+the human-readable program listing. A normal build alone does not generate
+these test artifacts. Recreate/copy CKTEST.TMP before repeating the test.
