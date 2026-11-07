@@ -102,7 +102,8 @@ the non-disk I/O statements and extensions. The following are supported
 | Commands   | LOAD "filename.BAS" | Load a basic Program   | FreHD |
 |            | SAVE "filename.BAS" | Save a program to Disk | FreHD |
 |            | RUN "filename.BAS"  | Load and Run a program | FreHD |
-|            | KILL "filename"     | Delete a file (todo)   | FreHD | 
+|            | CMD "command"       | Execute an internal DOS command | Floppy80 |
+|            | KILL "filename"     | Delete a named SD-card file | Floppy80 |
 |            | MERGE "filename"    | Merge a file (todo)    | FreHD | 
 |            | -                   | -                      |       |
 | Statements | &Hxx                | Hexadecimal Constant   |       |
@@ -120,6 +121,51 @@ the non-disk I/O statements and extensions. The following are supported
 
 As well as this BASIC will display the descriptive error messages.
 Disk Basic I/O function are a future feature
+
+## Calling DOS commands from BASIC
+
+On Floppy80, `CMD` accepts a string expression containing an internal DOS
+command. It works at the BASIC prompt and inside a program. A successful
+command returns to the next BASIC statement; it does not change to the DOS
+prompt or discard BASIC variables.
+
+```basic
+10 CMD "PWD"
+20 CMD "DIR *.BAS"
+30 PRINT "BACK IN BASIC"
+```
+
+The existing internal commands and aliases are available: `DIR`/`LS`, `CD`,
+`PWD`, `COPY`/`CP`, `DEL`/`DELETE`/`KILL`/`RM`, `MD`/`MKDIR`,
+`REN`/`RENAME`/`MOVE`/`MV`, `HELP`, `DI`, and `EI`. A command string may
+contain at most 127 characters. For example, `CMD "CD GAMES"` changes the
+current directory for later BASIC and DOS file operations.
+
+Directory paging behaves as it does at the DOS prompt. BREAK at a paused
+listing stops the listing and resumes BASIC without clearing the screen.
+Unknown commands, native `.CMD` program execution, and DOS `LOAD` through
+`CMD` are not supported in this version: native programs can overwrite the
+running BASIC program. These produce `Illegal function call`. Use the DOS
+prompt for native programs and BASIC's existing `LOAD` for BASIC programs.
+
+`KILL` accepts a single filename/path string expression and uses the existing
+DOS delete service. Deletion is permanent, without a confirmation prompt.
+
+```basic
+10 F$="OLD.DAT"
+20 KILL F$
+30 PRINT "DELETED"
+```
+
+Use 8.3 names and a path of 1-31 characters. Wildcards, whitespace and quoted
+names inside the string are not supported. A relative path uses the current
+directory. Missing files, access denial, write protection, and other disk
+errors stop the BASIC program with a descriptive error; execution does not
+silently continue after a failed command.
+
+These additions do not implement the low-level FCB-based DOS `@KILL` API,
+nor do they add `OPEN`, `CLOSE`, `PRINT#`, `INPUT#`, `LINE INPUT#`, or `EOF`.
+The sequential file-I/O work remains a separate contribution.
 
 ## Filenames
 

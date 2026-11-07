@@ -18,6 +18,7 @@ import	constants.z
 ; There are no RETS in this Code
 ;
 VIRTUAL_PAGE L2ERRORHAND1, PAGE_DOSERROR1
+	call	basic_cmd_cancel	; errors must not leave a stale DOS return stack
 ;
 ; ======================================================================
 ;
@@ -94,84 +95,42 @@ VIRTUAL_PAGE L2ERRORHAND2, PAGE_DOSERROR2
 ;
 ; ------------------------------
 
-	; called from the prior routine to handle DISK BASIC errors
-
-	; TODO THIS CODE IS NOT COMPLETE
-	; TODO We have not added DISK BASIC FILE operations
-	; TODO in future we need to add DISK BASIC FILE IO errors
-
-	ld 	hl,UNPRINTABLE
-	call	$28a7                ; 5805: Here is where we display the message
-	ld	hl,($40a2)           ; 5808: current line number
-	jp	$1A0A		     ; entry point back into error handler.
-
-UNPRINTABLE
-    DEFB "Unprintable error", 0
-
-   ld	hl,L3ERRTAB          ;
-;  cp	$8b                  ; 57eb: 8BH (139) which is the highest error number.
-   cp	$2C                  ; ACTUALLY $2C is largest handled by L2 Basic
-   jp	nc,_57f7             ; 57ed: an error code too big to display
-;  cp	$63                  ; 57ef: 63H (99) the disk error list.
-;  jr	nc,_57f9             ; 57f1: we have a disk error, so JUMP to NTDER2 to handle that
-;  cp	$2f                  ; 57f3: error code is between last ROM error and first DISK error message
-;  jr	c,_57fb              ; 57f5: it's not, its a basic error
-   jr	_57fb                ; 57f5: its a basic error
-_57f7
-   ld	a,$5a                ; 57f7: "UNPRINTABLE ERROR" $52-$34 -> $1E (unprinable)
-_57f9
-   sub	$34                  ; 57f9: process the error into an offset
-_57fb
-   rrca                      ; 57fb: divide by 2
-   inc	a                    ; 57fc:
-   ld	e,a                  ; 57fd:
-_57fe
-   call	$1f07                ; 57fe:
-   dec	e                    ; 5801:
-   inc	hl                   ; 5802:
-   jr	nz,_57fe             ; 5803:
-   call	$28a7                ; 5805: Here is where we display the message
-   ld	hl,($40a2)           ; 5808: current line number
-   jp	$1A0A		     ; entry point back into error handler.
-
-L3ERRTAB
-	; Disk Errors Start Here (TRSDOS)
-	; Error 51 starts here - ending in 70
-	DEFB 0
-	DEFB "FIELD overflow", 0
-	DEFB "Internal error", 0
-	DEFB "Bad file number", 0
-	DEFB "File not found", 0
-	DEFB "Bad file mode", 0
-	DEFB "File already open", 0
-	DEFB "?", 0
-	DEFB "Disk I/O error", 0
-	DEFB "File already exists", 0
-	DEFB "?", 0
-	DEFB "?", 0
-	DEFB "Disk full", 0
-	DEFB "Input past end", 0
-	DEFB "Bad record number", 0
-	DEFB "Bad file name", 0
-	DEFB "Mode-mismatch", 0
-	DEFB "Direct statement in file", 0
-	DEFB "Too many files", 0
-	DEFB "Disk write protected", 0
-	DEFB "File access DENIED", 0
-	; And ending in Error 70
-	; Note NEWDOES 80 DEFINES up to 84 errors
-;
-; ======================================================================
-; End of Paged Routine
-; ======================================================================
-;
+	ld	a,e
+	cp	$64
+	jr	c,_unknown
+	cp	$8C
+	jr	nc,_unknown
+	; Disk BASIC codes are even values $64..$8A: convert to a zero-based
+	; index, then skip that many NUL-terminated messages below.
+	sub	$64
+	rrca
+	ld	b,a
+	ld	hl,_messages
+	inc	b			; DJNZ loop needs index + 1 to select entry zero
+_next:
+	djnz	_skip
+	jr	_show
+_skip:
+	ld	a,(hl)
+	inc	hl
+	or	a
+	jr	nz,_skip
+	jr	_next
+_unknown:
+	ld	hl,_unknown_text
+_show:
+	call	STROUT
+	ld	hl,(CURLIN)
+	jp	$1A0A
+_messages:
+	db	"FIELD overflow",0,"Internal error",0,"Bad file number",0
+	db	"File not found",0,"Bad file mode",0,"File already open",0
+	db	"?",0,"Disk I/O error",0,"File already exists",0,"?",0,"?",0
+	db	"Disk full",0,"Input past end",0,"Bad record number",0
+	db	"Bad file name",0,"Mode-mismatch",0,"Direct statement in file",0
+	db	"Too many files",0,"Disk write protected",0,"File access denied",0
+_unknown_text:
+	db	"Unprintable error",0
 VIRTUAL_END
-;
-; ======================================================================
-; DOS ENTRY VECTOR
-; ======================================================================
-;
-; code is invoked from Dos Exit $41a6 from call location 19EC in l2 Roms
-
 	ORG	$41A6
 	jp	L2ERRORHAND1

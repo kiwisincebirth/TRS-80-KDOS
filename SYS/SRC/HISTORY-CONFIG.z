@@ -1,6 +1,27 @@
-; Optional DOS history setting in /SYS/settings.cfg, read once on first DOS input.
-; Original kDOS by kiwisincebirth; HistorySize reader is a local extension.
-; This uses the existing file API; the Pico does not interpret HistorySize.
+; ======================================================================
+; Optional HistorySize configuration reader
+;
+; Read /SYS/settings.cfg once on first DOS input, using the existing file API.
+; This is a kDOS software setting; the Pico does not parse it. The caller sets
+; hist_cfg_loaded before entering, so missing/bad files are not retried on
+; every prompt and this optional read never becomes part of the boot path.
+;
+; Recognize a case-insensitive HistorySize key, optional whitespace around
+; =, decimal digits, and # or ; trailing comments. CR/LF and an initial UTF-8
+; BOM are accepted. Unknown lines are skipped. A recognized invalid assignment
+; uses the default; positive values above HISTORY_MAX clamp to that maximum.
+; Later recognized assignments can replace earlier ones.
+;
+; The byte reader observes each block's actual length and DRQ status. A read
+; budget and bounded BUSY polling prevent malformed/oversized files or an
+; unresponsive device from trapping the user before the DOS prompt. Read
+; failures fall back to the default; configuration errors are not DOS errors.
+;
+; Parsing state lives in the first history data bank. Return restores the
+; caller's data selector; the callable trampoline restores its code bank.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
 VIRTUAL_ROUTINE history_config_page, PAGE_HISTORYCFG
 	ld	a,(PICOPAGEDAT)
 	push	af
@@ -11,6 +32,7 @@ VIRTUAL_ROUTINE history_config_page, PAGE_HISTORYCFG
 	ld	(hist_cfg_left),a
 	ld	a,64               ; at most 16 KiB of config, even if EOF is faulty
 	ld	(hist_cfg_budget),a
+	; OPEN payload is mode + filename bytes + NUL, including both extra bytes.
 	ld	a,_filename_end-_filename+2
 	out	(APISIZE),a
 	ld	a,OPENFILE
@@ -62,6 +84,7 @@ _keychar:
 	ld	a,b
 	jr	nz,_keychar
 _equals:
+	; Require = after the complete key, so HistorySizeExtra cannot match.
 	cp	SPACE
 	jr	z,_eqnext
 	cp	TAB
@@ -97,6 +120,8 @@ _digit:
 	ld	a,(hist_cfg_value)
 	cp	HISTORY_MAX+1       ; saturate before arithmetic can overflow
 	jr	nc,_nextdigit
+	; Decimal accumulation: value * 10 + digit, saturated at MAX + 1.
+	; That sentinel preserves "too large" without allowing byte overflow.
 	ld	c,a
 	add	a,a
 	add	a,a
@@ -112,6 +137,7 @@ _nextdigit:
 	call	_get
 	jr	nc,_digit
 _accept_eof:
+	; A valid final assignment does not require a trailing line ending.
 	call	_accept
 	jr	_finish
 _tail:
@@ -146,6 +172,8 @@ _skip:
 	call	_get
 	jr	nc,_skip
 _finish:
+	; Once OPEN succeeds, close even after parse/read failure; ignore close
+	; errors because this optional setting must still return to the prompt.
 	ld	a,CLOSEFILE
 	out	(APICMND),a
 	call	_wait
@@ -188,6 +216,7 @@ _get:
 	in	a,(APISIZE)          ; zero represents a full 256-byte block
 	ld	(hist_cfg_left),a
 _readbyte:
+	; A full block starts at zero: decrement wraps to 255 on its first byte.
 	ld	a,(hist_cfg_left)
 	dec	a
 	ld	(hist_cfg_left),a
@@ -198,18 +227,19 @@ _eof:
         scf
         ret
 _readerror:
+	; Invalidate partial digits so EOF handling cannot accept a truncated value.
 	xor	a
 	ld	(hist_cfg_digits),a
 	ld	a,HISTORY_DEFAULT
 	ld	(hist_limit),a
 	jr	_eof
 ; Configuration is optional: bound BUSY polling rather than using the
-; general api_WAIT currently has no timeout. Preserve BC/HL/DE.
+; general api_WAIT, which currently has no timeout. Preserve BC/HL/DE.
 ; Keep this optional-read policy local until shared API timeout semantics
 ; and FreHD timing have been agreed and tested.
 _wait:
 	push	bc
-	ld	bc,0
+	ld	bc,0		; wraparound allows 65,536 polls, not a calibrated delay
 _poll:
 	in	a,(APISTAT)
 	bit	STATB_BUSY,a

@@ -36,6 +36,8 @@
     <None Include="SYS\SRC\BASIC-DEFFN.z" />
     <None Include="SYS\SRC\BASIC-DEFINE.z" />
     <None Include="SYS\SRC\BASIC-ERROR.z" />
+    <None Include="SYS\SRC\BASIC-CMD.z" />
+    <None Include="SYS\SRC\BASIC-KILL.z" />
     <None Include="SYS\SRC\BASIC-HELP.z" />
     <None Include="SYS\SRC\BASIC-INSTR.z" />
     <None Include="SYS\SRC\BASIC-LINE.z" />
@@ -69,6 +71,8 @@
     <None Include="build.ps1" />
     <None Include="BUILDING.txt" />
     <None Include="tests\test_console.py" />
+    <None Include="tests\test_basic_commands.py" />
+    <None Include="tests\CMDKILL.txt" />
     <None Include="tests\requirements.txt" />
     <None Include="tests\README.txt" />
   </ItemGroup>

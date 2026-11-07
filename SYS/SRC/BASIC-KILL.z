@@ -1,0 +1,73 @@
+; ======================================================================
+; BASIC KILL - delete one named SD-card path and return to BASIC
+;
+; Evaluate a string expression, validate the complete statement and copy a
+; single 1-31 character path into the shared CMD/KILL data bank. Wildcards,
+; whitespace and embedded quotes are rejected. Validation completes before
+; the delete service is invoked; a syntax error must not delete a file.
+;
+; The existing S_DELCMD service performs deletion using the Pico API.
+; BASIC-CMD.z supplies expression evaluation, return-state storage, DOS exit
+; interception and error conversion. Success resumes the next BASIC
+; statement; a filesystem error stops through BASIC's error handler.
+; This implements the BASIC keyword, not the separate FCB-based @KILL API.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
+import	constants.z
+
+VIRTUAL_PAGE basic_kill, PAGE_BASICKILL
+	ld	a,(PICOPAGEDAT)
+	push	af				; saved caller data bank for the shared return path
+	PAGE_CALL	PAGE_CMDEVAL
+	; Permit only end-of-line or a colon after the filename expression.
+	ld	a,(hl)
+	or	a
+	jr	z,_end_ok
+	cp	':'
+	jp	nz,$1997
+_end_ok:
+	push	hl				; preserve BASIC continuation above saved AF
+	call	FRESTR				; descriptor: length, address-low, address-high
+	ld	a,(hl)
+	or	a
+	jr	z,_badname
+	cp	32				; leave room for NUL within a 32-byte filespec
+	jr	nc,_badname
+	ld	b,a
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	PAGE_DATA	DPAGE_BASICCMD
+	ld	hl,BCMD_BUFFER
+_copy:
+	; Pass one literal path, not a wildcard or multi-argument DOS string.
+	ld	a,(de)
+	cp	SPACE+1
+	jr	c,_badname
+	cp	'*'
+	jr	z,_badname
+	cp	'?'
+	jr	z,_badname
+	cp	'"'
+	jr	z,_badname
+	ld	(hl),a
+	inc	hl
+	inc	de
+	djnz	_copy
+	ld	(hl),0				; DOS delete service takes a NUL-terminated path
+	; Match the stack/state contract documented in BASIC-CMD.z.
+	ld	(BCMD_STACK),sp
+	ld	a,(DOSPRMPT)
+	ld	(BCMD_PROMPT),a
+	ld	a,1
+	ld	(BCMD_ACTIVE),a
+	ld	hl,BCMD_BUFFER
+	SUPERV	S_DELCMD			; terminal DOS service; bridge handles its exit
+_badname:
+	ld	e,$80				; Bad file name in BASIC error numbering
+	jp	$19A2				; ROM ERROR unwinds validation-time stack saves
+VIRTUAL_END
+	ORG	$4191				; replace the ROM BASIC KILL statement vector
+	jp	basic_kill
