@@ -183,7 +183,7 @@ def command_tests():
  for text,code in [('CMD ""',8),('CMD 12',0x18),('CMD "DIR"+CHR$(13)',8),
   ('CMD "'+('X'*128)+'"',8),('CMD "MISSING"',8),('CMD "LOAD X.CMD"',8)]:
   r=CommandRig();expect_error(r,text,code)
-  r.flush();assert r.banks[41][0x83]==0
+  r.flush();assert r.mem[base.symbol('DOSCALL_ACTIVE')]==0
   assert r.statement('PRINT "RECOVERED"')==b'RECOVERED\r'
  # Existing DOS exits still follow their original ROM reset path.
  r=CommandRig();r.hook(0x6cc,lambda:setattr(r.m,'pc',0xffff))
@@ -211,11 +211,11 @@ def kill_tests():
  for text,code in [('KILL ""',0x80),('KILL "*.BAS"',0x80),('KILL "A?"',0x80),
   ('KILL "A B"',0x80),('KILL "'+('A'*32)+'"',0x80),('KILL 1',0x18),
   ('KILL "MISSING"',0x6a)]:
-  r=CommandRig();expect_error(r,text,code);r.flush();assert r.banks[41][0x83]==0
+  r=CommandRig();expect_error(r,text,code);r.flush();assert r.mem[base.symbol('DOSCALL_ACTIVE')]==0
  # Evaluate and validate the complete statement before deleting anything.
  r=CommandRig();r.files['KEEP']=bytearray(b'keep')
  expect_error(r,'KILL "KEEP",1',2);assert r.files['KEEP']==b'keep' and not r.sent
- # DOS errors propagate as descriptive BASIC errors and clear bridge state.
+ # DOS errors propagate as descriptive BASIC errors and clear command-call state.
  for raw,expected in [(4,0x6a),(7,0x8a),(10,0x88),(1,0x72)]:
   r=CommandRig();original=r.outp
   def fail_delete(port,value):
@@ -223,19 +223,36 @@ def kill_tests():
    if r.command==0x1b and len(r.args)==r.io_length:r.status=0x41;r.error=raw
   r.m.set_output_callback(fail_delete)
   expect_error(r,'KILL "TEST"',expected)
-  r.flush();assert r.banks[41][0x83]==0
+  r.flush();assert r.mem[base.symbol('DOSCALL_ACTIVE')]==0
   assert r.statement('CMD "PWD"')==b'/TEST\r'
- # Cleanup on an abandoned command preserves both caller banks/registers.
- r=CommandRig();r.write(0x37f1,41);r.mem[0x3683]=1
- r.write(0x37f1,32);r.write(0x37f0,226);r.m.af=0x1234
- r.call(base.symbol('basic_cmd_cancel'));r.flush()
- assert r.page==226 and r.dpage==32 and r.m.af==0x1234
- assert r.banks[41][0x83]==0 and not r.page_returns
- # NEWREADY invokes cleanup even after a nonlocal DOS/ROM exit.
- r.write(0x37f1,41);r.mem[0x3683]=1;r.mem[0x40e1]=1
- r.write(0x37f1,32);r.call(base.symbol('NEWREADY'));r.flush()
- assert r.banks[41][0x83]==0 and r.dpage==32
+ # NEWREADY clears abandoned command state without changing the data bank.
+ r=CommandRig();r.mem[base.symbol('DOSCALL_ACTIVE')]=1;r.mem[0x40e1]=1
+ r.write(0x37f1,32);r.call(base.symbol('NEWREADY'))
+ assert r.mem[base.symbol('DOSCALL_ACTIVE')]==0 and r.dpage==32
  return {'basic_kill':'PASS: deletion, expressions/paths, continuation, invalid names/syntax, missing/access/protection/I/O errors and abandoned-command cleanup'}
+
+def callable_dos_tests():
+ # Call the public vector without BASIC, from several caller banks. This
+ # exercises the core return address, status and callable-page restoration.
+ for bank in (215,226):
+  for data in (0,32,41):
+   for text,error in [(b'PWD\r',0),(b'PWD\0',0),(b' MISSING\r',19),
+                      (b'LOAD X.CMD\r',19),(b'\r',19),(b'DEL MISSING\r',68)]:
+    r=CommandRig();r.write(0x37f0,bank);r.write(0x37f1,data)
+    r.mem[0x5000:0x5000+len(text)]=text;r.m.hl=0x5000
+    r.mem[base.symbol('DOSPRMPT')]=1;r.call(0x4405)
+    assert r.m.a==error,(text,r.m.a,error)
+    assert bool(r.m.f&64)==(error==0)
+    assert r.page==bank and r.dpage==data and r.m.sp==0xf002
+    assert not r.page_returns and r.mem[base.symbol('DOSCALL_ACTIVE')]==0
+    assert r.mem[base.symbol('DOSPRMPT')]==1
+ # A rejected nested call must leave its parent's state intact.
+ r=CommandRig();r.mem[base.symbol('DOSCALL_ACTIVE')]=1
+ r.mem[0x5000:0x5004]=b'PWD\r';r.m.hl=0x5000;r.call(0x4405)
+ assert r.m.a==62 and not r.m.f&64
+ assert r.mem[base.symbol('DOSCALL_ACTIVE')]==1 and not r.sent
+ return {'cmndi':'PASS: direct public API, CR/NUL text, errors, reentrancy rejection, stack and caller-bank restoration'}
+
 
 def basic_loader_tests():
  # Execute the existing BASIC LOAD overlay and ROM reset/linker routines.
@@ -292,7 +309,7 @@ def smoke_test():
 
 if __name__=='__main__':
  if not os.environ.get('KDOS_TEST_ROM'):raise SystemExit('Set KDOS_TEST_ROM to a 12 KiB Level II-compatible ROM; see tests/README.txt.')
- report=command_tests()|kill_tests()|basic_loader_tests()|smoke_test()
+ report=callable_dos_tests()|command_tests()|kill_tests()|basic_loader_tests()|smoke_test()
  report['scope']='Actual BASIC ROM and compiled DOS handlers; Pico filesystem/ports simulated. Physical board testing required.'
  (base.BUILD/'basic-commands-test-results.json').write_text(json.dumps(report,indent=2))
  print(json.dumps(report,indent=2))

@@ -1,195 +1,172 @@
 ; ======================================================================
-; BASIC CMD and the shared CMD/KILL return bridge
+; BASIC CMD/KILL string handling and shared callable services
 ;
-; CMD evaluates a BASIC string and passes it to the existing DOS command
-; parser. KILL uses the same return bridge but calls the delete service
-; directly. Both work in direct mode and within a running BASIC program.
+; One code page handles both statements, ROM expression evaluation and the
+; callable @CMNDI adapter. Re-entering its CALL trampoline around a ROM
+; expression or DOS command restores the calling code bank even when the
+; callee switches overlays. No separate one-instruction pages are needed.
 ;
-; DOS services normally exit to the command prompt instead of returning.
-; While a BASIC command is active, the exit vectors below restore its saved
-; stack, text pointer, data bank and prompt mode. Success resumes BASIC;
-; failure enters the ROM error handler. Ordinary DOS exits still reset to
-; the prompt. Cleanup hooks invalidate the saved stack after nonlocal exits.
+; CMD and KILL validate a string, copy it into their own data bank, CALL
+; @CMNDI, restore that bank locally, and RET to BASIC. KILL prefixes DEL to
+; its validated path; the DOS command processor owns dispatch and return
+; behavior. DOS exits and call state are defined only by SYS0, not here.
 ;
-; Data bank DPAGE_BASICCMD holds the copied command and return state. Keeping
-; the copy out of STRBUFF protects direct-mode statements after a colon.
-; Only internal DOS commands are supported: native programs and DOS LOAD
-; could overwrite BASIC memory, so OVERLAYC rejects them for this caller.
-;
-; Original kDOS by kiwisincebirth. No Pico firmware changes are required.
-; Formatted with 8-column tab stops.
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
 ; ======================================================================
-import	constants.z
+import constants.z
 
-VIRTUAL_PAGE basic_cmd, PAGE_BASICCMD
-	ld	a,(PICOPAGEDAT)
-	push	af				; restore caller's data bank after the command
-	PAGE_CALL	PAGE_CMDEVAL
-	; Validate the whole statement before dispatching a filesystem command.
+VIRTUAL_ROUTINE basic_commands_page, PAGE_BASICCOMMANDS
+	cp	BCMD_EVALUATE
+	jp	z,FRMEVL
+	cp	BCMD_EXECUTE
+	jr	z,_execute
+	cp	S_BASICKILL
+	jp	z,basic_kill
+basic_cmd:
+	xor	a		; mode 0: command text; mode 1: literal KILL path
+	jr	basic_command_string
+_execute:
+	SUPERV	S_CMDCALL	; command processor's returning entry point
+
+basic_command_string:
+	push	af		; keep the mode across ROM expression evaluation
+	ld	a,BCMD_EVALUATE
+	PAGE_CALL PAGE_BASICCOMMANDS
+	pop	bc		; B=mode; pair with the PUSH in this routine
+	; A colon separates BASIC statements on one line; NUL ends the line.
+	; Reject other trailing text before any filesystem operation is started.
 	ld	a,(hl)
 	or	a
-	jr	z,_end_ok
+	jr	z,_syntax_ok
 	cp	':'
-	jp	nz,$1997
-_end_ok:
-	push	hl				; BASIC continuation (may point into STRBUFF)
-	call	FRESTR				; require a string; HL -> length, address-low/high
+	jp	nz,SNERR
+_syntax_ok:
+	push	hl		; BASIC continuation, restored locally on completion
+	push	bc
+	call	FRESTR		; require string; HL -> length, address-low/high
 	ld	a,(hl)
-	or	a
-	jp	z,FCERR
-	cp	128				; buffer holds 127 characters plus terminator
-	jp	nc,FCERR
-	ld	b,a
 	inc	hl
 	ld	e,(hl)
 	inc	hl
 	ld	d,(hl)
-	PAGE_DATA	DPAGE_BASICCMD
+	pop	bc
+	ld	c,b		; C=mode, B=string length
+	ld	b,a
+	or	a
+	jr	z,_bad_length
+	cp	128
+	jr	nc,_bad_length
+	ld	a,c
+	or	a
+	jr	z,_copy_start
+	ld	a,b
+	cp	32		; KILL path limited to 31 characters
+	jr	nc,_bad_length
+_copy_start:
+	; Save the data selector immediately beside the operation that changes
+	; it. Both success and copy-validation errors restore it in _complete.
+	ld	a,(PICOPAGEDAT)
+	push	af
+	PAGE_DATA DPAGE_BASICCMD
 	ld	hl,BCMD_BUFFER
+	ld	a,c
+	or	a
+	jr	z,_copy
+	ld	(hl),'D'
+	inc	hl
+	ld	(hl),'E'
+	inc	hl
+	ld	(hl),'L'
+	inc	hl
+	ld	(hl),SPACE
+	inc	hl
 _copy:
 	ld	a,(de)
 	cp	SPACE
-	jp	c,FCERR				; no embedded NUL/CR/control characters
+	jr	c,_bad_copy
+	ld	a,c
+	or	a
+	ld	a,(de)
+	jr	z,_copy_byte
+	cp	SPACE
+	jr	z,_bad_copy
+	cp	'*'
+	jr	z,_bad_copy
+	cp	'?'
+	jr	z,_bad_copy
+	cp	'"'
+	jr	z,_bad_copy
+_copy_byte:
 	ld	(hl),a
 	inc	hl
 	inc	de
 	djnz	_copy
-	ld	(hl),ENTER			; DOS parser expects CR, not BASIC's NUL
+	ld	(hl),ENTER	; command parser terminator, outside BASIC's text
 	ld	hl,BCMD_BUFFER
-_leading:
-	ld	a,(hl)
-	cp	SPACE
-	jr	nz,_start
-	inc	hl
-	jr	_leading
-_start:
-	; Reject an all-space string; there is no command to dispatch.
-	cp	ENTER
-	jp	z,FCERR
-	; Saved SP points to [BASIC text HL], [caller data AF], then the
-	; BASIC return address. basic_cmd_finish must pop them in that order.
-	; Arm the bridge only after validation, so early errors cannot use it.
-	ld	(BCMD_STACK),sp
-	ld	a,(DOSPRMPT)
-	ld	(BCMD_PROMPT),a
-	ld	a,1
-	ld	(BCMD_ACTIVE),a
-	SUPERV	S_CMDSTRING
-VIRTUAL_END
-
-; DOS exit adapters: A=0 means success; otherwise A is a BASIC error code.
-; These are jump pages: they replace the DOS exit, rather than returning
-; to DOS code. basic_cmd_finish restores the saved BASIC return stack.
-; Outside CMD/KILL these retain the original DOS reset/exit behavior.
-VIRTUAL_PAGE basic_cmd_return, PAGE_CMDRETURN
-	xor	a
-	jp	basic_cmd_finish
-VIRTUAL_END
-VIRTUAL_PAGE basic_cmd_abort, PAGE_CMDABORT
-	ld	a,$72				; Disk I/O error (generic fallback)
-	jp	basic_cmd_finish
-VIRTUAL_END
-VIRTUAL_PAGE basic_cmd_finish, PAGE_CMDFINISH
-	ld	b,a				; zero=success, otherwise BASIC error code
-	ld	a,(PICOPAGEDAT)
-	ld	c,a				; preserve current data bank for ordinary DOS exit
-	PAGE_DATA	DPAGE_BASICCMD
-	ld	a,(BCMD_ACTIVE)
+	call	@CMNDI		; A=0/Z success, A=DOS error/NZ otherwise
+	call	_error_code	; convert returned DOS status to BASIC numbering
+_complete:
+	ld	b,a
+	pop	af		; restore the data selector saved at _copy_start
+	ld	(PICOPAGEDAT),a
+	pop	hl		; continuation saved at _syntax_ok
+	ld	a,b
 	or	a
-	jr	nz,_resume
+	ret	z
+	ld	e,a
+	jp	BASIC_ERROR
+_bad_copy:
+	call	_name_error
+	jr	_complete
+_bad_length:
+	call	_name_error
+	pop	hl		; no data-bank save exists on this validation path
+	ld	e,a
+	jp	BASIC_ERROR
+_name_error:
 	ld	a,c
-	ld	(PICOPAGEDAT),a
-	jp	RESETR
-_resume:
-	; Disarm first: a later BASIC error must not reuse this saved stack.
-	xor	a
-	ld	(BCMD_ACTIVE),a
-	ld	a,(BCMD_PROMPT)
-	ld	(DOSPRMPT),a
-	ld	sp,(BCMD_STACK)			; discard any DOS dispatcher stack frames
-	pop	hl				; original BASIC text pointer
-	pop	af				; original data bank
-	ld	(PICOPAGEDAT),a
-	ld	a,b
 	or	a
-	ret	z				; resume BASIC after the successful statement
-	ld	e,b
-	jp	$19A2				; ROM ERROR expects the BASIC error number in E
-VIRTUAL_END
-
-; Initialize the 128-byte command buffer and four bytes of return state.
-VIRTUAL_DATA DPAGE_BASICCMD
-	ds	132,0
-VIRTUAL_DATA_END
-; Install the BASIC CMD vector and both public forms of the DOS exit.
-	ORG	$4173				; ROM CMD statement vector
-	jp	basic_cmd
-	ORG	@EXIT
-	jp	basic_cmd_return
-	ORG	@ABORT
-	jp	basic_cmd_abort
-	ORG	@CMD
-	jp	basic_cmd_return
-
-; Restore the caller's code page even when a string expression invokes a
-; banked BASIC extension such as INSTR or a user-defined function.
-VIRTUAL_ROUTINE basic_cmd_eval, PAGE_CMDEVAL
-	jp	FRMEVL
-VIRTUAL_END
-
-; Clear abandoned bridge state on BASIC errors or return to READY. This is
-; a callable page because callers may themselves execute in banked code.
-; Preserve AF and the data selector; the callable trampoline restores code.
-; This only invalidates the return state: it does not restore an old stack.
-VIRTUAL_ROUTINE basic_cmd_cancel, PAGE_CMDCANCEL
-	push	af
-	ld	a,(PICOPAGEDAT)
-	push	af
-	PAGE_DATA	DPAGE_BASICCMD
-	xor	a
-	ld	(BCMD_ACTIVE),a
-	pop	af
-	ld	(PICOPAGEDAT),a
-	pop	af
+	ld	a,$08		; CMD: Illegal function call
+	ret	z
+	ld	a,$80		; KILL: Bad file name
 	ret
-VIRTUAL_END
 
-VIRTUAL_PAGE basic_cmd_reject, PAGE_CMDREJECT
-	ld	a,$08				; Illegal function call: no BASIC-safe command
-	jp	basic_cmd_finish
-VIRTUAL_END
-
-; OVERLAYE redirects active CMD/KILL errors here before printing a DOS
-; message. B holds a TRSDOS error or $40 + FatFS error from api_WAIT.
-; Convert to BASIC's numbering, then unwind through the shared bridge so
-; the normal BASIC handler prints the message and program line number.
-VIRTUAL_PAGE basic_cmd_diskerror, PAGE_CMDERROR
-	ld	a,b
+; A contains a returned DOS code: TRSDOS or $40 + FatFS. Zero is success.
+; Translation is BASIC policy; the reusable @CMNDI API returns DOS codes.
+_error_code:
+	or	a
+	ret	z
+	cp	ILLFILNAM$
+	ld	e,$08		; unknown/unsafe callable command
+	jr	z,_error_value
+	ld	e,$6A		; File not found
 	cp	FILNOTFND$
-	jr	z,_not_found
+	jr	z,_error_value
 	cp	PATNOTFOU$
-	jr	z,_not_found
-	cp	$40+4				; FatFS FR_NO_FILE
-	jr	z,_not_found
-	cp	$40+5				; FatFS FR_NO_PATH
-	jr	z,_not_found
+	jr	z,_error_value
+	cp	$40+4		; FatFS FR_NO_FILE
+	jr	z,_error_value
+	cp	$40+5		; FatFS FR_NO_PATH
+	jr	z,_error_value
+	ld	e,$88		; Disk write protected
 	cp	WRITEPROT$
-	jr	z,_protected
-	cp	$40+10				; FatFS FR_WRITE_PROTECTED
-	jr	z,_protected
+	jr	z,_error_value
+	cp	$40+10		; FatFS FR_WRITE_PROTECTED
+	jr	z,_error_value
+	ld	e,$8A		; File access denied
 	cp	ACCESSDEN$
-	jr	z,_denied
-	cp	$40+7				; FatFS FR_DENIED
-	jr	z,_denied
-	ld	a,$72				; Disk I/O error (generic fallback)
-	jp	basic_cmd_finish
-_not_found:
-	ld	a,$6A				; File not found
-	jp	basic_cmd_finish
-_protected:
-	ld	a,$88				; Disk write protected
-	jp	basic_cmd_finish
-_denied:
-	ld	a,$8A				; File access denied
-	jp	basic_cmd_finish
+	jr	z,_error_value
+	cp	$40+7		; FatFS FR_DENIED
+	jr	z,_error_value
+	ld	e,$72		; Disk I/O error fallback
+_error_value:
+	ld	a,e
+	ret
+
+include BASIC-KILL.z
 VIRTUAL_END
+
+; Only copied text is banked. Command-call state is an ordinary SYS0 byte.
+VIRTUAL_DATA DPAGE_BASICCMD
+	ds	128,0
+VIRTUAL_DATA_END

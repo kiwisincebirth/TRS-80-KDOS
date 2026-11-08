@@ -19,10 +19,10 @@ import	constants.z
 ; ======================================================================
 ;
 	ORG	OVERLY
-ifdef @D_PICOENHANCED
+	cp	S_CMDCALL
+	jp	z,_command_call	; public @CMNDI: execute supplied text and RET
 	cp	S_CMDSTRING
-	jp	z,_processDos        ; string supplied by BASIC, no keyboard prompt
-endif
+	jp	z,_processDos	; supplied text, existing terminal dispatch
 ;
 	; Continuation of Code in SYS 0 to Prompt the User and
 	; Process rthe Command. follows same structure as L2 Basic
@@ -165,6 +165,8 @@ _LOOK2:
 _FOUND:
 ;	inc	hl		; consume the next command char
 	ld	a,(hl)
+	or	a
+	jr	z,_FOUND2
 	cp	$0d		; if a terminator
 	jr	z,_FOUND2
 	cp	' '		; is a space
@@ -175,42 +177,30 @@ _FOUND1:
 	cp	' '		; is a Also a space
 	jr	z,_FOUND1	; want to skip all spaces
 _FOUND2:
-ifdef @D_PICOENHANCED
-	; LOAD can overwrite the executing BASIC program. Keep it DOS-only.
-	; Read BCMD_ACTIVE only with its data bank selected; the same address
-	; in another bank may contain unrelated BASIC/history data.
-	ld	a,(PICOPAGEDAT)
-	cp	DPAGE_BASICCMD
-	jr	nz,_dispatch_found
-	ld	a,(BCMD_ACTIVE)
+	; A called command must preserve its caller's program. LOAD and native
+	; binaries have no such contract, so keep them at the interactive prompt.
+	ld	a,(DOSCALL_ACTIVE)
 	or	a
 	jr	z,_dispatch_found
 	ld	a,(de)
-	cp	$3E                 ; SUPERV starts with LD A,service (not JP)
+	cp	$3E		; SUPERV starts with LD A,service; DI/EI use JP
 	jr	nz,_dispatch_found
 	push	de
-	inc	de                  ; second byte of SUPERV = service identifier
+	inc	de
 	ld	a,(de)
 	pop	de
 	cp	S_LOADCMD
-	jp	z,basic_cmd_reject
+	jp	z,_call_reject
 _dispatch_found:
-endif
 	push	de		; JP DE : save DE pointer to stack
 	ret			; ret / JUMP to the command
 
 ; ----------------------------------------------------------------------
 _NOTFND:
-ifdef @D_PICOENHANCED
-	; Native CMD programs have no BASIC memory-preservation contract.
-	ld	a,(PICOPAGEDAT)
-	cp	DPAGE_BASICCMD
-	jr	nz,_native_command
-	ld	a,(BCMD_ACTIVE)
+	ld	a,(DOSCALL_ACTIVE)
 	or	a
-	jp	nz,basic_cmd_reject
-_native_command:
-endif
+	jp	nz,_call_reject	; do not load a native binary over the caller
+
 	; todo also consider moving this into Overlay L
 	; parse the command line string as a file name
 	ld	hl,(SAVBUFF)	; get original address of command buffer
@@ -396,6 +386,38 @@ _int_enable
 ; 4700 - End Of Overlay
 ; ======================================================================
 ;
+; @CMNDI entry, shared by paged and disk-loaded command processors.
+; HL points to writable CR/NUL-terminated text. Commands may change HL/BC/DE.
+; Push a resident completion address because another overlay replaces this
+; code before the command exits. Reentrant calls fail without changing state.
+_command_call:
+	ld	a,(DOSCALL_ACTIVE)
+	or	a
+	ld	a,INTDOSERR$
+	ret	nz
+	ld	a,(DOSPRMPT)
+	push	af
+	ld	de,DOS_COMMAND_RETURN
+	push	de
+	ld	a,1
+	ld	(DOSCALL_ACTIVE),a
+_call_spaces:
+	ld	a,(hl)
+	cp	SPACE
+	jr	nz,_call_text
+	inc	hl
+	jr	_call_spaces
+_call_text:
+	or	a
+	jr	z,_call_reject
+	cp	ENTER
+	jr	z,_call_reject
+	jp	_processDos
+_call_reject:
+	ld	a,ILLFILNAM$
+	or	a		; NZ/error status for the resident completion routine
+	ret
+
 FREE_OVERLAYC	EQU	OVERLY + $200 - $
 ;
 	; FILL to end of REGION

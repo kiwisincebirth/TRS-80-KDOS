@@ -36,7 +36,13 @@ physical hardware testing passes.
 
 BASIC CMD and KILL - independent contribution
 This branch starts at upstream a584f00, without the separate BASIC file-I/O
-commit. Only SYS/SYSP.sys changes in the compiled deployment. No Pico firmware
+commit. The review revision adds the returning DOS @CMNDI API to SYS0 and
+consolidates CMD/KILL into code page 179, with data page 41 for copied text.
+SYS/SYSP.sys contains the paged implementation. The unpaged core and affected
+overlays also change: SYS/SYS0.sys, SYS/overlayb.sys, SYS/overlayc.sys and
+SYS/overlaye.sys. Keep all five SYS files matched when deploying this revision.
+The returning API is compiled in both modes; automated execution tests use
+the paged build. No Pico firmware
 or configuration changes are needed. Assembly uses 8-column tab stops.
 
 After building, back up the working SD-card SYS/SYSP.sys and replace it with

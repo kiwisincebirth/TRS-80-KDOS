@@ -45,6 +45,8 @@ SCRATH		EQU	$1B49
 SCRTCH		EQU	$1B4D
 RUNC		EQU	$1B5D
 NEWSTT		EQU	$1D1E
+SNERR		EQU	$1997	; ROM Syntax error entry
+BASIC_ERROR	EQU	$19A2	; ROM error handler; E=BASIC error code
 FCERR		EQU	$1E4A
 CRDONZ		EQU	$20F9
 CRDO		EQU	$20FE
@@ -81,7 +83,7 @@ PRGFIN		EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 ; DOS Entry Points Routines
 ;
 @CMD		EQU	$4400 ; Same as @EXIT
-@CMNDI		EQU	$4405 ; execute command (HL), and return to DOS
+@CMNDI		EQU	$4405 ; call internal command at HL; A=0/Z success, NZ error
 @ERROR		EQU	$4409 ; Abort with AND DISPLAY error (A) message
 @INIT		EQU	$4420
 @OPEN		EQU	$4424
@@ -92,6 +94,8 @@ PRGFIN		EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 ;
 ; KDOS specific data held at these Hi locations (4479-447F)
 ;
+DOSCALL_ACTIVE	EQU	$4479	; explicit resident command-call state
+DOS_COMMAND_RETURN EQU $444B	; resident return from command overlays
 KBROWCLR 	EQU	$447B ; State of Clear KB Row at boot. detection of warm start ???
 FHDBYTE	 	EQU	$447C ; FHD byte counter - num bytes before full READ (SYS0)
 PICOVERS 	EQU	$447D ; 2 bytes Pico Version number (Startup)
@@ -171,10 +175,12 @@ S_BASICLOAD	EQU	'B' - SUP_OFF + $20	; LOAD basic command
 S_BASICSAVE	EQU	'B' - SUP_OFF + $40	; SAVE basic command
 S_BASICMERGE	EQU	'B' - SUP_OFF + $60	; MERGE basic command
 S_BASICRUN	EQU	'B' - SUP_OFF + $80	; RUN  basic command
+S_BASICCMD	EQU	'B' - SUP_OFF + $C0	; CMD string statement
 S_BASICKILL	EQU	'B' - SUP_OFF + $A0	; KILL basic command
 ;
 S_CMDPROC	EQU	'C' - SUP_OFF + $20	; Command Interpreter READY>
-S_CMDSTRING	EQU	'C' - SUP_OFF + $40	; BASIC CMD string dispatch
+S_CMDSTRING	EQU	'C' - SUP_OFF + $40	; dispatch supplied command text
+S_CMDCALL	EQU	'C' - SUP_OFF + $60	; execute supplied text and return
 S_DIRCMD	EQU	'D' - SUP_OFF + $20	; #DIR command
 S_ERRHAND	EQU	'E' - SUP_OFF + $20	; (4409) DOS Error Handler
 ;
@@ -473,22 +479,14 @@ DPAGE_DEFFN	EQU	32	; Page for Basic Def FN Def User
 DPAGE_DOSHISTORY EQU 33	; Seven consecutive pages: history/draft and state
 ; History reserves data pages 33-39; each exposes only $3600-$37DF.
 
-; BASIC CMD/KILL are independent of the sequential-I/O feature (160-178).
-; Code pages 179-182, 185-189; data page 41. History owns code 183-184.
-PAGE_BASICCMD		EQU	179
-PAGE_CMDRETURN		EQU	180
-PAGE_CMDABORT		EQU	181
-PAGE_CMDFINISH		EQU	182
-PAGE_CMDEVAL		EQU	185
-PAGE_BASICKILL		EQU	186
-PAGE_CMDCANCEL		EQU	187
-PAGE_CMDERROR		EQU	188
-PAGE_CMDREJECT		EQU	189
-DPAGE_BASICCMD		EQU	41
-BCMD_BUFFER		EQU	$3600		; 127 characters plus CR
-BCMD_STACK		EQU	$3680
-BCMD_PROMPT		EQU	$3682
-BCMD_ACTIVE		EQU	$3683
+; CMD/KILL share one callable code page; only their copied text is banked.
+PAGE_BASICCOMMANDS EQU 179
+BASIC_COMMAND_PAGE EQU $3000 + PAGE_BASICCOMMANDS*4
+BASIC_COMMAND_ENTER EQU $44C6 ; resident JP-style entry to the same physical page
+DPAGE_BASICCMD EQU 41
+BCMD_BUFFER EQU $3600          ; 128 bytes, including CR terminator
+BCMD_EVALUATE EQU 0            ; shared-page operation: ROM expression
+BCMD_EXECUTE EQU 1             ; shared-page operation: DOS command call
 
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------

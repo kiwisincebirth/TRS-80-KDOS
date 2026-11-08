@@ -18,16 +18,7 @@ import	constants.z
 ; ======================================================================
 ;
 	ORG	OVERLY
-ifdef @D_PICOENHANCED
-	; Commands called by BASIC report a BASIC error and unwind the bridge.
-	ld	a,(PICOPAGEDAT)
-	cp	DPAGE_BASICCMD
-	jr	nz,_normal_error
-	ld	a,(BCMD_ACTIVE)
-	or	a
-	jp	nz,basic_cmd_diskerror
-_normal_error:
-endif
+
 
 ; Error Code is in B - copied from A, A used by SuperV
 ; Bit 7 determines if the error is terminating or a CALL and return
@@ -44,13 +35,18 @@ endif
 	bit	7,b		; test the 7th bit
 	jr	nz,_HANDERR	; =1 jp down, with RET out
 
+	; A terminal error in @CMNDI is returned to its caller, not printed here.
+	; Bit-7 callable display requests above keep their original semantics.
+	ld	a,(DOSCALL_ACTIVE)
+	or	a
+	jr	z,_terminal_error
+	ld	a,b
+	or	a
+	ret
+_terminal_error:
 	; otherwise if bit 7=0 then
 	call	_HANDERR		; display the error
-ifdef @D_PICOENHANCED
-	jp	@ABORT              ; CMD errors stop the BASIC program
-else
-	jp	@EXIT		; JP back to DOS
-endif
+	jp	@ABORT		; error-already-displayed exit owned by SYS0
 ;
 ; ----------------------------------------------------------------------
 ;

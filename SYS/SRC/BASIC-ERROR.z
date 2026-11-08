@@ -18,7 +18,8 @@ import	constants.z
 ; There are no RETS in this Code
 ;
 VIRTUAL_PAGE L2ERRORHAND1, PAGE_DOSERROR1
-	call	basic_cmd_cancel	; errors must not leave a stale DOS return stack
+	xor	a
+	ld	(DOSCALL_ACTIVE),a	; a ROM error abandons any outstanding command call
 ;
 ; ======================================================================
 ;

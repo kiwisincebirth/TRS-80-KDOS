@@ -167,6 +167,21 @@ These additions do not implement the low-level FCB-based DOS `@KILL` API,
 nor do they add `OPEN`, `CLOSE`, `PRINT#`, `INPUT#`, `LINE INPUT#`, or `EOF`.
 The sequential file-I/O work remains a separate contribution.
 
+## Callable DOS command API
+
+Machine-code callers can use `CALL $4405` (`@CMNDI`) with HL pointing to
+writable CR- or NUL-terminated command text. The command processor executes
+an internal command and returns A=0/Z on success, or A=DOS error/NZ on failure.
+BC, DE and HL may change. The paged implementation restores the caller's
+code bank; the caller's data bank and DOS prompt mode are preserved.
+Nested calls are rejected with Internal DOS Error. Native program execution
+and DOS LOAD are excluded from this returning interface.
+
+BASIC CMD and KILL use this interface; BASIC alone translates DOS error
+numbers into BASIC errors. Both statements share code page 179 and use data
+page 41 only for a private command-string copy. This API does not implement
+all historical TRSDOS CMD subcommands.
+
 ## Filenames
 
 Files names (including directories) should follow the 8.3 naming convention.

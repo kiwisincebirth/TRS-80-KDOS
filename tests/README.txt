@@ -51,7 +51,9 @@ Tests execute the real ROM tokenizer, expressions, interpreter and error
 handler, plus the compiled DOS command parser/directory/delete services.
 They cover direct mode, colon continuation, loops/GOSUB, nested expressions,
 directory paging/BREAK, invalid commands, delete errors, state cleanup, and
-existing BASIC LOAD/RUN. Pico ports/filesystem and paging are simulated;
+existing BASIC LOAD/RUN. Direct @CMNDI tests cover success/error status,
+CR/NUL input, nested-call rejection, stack balance and caller-bank restoration.
+Pico ports/filesystem and paging are simulated;
 the tests do not replace physical Floppy80 verification.
 
 The suite generates build/SD-CARD/CMDKILL.BAS (tokenized, LOADable) and
