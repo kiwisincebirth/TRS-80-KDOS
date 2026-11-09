@@ -108,7 +108,7 @@ include	BASIC-LINE.z		; $41A3
 ; DOS Exits
 ; ----------------------------------------------------------------------
 ;
-include	BASIC-CMD.z		; shared page also includes BASIC-KILL.z
+include	BASIC-CMD.z		; shared CMD/KILL statement page
 
 include BASIC-ERROR.z		; $41A6
 include BASIC-USR.z		; $41A9

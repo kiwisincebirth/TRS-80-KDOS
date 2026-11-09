@@ -116,6 +116,8 @@ _processDos
 	ld	a,1
 	ld	(DOSPRMPT),a	; ensure the the DOS flag is set ON
 
+_parseDos:
+	; Returning calls enter here without changing the interactive prompt mode.
 	; hl has pointer to the command buffer noting this is a l2 BASIC (-1) pointer.
 	; which is currently the '#' character
 	;
@@ -177,21 +179,6 @@ _FOUND1:
 	cp	' '		; is a Also a space
 	jr	z,_FOUND1	; want to skip all spaces
 _FOUND2:
-	; A called command must preserve its caller's program. LOAD and native
-	; binaries have no such contract, so keep them at the interactive prompt.
-	ld	a,(DOSCALL_ACTIVE)
-	or	a
-	jr	z,_dispatch_found
-	ld	a,(de)
-	cp	$3E		; SUPERV starts with LD A,service; DI/EI use JP
-	jr	nz,_dispatch_found
-	push	de
-	inc	de
-	ld	a,(de)
-	pop	de
-	cp	S_LOADCMD
-	jp	z,_call_reject
-_dispatch_found:
 	push	de		; JP DE : save DE pointer to stack
 	ret			; ret / JUMP to the command
 
@@ -199,7 +186,7 @@ _dispatch_found:
 _NOTFND:
 	ld	a,(DOSCALL_ACTIVE)
 	or	a
-	jp	nz,_call_reject	; do not load a native binary over the caller
+	jp	nz,_call_reject	; returning calls accept internal commands only (not GALAXY, etc.)
 
 	; todo also consider moving this into Overlay L
 	; parse the command line string as a file name
@@ -395,8 +382,6 @@ _command_call:
 	or	a
 	ld	a,INTDOSERR$
 	ret	nz
-	ld	a,(DOSPRMPT)
-	push	af
 	ld	de,DOS_COMMAND_RETURN
 	push	de
 	ld	a,1
@@ -412,7 +397,7 @@ _call_text:
 	jr	z,_call_reject
 	cp	ENTER
 	jr	z,_call_reject
-	jp	_processDos
+	jp	_parseDos
 _call_reject:
 	ld	a,ILLFILNAM$
 	or	a		; NZ/error status for the resident completion routine

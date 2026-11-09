@@ -20,7 +20,7 @@ VIRTUAL_ROUTINE basic_commands_page, PAGE_BASICCOMMANDS
 	jp	z,FRMEVL
 	cp	BCMD_EXECUTE
 	jr	z,_execute
-	cp	S_BASICKILL
+	cp	BCMD_KILL
 	jp	z,basic_kill
 basic_cmd:
 	xor	a		; mode 0: command text; mode 1: literal KILL path
@@ -126,9 +126,9 @@ _bad_length:
 _name_error:
 	ld	a,c
 	or	a
-	ld	a,$08		; CMD: Illegal function call
+	ld	a,BERR_FUNCTION		; CMD: Illegal function call
 	ret	z
-	ld	a,$80		; KILL: Bad file name
+	ld	a,BERR_FILENAME		; KILL: Bad file name
 	ret
 
 ; A contains a returned DOS code: TRSDOS or $40 + FatFS. Zero is success.
@@ -137,33 +137,36 @@ _error_code:
 	or	a
 	ret	z
 	cp	ILLFILNAM$
-	ld	e,$08		; unknown/unsafe callable command
+	ld	e,BERR_FUNCTION		; unknown/unsafe callable command
 	jr	z,_error_value
-	ld	e,$6A		; File not found
+	ld	e,BERR_NOTFOUND		; File not found
 	cp	FILNOTFND$
 	jr	z,_error_value
 	cp	PATNOTFOU$
 	jr	z,_error_value
-	cp	$40+4		; FatFS FR_NO_FILE
+	cp	FATFS_NO_FILE		; FatFS FR_NO_FILE
 	jr	z,_error_value
-	cp	$40+5		; FatFS FR_NO_PATH
+	cp	FATFS_NO_PATH		; FatFS FR_NO_PATH
 	jr	z,_error_value
-	ld	e,$88		; Disk write protected
+	ld	e,BERR_PROTECTED		; Disk write protected
 	cp	WRITEPROT$
 	jr	z,_error_value
-	cp	$40+10		; FatFS FR_WRITE_PROTECTED
+	cp	FATFS_PROTECTED		; FatFS FR_WRITE_PROTECTED
 	jr	z,_error_value
-	ld	e,$8A		; File access denied
+	ld	e,BERR_ACCESS		; File access denied
 	cp	ACCESSDEN$
 	jr	z,_error_value
-	cp	$40+7		; FatFS FR_DENIED
+	cp	FATFS_DENIED		; FatFS FR_DENIED
 	jr	z,_error_value
-	ld	e,$72		; Disk I/O error fallback
+	ld	e,BERR_IO		; Disk I/O error fallback
 _error_value:
 	ld	a,e
 	ret
 
-include BASIC-KILL.z
+; KILL uses the same validator/copy path, adding DEL before its literal path.
+basic_kill:
+	ld	a,1
+	jp	basic_command_string
 VIRTUAL_END
 
 ; Only copied text is banked. Command-call state is an ordinary SYS0 byte.

@@ -37,7 +37,6 @@
     <None Include="SYS\SRC\BASIC-DEFINE.z" />
     <None Include="SYS\SRC\BASIC-ERROR.z" />
     <None Include="SYS\SRC\BASIC-CMD.z" />
-    <None Include="SYS\SRC\BASIC-KILL.z" />
     <None Include="SYS\SRC\BASIC-HELP.z" />
     <None Include="SYS\SRC\BASIC-INSTR.z" />
     <None Include="SYS\SRC\BASIC-LINE.z" />

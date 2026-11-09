@@ -181,7 +181,7 @@ def command_tests():
  result=r.statement('CMD "DIR":PRINT "RESUMED"')
  assert r.dir_index==175 and result.endswith(b'RESUMED\r') and b'FILE0060.DAT' not in result
  for text,code in [('CMD ""',8),('CMD 12',0x18),('CMD "DIR"+CHR$(13)',8),
-  ('CMD "'+('X'*128)+'"',8),('CMD "MISSING"',8),('CMD "LOAD X.CMD"',8)]:
+  ('CMD "'+('X'*128)+'"',8),('CMD "MISSING"',8)]:
   r=CommandRig();expect_error(r,text,code)
   r.flush();assert r.mem[base.symbol('DOSCALL_ACTIVE')]==0
   assert r.statement('PRINT "RECOVERED"')==b'RECOVERED\r'
@@ -237,7 +237,7 @@ def callable_dos_tests():
  for bank in (215,226):
   for data in (0,32,41):
    for text,error in [(b'PWD\r',0),(b'PWD\0',0),(b' MISSING\r',19),
-                      (b'LOAD X.CMD\r',19),(b'\r',19),(b'DEL MISSING\r',68)]:
+                      (b'\r',19),(b'DEL MISSING\r',68)]:
     r=CommandRig();r.write(0x37f0,bank);r.write(0x37f1,data)
     r.mem[0x5000:0x5000+len(text)]=text;r.m.hl=0x5000
     r.mem[base.symbol('DOSPRMPT')]=1;r.call(0x4405)
@@ -252,6 +252,45 @@ def callable_dos_tests():
  assert r.m.a==62 and not r.m.f&64
  assert r.mem[base.symbol('DOSCALL_ACTIVE')]==1 and not r.sent
  return {'cmndi':'PASS: direct public API, CR/NUL text, errors, reentrancy rejection, stack and caller-bank restoration'}
+
+
+
+def binary_load_tests():
+ # Run the real command parser, LOAD overlay and resident CMD record loader.
+ # Only the legacy byte-stream API is mocked, so no host files are loaded.
+ def install(r,content):
+  remaining=deque(content)
+  def opened():
+   assert bytes(r.mem[r.m.de:r.m.de+r.m.b]).rstrip(b'\0')==b'TEST.CMD'
+   r.m.a=0;r.m.f=64;r.ret()
+  def byte():
+   assert remaining,'Loader read beyond the transfer record'
+   r.m.a=remaining.popleft();r.m.f=64;r.ret()
+  def closed():r.m.a=0;r.m.f=64;r.ret()
+  r.hook(base.symbol('api_OPEN'),opened)
+  r.hook(base.symbol('api_READBYTE'),byte)
+  r.hook(base.symbol('api_CLOSE'),closed)
+  return remaining
+ for banked in (False,True):
+  r=CommandRig();r.write(0x37f1,32)
+  # Bank 180 is outside DOS allocations. Transfer address $7000 must not run.
+  content=(b'\x01\x03\xf0\x37\xb4' if banked else b'')
+  address=0x3400 if banked else 0x7000
+  content+=bytes([1,5,address&255,address>>8])+b'ABC'+b'\x02\x02\x00\x70'
+  remaining=install(r,content)
+  result=r.statement('CMD "LOAD TEST.CMD":PRINT "LOADED"')
+  assert result==b'LOADED\r' and not remaining
+  r.flush();assert bytes(r.banks[180][:3] if banked else r.mem[0x7000:0x7003])==b'ABC'
+  assert r.dpage==32 and not r.page_returns
+  assert r.statement('CMD "PWD"')==b'/TEST\r'
+ # Loader failures still become BASIC errors; unknown external names remain rejected.
+ r=CommandRig()
+ def missing():r.m.a=68;r.m.f=0;r.ret()
+ r.hook(base.symbol('api_OPEN'),missing)
+ expect_error(r,'CMD "LOAD MISSING.CMD"',0x6a)
+ expect_error(r,'CMD "GALAXY"',8)
+ assert r.statement('CMD "PWD"')==b'/TEST\r'
+ return {'cmd_load':'PASS: real record loader, ordinary/banked payloads, continuation without execution, missing file and external-command rejection'}
 
 
 def basic_loader_tests():
@@ -309,7 +348,7 @@ def smoke_test():
 
 if __name__=='__main__':
  if not os.environ.get('KDOS_TEST_ROM'):raise SystemExit('Set KDOS_TEST_ROM to a 12 KiB Level II-compatible ROM; see tests/README.txt.')
- report=callable_dos_tests()|command_tests()|kill_tests()|basic_loader_tests()|smoke_test()
+ report=binary_load_tests()|callable_dos_tests()|command_tests()|kill_tests()|basic_loader_tests()|smoke_test()
  report['scope']='Actual BASIC ROM and compiled DOS handlers; Pico filesystem/ports simulated. Physical board testing required.'
  (base.BUILD/'basic-commands-test-results.json').write_text(json.dumps(report,indent=2))
  print(json.dumps(report,indent=2))

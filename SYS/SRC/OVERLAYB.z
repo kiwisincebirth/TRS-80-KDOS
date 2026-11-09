@@ -34,7 +34,7 @@ import	constants.z
 	cp	S_BASICCMD
 	jr	z,_BAS_COMMAND
 	cp	S_BASICKILL
-	jr	z,_BAS_COMMAND	; same shared page, distinguished by service ID
+	jr	z,_BAS_KILL	; translate supervisor IDs at the overlay boundary
 	;
 	ld	a, INTDOSERR$	; Internal Failure
 	jp	@ERROR
@@ -93,11 +93,19 @@ _BAS_RUN:
 	jr	_LOADER		; skip to LOAD
 ;
 ; ----------------------------------------------------------------------
-; KILL "XXXXX.BAS" - Delete a program from disk
+; CMD/KILL - translate supervisor services into BASIC page operations
 ; ----------------------------------------------------------------------
 _BAS_COMMAND:
+	ld	a,BCMD_CMD
+	jr	_BAS_ENTER
+_BAS_KILL:
+	ld	a,BCMD_KILL
+_BAS_ENTER:
 ifdef @D_PICOENHANCED
-	jp	BASIC_COMMAND_ENTER	; statement entry has no outstanding CALL frame
+	; The page has a CALL trampoline: PAGE_JP would still leave a firmware
+	; return frame that ROM errors abandon. Select it from resident code;
+	; switching here would replace this overlay before the following JP.
+	jp	api_BASICCOMMANDS
 else
 	jp	L3ERR		; banked BASIC extensions require the Pico build
 endif

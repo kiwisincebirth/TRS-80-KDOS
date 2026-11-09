@@ -482,11 +482,9 @@ endif
 	assert	$ <= DOS_COMMAND_RETURN
 	ORG	DOS_COMMAND_RETURN
 ; OVERLAYC pushes this resident address before dispatching a called command.
-; Its RET restores prompt state, clears the explicit call flag and returns
+; Its RET clears the explicit call flag and returns
 ; A=0/Z on success or A=DOS error/NZ. No BASIC stack or page state lives here.
 	ld	b,a
-	pop	af		; prompt mode saved by OVERLAYC's call entry
-	ld	(DOSPRMPT),a
 	xor	a
 	ld	(DOSCALL_ACTIVE),a
 	ld	a,b
@@ -545,6 +543,11 @@ _dos_exit_status:
 	JP	_api_READBYTE
 	JP	_api_WAIT
 	JP	_loader
+ifdef @D_PICOENHANCED
+	JP	BASIC_COMMAND_ENTER
+else
+	JP	L3ERR
+endif
 ;
 ;
 ; ----------------------------------------------------------------------
@@ -700,7 +703,7 @@ ifdef @D_PICOENHANCED
 ; register or reserving a separate page for this five-byte entry stub.
 DOS_COMMAND_CALL:
 	ld	a,BCMD_EXECUTE
-	jp	BASIC_COMMAND_PAGE
+	PAGE_JP PAGE_BASICCOMMANDS
 endif
 
 ifdef @D_PICOENHANCED
@@ -708,12 +711,8 @@ ifdef @D_PICOENHANCED
 ; same physical page without its CALL trampoline in that case. Evaluation
 ; and @CMNDI still use the callable entry, so their code-bank returns work.
 ; Preserve the service ID in A with a locally paired PUSH/POP.
-	assert	$ <= BASIC_COMMAND_ENTER
-	DC	BASIC_COMMAND_ENTER - $,0
-	push	af
-	ld	a,PAGE_BASICCOMMANDS
-	ld	(PICOPAGENUM),a
-	pop	af
+BASIC_COMMAND_ENTER:
+	PAGE_CODE PAGE_BASICCOMMANDS
 	jp	$3400
 endif
 $FREE_CORE2	EQU	CORE2END - $

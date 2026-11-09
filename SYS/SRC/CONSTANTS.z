@@ -47,6 +47,7 @@ RUNC		EQU	$1B5D
 NEWSTT		EQU	$1D1E
 SNERR		EQU	$1997	; ROM Syntax error entry
 BASIC_ERROR	EQU	$19A2	; ROM error handler; E=BASIC error code
+BASIC_ERROR_CONT EQU	$1A0A	; resume ROM error handler after message display
 FCERR		EQU	$1E4A
 CRDONZ		EQU	$20F9
 CRDO		EQU	$20FE
@@ -83,7 +84,7 @@ PRGFIN		EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 ; DOS Entry Points Routines
 ;
 @CMD		EQU	$4400 ; Same as @EXIT
-@CMNDI		EQU	$4405 ; call internal command at HL; A=0/Z success, NZ error
+@CMNDI		EQU	$4405 ; kDOS returning command entry (historical DOS versions terminate)
 @ERROR		EQU	$4409 ; Abort with AND DISPLAY error (A) message
 @INIT		EQU	$4420
 @OPEN		EQU	$4424
@@ -114,6 +115,7 @@ api_READBYTE	EQU	(4*3) + CORE2
 api_WAIT	EQU	(5*3) + CORE2
 ;
 api_LOADER	EQU	(6*3) + CORE2	; Main Binary File Loader
+api_BASICCOMMANDS EQU	(7*3) + CORE2	; nonreturning bank entry; A=BCMD operation
 ;
 ; ======================================================================
 ; MAIN MEMORY MAP - LAYOUT
@@ -481,12 +483,28 @@ DPAGE_DOSHISTORY EQU 33	; Seven consecutive pages: history/draft and state
 
 ; CMD/KILL share one callable code page; only their copied text is banked.
 PAGE_BASICCOMMANDS EQU 179
-BASIC_COMMAND_PAGE EQU $3000 + PAGE_BASICCOMMANDS*4
-BASIC_COMMAND_ENTER EQU $44C6 ; resident JP-style entry to the same physical page
 DPAGE_BASICCMD EQU 41
 BCMD_BUFFER EQU $3600          ; 128 bytes, including CR terminator
 BCMD_EVALUATE EQU 0            ; shared-page operation: ROM expression
 BCMD_EXECUTE EQU 1             ; shared-page operation: DOS command call
+BCMD_CMD	EQU	2	; BASIC CMD statement (not a supervisor ID)
+BCMD_KILL	EQU	3	; BASIC KILL statement
+
+; BASIC error numbers used by CMD/KILL and the disk-error message table.
+BERR_FUNCTION	EQU	$08
+BERR_FIELD	EQU	$64
+BERR_NOTFOUND	EQU	$6A
+BERR_IO		EQU	$72
+BERR_FILENAME	EQU	$80
+BERR_PROTECTED	EQU	$88
+BERR_ACCESS	EQU	$8A
+BERR_DISK_END	EQU	BERR_ACCESS+2 ; exclusive upper bound
+; Enhanced Pico exposes FatFS results with the DOS $40 offset.
+FATFS_DOS_BASE	EQU	$40
+FATFS_NO_FILE	EQU	FATFS_DOS_BASE+4
+FATFS_NO_PATH	EQU	FATFS_DOS_BASE+5
+FATFS_DENIED	EQU	FATFS_DOS_BASE+7
+FATFS_PROTECTED	EQU	FATFS_DOS_BASE+10
 
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------
@@ -547,4 +565,15 @@ PAGE_DATA macro pagenum
 	assert pagenum>=0 && pagenum<$100	; Parameter validation
 	LD	a,pagenum
 	LD	(PICOPAGEDAT),a	; Write the page number to the Data Page Reg
+endm
+
+; Select a code page while preserving AF. Execute only from resident code:
+; changing the selector replaces every instruction in $3400-$35FF.
+PAGE_CODE macro pagenum
+	assert pagenum>=0 && pagenum<$100
+	assert $ < $3400 || $ >= $3600
+	push	af
+	ld	a,pagenum
+	ld	(PICOPAGENUM),a
+	pop	af
 endm

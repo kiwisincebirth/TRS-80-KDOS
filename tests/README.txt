@@ -53,6 +53,8 @@ They cover direct mode, colon continuation, loops/GOSUB, nested expressions,
 directory paging/BREAK, invalid commands, delete errors, state cleanup, and
 existing BASIC LOAD/RUN. Direct @CMNDI tests cover success/error status,
 CR/NUL input, nested-call rejection, stack balance and caller-bank restoration.
+CMD LOAD tests execute the real record loader for ordinary RAM and a separate
+code bank, check continuation without execution, and verify loader errors.
 Pico ports/filesystem and paging are simulated;
 the tests do not replace physical Floppy80 verification.
 

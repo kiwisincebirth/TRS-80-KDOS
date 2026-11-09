@@ -137,16 +137,17 @@ prompt or discard BASIC variables.
 
 The existing internal commands and aliases are available: `DIR`/`LS`, `CD`,
 `PWD`, `COPY`/`CP`, `DEL`/`DELETE`/`KILL`/`RM`, `MD`/`MKDIR`,
-`REN`/`RENAME`/`MOVE`/`MV`, `HELP`, `DI`, and `EI`. A command string may
+`REN`/`RENAME`/`MOVE`/`MV`, `LOAD`, `HELP`, `DI`, and `EI`. A command string may
 contain at most 127 characters. For example, `CMD "CD GAMES"` changes the
 current directory for later BASIC and DOS file operations.
 
 Directory paging behaves as it does at the DOS prompt. BREAK at a paused
 listing stops the listing and resumes BASIC without clearing the screen.
-Unknown commands, native `.CMD` program execution, and DOS `LOAD` through
-`CMD` are not supported in this version: native programs can overwrite the
-running BASIC program. These produce `Illegal function call`. Use the DOS
-prompt for native programs and BASIC's existing `LOAD` for BASIC programs.
+Unknown commands and external program names such as `CMD "GALAXY"` produce
+`Illegal function call`. `CMD "LOAD TEST.CMD"` loads binary records without
+executing the transfer address, then continues BASIC. The binary must target
+memory or banks reserved by your application; loading over BASIC or DOS can
+corrupt the running system. Use BASIC's `LOAD` for BASIC programs.
 
 `KILL` accepts a single filename/path string expression and uses the existing
 DOS delete service. Deletion is permanent, without a confirmation prompt.
@@ -174,8 +175,11 @@ writable CR- or NUL-terminated command text. The command processor executes
 an internal command and returns A=0/Z on success, or A=DOS error/NZ on failure.
 BC, DE and HL may change. The paged implementation restores the caller's
 code bank; the caller's data bank and DOS prompt mode are preserved.
-Nested calls are rejected with Internal DOS Error. Native program execution
-and DOS LOAD are excluded from this returning interface.
+Nested calls are rejected with Internal DOS Error. External program names
+are excluded; internal LOAD is supported without executing the loaded code.
+This returning behavior is a kDOS extension: historical TRSDOS, LDOS and
+NewDOS versions use $4405 as a terminating command entry. Compatibility and
+a broader command-return redesign are deferred for separate review.
 
 BASIC CMD and KILL use this interface; BASIC alone translates DOS error
 numbers into BASIC errors. Both statements share code page 179 and use data
