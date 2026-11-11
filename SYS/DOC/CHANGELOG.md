@@ -5,6 +5,7 @@
 
 New Features
 * [RS] DOS Command line Input History, with up to 20 items
+* [MP] Added Basic KILL "FILE/EXT" Command
 
 Improvements
 * [RS] DIR command supports BREAK to abort

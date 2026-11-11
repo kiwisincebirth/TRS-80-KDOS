@@ -103,6 +103,7 @@ the non-disk I/O statements and extensions. The following are supported
 |            | SAVE "filename.BAS" | Save a program to Disk | FreHD |
 |            | RUN "filename.BAS"  | Load and Run a program | FreHD |
 |            | CMD "command"       | Execute an internal DOS command | Floppy80 |
+|            | KILL "filename"     | Delete a file          |       |
 |            | MERGE "filename"    | Merge a file (todo)    | FreHD | 
 |            | -                   | -                      |       |
 | Statements | &Hxx                | Hexadecimal Constant   |       |
