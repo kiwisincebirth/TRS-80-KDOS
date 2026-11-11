@@ -5,6 +5,7 @@
 
 New Features
 * [RS] DOS Command line Input History, with up to 20 items
+* [RS] Added Basic CMD "COMMAND" to execute DOS internal commands
 * [MP] Added Basic KILL "FILE/EXT" Command
 
 Improvements

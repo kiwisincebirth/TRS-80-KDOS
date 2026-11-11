@@ -92,39 +92,50 @@ At a paused `DIR` listing, press **BREAK** to return to the DOS prompt while
 keeping the displayed filenames. Any other key continues the listing. The
 remaining Pico directory records are consumed silently before returning.
 
-## BASIC Extensions
+## BASIC Commands
 
 As well as the DOS commands, BASIC itself has been upgraded with
+commands to manage disk based files. These are executed from the BASIC prompt
+
+The following are supported
+
+| Command              | Description                     |
+|----------------------|---------------------------------|
+| LOAD "filename.BAS"  | Load a basic Program            |
+| SAVE "filename.BAS"  | Save a program to Disk          |
+| RUN "filename.BAS"   | Load and Run a program          |
+| KILL "filename.EXT"  | Delete a file                   |
+| MERGE "filename.BAS" | Merge a file (todo)             | 
+
+Note: Ony Tokenised BAS files are supported. ASCII files will not work.
+
+## BASIC Statements
+
+BASIC itself has been upgraded with
 the non-disk I/O statements and extensions. The following are supported
 
-|            | Command             | Description            |       |
-|------------|---------------------|------------------------|-------|
-| Commands   | LOAD "filename.BAS" | Load a basic Program   | FreHD |
-|            | SAVE "filename.BAS" | Save a program to Disk | FreHD |
-|            | RUN "filename.BAS"  | Load and Run a program | FreHD |
-|            | CMD "command"       | Execute an internal DOS command | Floppy80 |
-|            | KILL "filename"     | Delete a file          |       |
-|            | MERGE "filename"    | Merge a file (todo)    | FreHD | 
-|            | -                   | -                      |       |
-| Statements | &Hxx                | Hexadecimal Constant   |       |
-|            | &Oxx                | Octo-decimal Constant  |       |
-|            | CVI CVS CVD         | Convert from String    |       |
-|            | DEF FNn(A)=A        | Define a User Function |       |
-|            | DEF USRn=ADDR       | Define a Call address  |       |
-|            | FNn(A)              | Invoke a User Function |       |
-|            | INSTR(X$,Y$)        | String Search function |       |
-|            | LINE INPUT A$       | Input an entire line   |       |
-|            | MID(X$,N,N)=""      | Mid String Assignment  |       |
-|            | MKI$ MKS$ MKD$      | Convert to String      |       |
-|            | TIME$               | RTC Current DateTime   |       |
-|            | USRn(A)             | Invoke a Call address  |       |
+| Command             | Description                     |
+|---------------------|---------------------------------|
+| &Hxx                | Hexadecimal Constant            |
+| &Oxx                | Octo-decimal Constant           |
+| CMD "command"       | Execute an internal DOS command |
+| CVI CVS CVD         | Convert from String             |
+| DEF FNn(A)=A        | Define a User Function          |
+| DEF USRn=ADDR       | Define a Call address           |
+| FNn(A)              | Invoke a User Function          |
+| INSTR(X$,Y$)        | String Search function          |
+| LINE INPUT A$       | Input an entire line            |
+| MID(X$,N,N)=""      | Mid String Assignment           |
+| MKI$ MKS$ MKD$      | Convert to String               |
+| TIME$               | RTC Current DateTime            |
+| USRn(A)             | Invoke a Call address           |
 
 As well as this BASIC will display the descriptive error messages.
 Disk Basic I/O function are a future feature
 
-## Calling DOS commands from BASIC
+### CMD - Calling DOS commands.
 
-On Floppy80, `CMD` accepts a string expression containing an internal DOS
+`CMD` accepts a string expression containing an internal DOS
 command. It works at the BASIC prompt and inside a program. A successful
 command returns to the next BASIC statement; it does not change to the DOS
 prompt or discard BASIC variables.
@@ -149,7 +160,9 @@ executing the transfer address, then continues BASIC. The binary must target
 memory or banks reserved by your application; loading over BASIC or DOS can
 corrupt the running system. Use BASIC's `LOAD` for BASIC programs.
 
-## Callable DOS command API
+## DOS Machine Language API's
+
+### @CMNDI (4405) - Execute Command
 
 Machine-code callers can use `CALL $4405` (`@CMNDI`) with HL pointing to
 writable CR- or NUL-terminated command text. The command processor executes
@@ -167,7 +180,9 @@ numbers into BASIC errors. CMD uses code page 179 and data
 page 41 only for a private command-string copy. This API does not implement
 all historical TRSDOS CMD subcommands.
 
-## Filenames
+### Appendix
+
+### Filenames
 
 Files names (including directories) should follow the 8.3 naming convention.
 Longer file names will be truncated to 8.3 format. While this is supported
