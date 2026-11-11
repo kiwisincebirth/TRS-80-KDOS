@@ -31,6 +31,8 @@ import	constants.z
 	cp	S_BASICMERGE
 	jr	z,_BAS_MERGE	; MERGE
 	;
+	cp	S_BASICCMD
+	jr	z,_BAS_COMMAND
 	cp	S_BASICKILL
 	jr	z,_BAS_KILL	; KILL
 	;
@@ -89,6 +91,21 @@ _BAS_RUN:
 	ld	a,1		; flag for LOAD and RUN
 	ld	(_RUNFLAG),a
 	jr	_LOADER		; skip to LOAD
+;
+; ----------------------------------------------------------------------
+; CMD - enter the BASIC command extension
+; ----------------------------------------------------------------------
+_BAS_COMMAND:
+	ld	a,BCMD_CMD
+
+ifdef @D_PICOENHANCED
+	; The page has a CALL trampoline: PAGE_JP would still leave a firmware
+	; return frame that ROM errors abandon. Select it from resident code;
+	; switching here would replace this overlay before the following JP.
+	jp	api_BASICCOMMANDS
+else
+	jp	L3ERR		; banked BASIC extensions require the Pico build
+endif
 ;
 ; ----------------------------------------------------------------------
 ; KILL "XXXXX.BAS" - Delete a program from disk

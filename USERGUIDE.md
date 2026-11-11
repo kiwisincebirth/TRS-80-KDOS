@@ -102,7 +102,8 @@ the non-disk I/O statements and extensions. The following are supported
 | Commands   | LOAD "filename.BAS" | Load a basic Program   | FreHD |
 |            | SAVE "filename.BAS" | Save a program to Disk | FreHD |
 |            | RUN "filename.BAS"  | Load and Run a program | FreHD |
-|            | KILL "filename"     | Delete a file          |       | 
+|            | CMD "command"       | Execute an internal DOS command | Floppy80 |
+|            | KILL "filename"     | Delete a file          |       |
 |            | MERGE "filename"    | Merge a file (todo)    | FreHD | 
 |            | -                   | -                      |       |
 | Statements | &Hxx                | Hexadecimal Constant   |       |
@@ -120,6 +121,51 @@ the non-disk I/O statements and extensions. The following are supported
 
 As well as this BASIC will display the descriptive error messages.
 Disk Basic I/O function are a future feature
+
+## Calling DOS commands from BASIC
+
+On Floppy80, `CMD` accepts a string expression containing an internal DOS
+command. It works at the BASIC prompt and inside a program. A successful
+command returns to the next BASIC statement; it does not change to the DOS
+prompt or discard BASIC variables.
+
+```basic
+10 CMD "PWD"
+20 CMD "DIR *.BAS"
+30 PRINT "BACK IN BASIC"
+```
+
+The existing internal commands and aliases are available: `DIR`/`LS`, `CD`,
+`PWD`, `COPY`/`CP`, `DEL`/`DELETE`/`KILL`/`RM`, `MD`/`MKDIR`,
+`REN`/`RENAME`/`MOVE`/`MV`, `LOAD`, `HELP`, `DI`, and `EI`. A command string may
+contain at most 127 characters. For example, `CMD "CD GAMES"` changes the
+current directory for later BASIC and DOS file operations.
+
+Directory paging behaves as it does at the DOS prompt. BREAK at a paused
+listing stops the listing and resumes BASIC without clearing the screen.
+Unknown commands and external program names such as `CMD "GALAXY"` produce
+`Illegal function call`. `CMD "LOAD TEST.CMD"` loads binary records without
+executing the transfer address, then continues BASIC. The binary must target
+memory or banks reserved by your application; loading over BASIC or DOS can
+corrupt the running system. Use BASIC's `LOAD` for BASIC programs.
+
+## Callable DOS command API
+
+Machine-code callers can use `CALL $4405` (`@CMNDI`) with HL pointing to
+writable CR- or NUL-terminated command text. The command processor executes
+an internal command and returns A=0/Z on success, or A=DOS error/NZ on failure.
+BC, DE and HL may change. The paged implementation restores the caller's
+code bank; the caller's data bank and DOS prompt mode are preserved.
+Nested calls are rejected with Internal DOS Error. External program names
+are excluded; internal LOAD is supported without executing the loaded code.
+This returning behavior is a kDOS extension: historical TRSDOS, LDOS and
+NewDOS versions use $4405 as a terminating command entry. Compatibility and
+a broader command-return redesign are deferred for separate review.
+
+BASIC CMD uses this interface; BASIC alone translates DOS error
+numbers into BASIC errors. CMD uses code page 179 and data
+page 41 only for a private command-string copy. This API does not implement
+all historical TRSDOS CMD subcommands.
 
 ## Filenames
 

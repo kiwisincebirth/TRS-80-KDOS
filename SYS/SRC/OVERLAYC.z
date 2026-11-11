@@ -19,6 +19,10 @@ import	constants.z
 ; ======================================================================
 ;
 	ORG	OVERLY
+	cp	S_CMDCALL
+	jp	z,_command_call	; public @CMNDI: execute supplied text and RET
+	cp	S_CMDSTRING
+	jp	z,_processDos	; supplied text, existing terminal dispatch
 ;
 	; Continuation of Code in SYS 0 to Prompt the User and
 	; Process rthe Command. follows same structure as L2 Basic
@@ -87,6 +91,8 @@ _promptDOS
 	; **** Get User Command
 ;	call	INLIN		; Actually read a Line of input
 ifdef @D_PICOENHANCED
+        ; Same HL/B/carry contract as ROM line input: BREAK reprompts,
+        ; empty ENTER returns to BASIC, and nonempty input reaches the parser.
         PAGE_CALL PAGE_DOSHISTORY
 else
 	LD	HL,STRBUFF	;the DOS command input buffer
@@ -110,6 +116,8 @@ _processDos
 	ld	a,1
 	ld	(DOSPRMPT),a	; ensure the the DOS flag is set ON
 
+_parseDos:
+	; Returning calls enter here without changing the interactive prompt mode.
 	; hl has pointer to the command buffer noting this is a l2 BASIC (-1) pointer.
 	; which is currently the '#' character
 	;
@@ -159,6 +167,8 @@ _LOOK2:
 _FOUND:
 ;	inc	hl		; consume the next command char
 	ld	a,(hl)
+	or	a
+	jr	z,_FOUND2
 	cp	$0d		; if a terminator
 	jr	z,_FOUND2
 	cp	' '		; is a space
@@ -174,6 +184,10 @@ _FOUND2:
 
 ; ----------------------------------------------------------------------
 _NOTFND:
+	ld	a,(DOSCALL_ACTIVE)
+	or	a
+	jp	nz,_call_reject	; returning calls accept internal commands only (not GALAXY, etc.)
+
 	; todo also consider moving this into Overlay L
 	; parse the command line string as a file name
 	ld	hl,(SAVBUFF)	; get original address of command buffer
@@ -359,6 +373,36 @@ _int_enable
 ; 4700 - End Of Overlay
 ; ======================================================================
 ;
+; @CMNDI entry, shared by paged and disk-loaded command processors.
+; HL points to writable CR/NUL-terminated text. Commands may change HL/BC/DE.
+; Push a resident completion address because another overlay replaces this
+; code before the command exits. Reentrant calls fail without changing state.
+_command_call:
+	ld	a,(DOSCALL_ACTIVE)
+	or	a
+	ld	a,INTDOSERR$
+	ret	nz
+	ld	de,DOS_COMMAND_RETURN
+	push	de
+	ld	a,1
+	ld	(DOSCALL_ACTIVE),a
+_call_spaces:
+	ld	a,(hl)
+	cp	SPACE
+	jr	nz,_call_text
+	inc	hl
+	jr	_call_spaces
+_call_text:
+	or	a
+	jr	z,_call_reject
+	cp	ENTER
+	jr	z,_call_reject
+	jp	_parseDos
+_call_reject:
+	ld	a,ILLFILNAM$
+	or	a		; NZ/error status for the resident completion routine
+	ret
+
 FREE_OVERLAYC	EQU	OVERLY + $200 - $
 ;
 	; FILL to end of REGION

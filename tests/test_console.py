@@ -1,5 +1,15 @@
-"""Execute assembled Z80 code; mock ROM console and Floppy80 directory ports.
-Not a complete Model I/Floppy80 emulator: hardware timing/interrupts need testing.
+"""Regression tests for DOS history, settings, directory BREAK and boot loading.
+
+Execute the built Z80 binaries rather than a Python rewrite of their logic.
+The Rig supplies banked memory, callable-page return behavior, scripted ROM
+console calls and mocked Floppy80 ports. Tests check ring rollover/drafts,
+bank and hardware-boundary preservation, directory cancellation/stream drain,
+configuration fallbacks and loading SYSP.sys through the real boot loader.
+
+Build first, then run this file (optionally --build-dir PATH). Results are
+written to build/test-results.json. This harness also supplies the base Rig
+for the ROM-integrated BASIC tests. It does not validate real interrupt or
+device timing; the original features were separately tested on hardware.
 Requires z80 1.2.0 (MIT, Ivan Kosarev); see requirements.txt.
 """
 from pathlib import Path
@@ -26,6 +36,11 @@ CFG_CODE=symbol('PAGE_HISTORYCFG')
 CFG_LOADED=symbol('hist_cfg_loaded')
 
 class Rig:
+ """Run compiled routines with independent code/data selectors over one pool.
+
+ Hooks replace only chosen ROM/device boundaries. Writes to the hardware
+ window are guarded so a history-record overflow fails immediately.
+ """
  def __init__(self):
   self.m=Z80Machine(); self.mem=self.m.memory
   self.banks=[bytearray(512) for _ in range(256)]; self.page=0; self.dpage=0
@@ -55,6 +70,8 @@ class Rig:
    self.dpage=value; self.mem[0x3600:0x37e0]=self.banks[value][:480]
   self.mem[addr]=value
  def page_enter(self,entry=HIST_ENTRY,page=HIST_CODE):
+  # Emulate the firmware CALL trampoline: save the old code page and push
+  # its return stub. Selecting a code page does not select the data page.
   assert self.mem[entry]==0xcd,'Routine must use VIRTUAL_ROUTINE'
   self.page_returns.append(self.page)
   self.write(0x37f0,page)
@@ -87,6 +104,8 @@ class Rig:
    if self.m.pc in self.hooks:self.hooks[self.m.pc]()
   raise AssertionError(f'CPU did not finish at {self.m.pc:04x}')
  def load_cmd(self,path):
+  # Apply TRSDOS CMD load records, including page-selector writes. Payload
+  # length excludes the two address bytes; zero encodes a 256-byte payload.
   data=path.read_bytes(); p=0
   while p<len(data):
    typ,n=data[p:p+2]; p+=2
@@ -193,6 +212,9 @@ def history_tests():
  return {'history':'PASS: 8-entry ring, UP/DOWN boundaries, draft, editing, cancel, empty input, 127-character limit, shell dispatch, independent code/data banks, caller data-page restoration, DEF USR preservation, hardware boundary guards'}
 
 def dir_case(total,keys,enhanced=True,hidden=0):
+ # Feed fixed directory records and scripted paging keys into real OVERLAYD.
+ # Count consumed records separately from printed entries to detect a stream
+ # left unread after BREAK, including when hidden entries do not print.
  r=Rig();r.mem[0x4500:0x4700]=(BUILD/'SD-CARD/SYS/overlayd.sys').read_bytes()
  r.mem[0x5000:0x5002]=b'\r\x00';r.m.hl=0x5000
  records=[]
@@ -389,7 +411,7 @@ def boot_loader_test():
  r.call(0x5200);r.flush()
  assert state['open'][1:].split(b'\x00')[0]==b'/SYS/SYSP.SYS'
  expected=Rig();expected.load_cmd(BUILD/'SD-CARD/SYS/SYSP.sys');expected.flush()
- for page in [HIST_CODE,CFG_CODE,*range(HIST_DATA,HIST_DATA+HIST_PAGES),32]:
+ for page in [HIST_CODE,CFG_CODE,*range(HIST_DATA,HIST_DATA+HIST_PAGES),32,179,41]:
   assert r.banks[page]==expected.banks[page],page
  assert bytes(r.mem[0x5400:0x5480])==bytes(expected.mem[0x5400:0x5480])
  return {'boot_loader':'PASS: actual BOOT.SYS loads SYSP.sys through SD ports and reaches STARTUP with code/data banks intact'}

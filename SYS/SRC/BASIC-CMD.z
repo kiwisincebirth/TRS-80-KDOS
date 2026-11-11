@@ -1,0 +1,130 @@
+; ======================================================================
+; BASIC CMD string handling and shared callable services
+;
+; One code page handles the CMD statement, ROM expression evaluation and the
+; callable @CMNDI adapter. Re-entering its CALL trampoline around a ROM
+; expression or DOS command restores the calling code bank even when the
+; callee switches overlays. No separate one-instruction pages are needed.
+;
+; CMD validates a string, copies it into its own data bank, calls
+; @CMNDI, restores that bank locally, and returns to BASIC.
+; The DOS command processor owns dispatch and return
+; behavior. DOS exits and call state are defined only by SYS0, not here.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
+import constants.z
+
+VIRTUAL_ROUTINE basic_commands_page, PAGE_BASICCOMMANDS
+	cp	BCMD_EVALUATE
+	jp	z,FRMEVL
+	cp	BCMD_EXECUTE
+	jr	z,_execute
+basic_cmd:
+	jr	basic_command_string
+_execute:
+	SUPERV	S_CMDCALL	; command processor's returning entry point
+
+basic_command_string:
+	ld	a,BCMD_EVALUATE
+	PAGE_CALL PAGE_BASICCOMMANDS
+	; A colon separates BASIC statements on one line; NUL ends the line.
+	; Reject other trailing text before any filesystem operation is started.
+	ld	a,(hl)
+	or	a
+	jr	z,_syntax_ok
+	cp	':'
+	jp	nz,SNERR
+_syntax_ok:
+	push	hl		; BASIC continuation, restored locally on completion
+	call	FRESTR		; require string; HL -> length, address-low/high
+	ld	a,(hl)
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	ld	b,a
+	or	a
+	jr	z,_bad_length
+	cp	128
+	jr	nc,_bad_length
+_copy_start:
+	; Save the data selector immediately beside the operation that changes
+	; it. Both success and copy-validation errors restore it in _complete.
+	ld	a,(PICOPAGEDAT)
+	push	af
+	PAGE_DATA DPAGE_BASICCMD
+	ld	hl,BCMD_BUFFER
+_copy:
+	ld	a,(de)
+	cp	SPACE
+	jr	c,_bad_copy
+_copy_byte:
+	ld	(hl),a
+	inc	hl
+	inc	de
+	djnz	_copy
+	ld	(hl),ENTER	; command parser terminator, outside BASIC's text
+	ld	hl,BCMD_BUFFER
+	call	@CMNDI		; A=0/Z success, A=DOS error/NZ otherwise
+	call	_error_code	; convert returned DOS status to BASIC numbering
+_complete:
+	ld	b,a
+	pop	af		; restore the data selector saved at _copy_start
+	ld	(PICOPAGEDAT),a
+	pop	hl		; continuation saved at _syntax_ok
+	ld	a,b
+	or	a
+	ret	z
+	ld	e,a
+	jp	BASIC_ERROR
+_bad_copy:
+	call	_name_error
+	jr	_complete
+_bad_length:
+	call	_name_error
+	pop	hl		; no data-bank save exists on this validation path
+	ld	e,a
+	jp	BASIC_ERROR
+_name_error:
+	ld	a,BERR_FUNCTION	; CMD: Illegal function call
+	ret
+
+; A contains a returned DOS code: TRSDOS or $40 + FatFS. Zero is success.
+; Translation is BASIC policy; the reusable @CMNDI API returns DOS codes.
+_error_code:
+	or	a
+	ret	z
+	cp	ILLFILNAM$
+	ld	e,BERR_FUNCTION		; unknown/unsafe callable command
+	jr	z,_error_value
+	ld	e,BERR_NOTFOUND		; File not found
+	cp	FILNOTFND$
+	jr	z,_error_value
+	cp	PATNOTFOU$
+	jr	z,_error_value
+	cp	FATFS_NO_FILE		; FatFS FR_NO_FILE
+	jr	z,_error_value
+	cp	FATFS_NO_PATH		; FatFS FR_NO_PATH
+	jr	z,_error_value
+	ld	e,BERR_PROTECTED		; Disk write protected
+	cp	WRITEPROT$
+	jr	z,_error_value
+	cp	FATFS_PROTECTED		; FatFS FR_WRITE_PROTECTED
+	jr	z,_error_value
+	ld	e,BERR_ACCESS		; File access denied
+	cp	ACCESSDEN$
+	jr	z,_error_value
+	cp	FATFS_DENIED		; FatFS FR_DENIED
+	jr	z,_error_value
+	ld	e,BERR_IO		; Disk I/O error fallback
+_error_value:
+	ld	a,e
+	ret
+
+VIRTUAL_END
+
+; Only copied text is banked. Command-call state is an ordinary SYS0 byte.
+VIRTUAL_DATA DPAGE_BASICCMD
+	ds	128,0
+VIRTUAL_DATA_END
