@@ -38,7 +38,7 @@ An integration test executes the actual BOOT.SYS machine code and streams
 SYSP.sys through mocked SD ports, checking the resulting banks and transfer
 to STARTUP. It does not emulate BASIC ROM initialization or real board timing.
 
-BASIC CMD/KILL tests (independent of sequential file I/O)
+BASIC CMD tests (independent of sequential file I/O)
 Use the same Python dependency, and supply your own 12 KiB Model I Level II-
 compatible ROM. Development tests used system80_original.rom from the
 author's TRS-80-ROMS repository. No ROM is included with this contribution.
@@ -58,7 +58,7 @@ code bank, check continuation without execution, and verify loader errors.
 Pico ports/filesystem and paging are simulated;
 the tests do not replace physical Floppy80 verification.
 
-The suite generates build/SD-CARD/CMDKILL.BAS (tokenized, LOADable) and
-build/SD-CARD/CKTEST.TMP (disposable deletion target). tests/CMDKILL.txt is
+The suite generates build/SD-CARD/CMDCHECK.BAS (tokenized, LOADable) and
+build/SD-CARD/CMDTEST.TMP (disposable deletion target). tests/CMDCHECK.txt is
 the human-readable program listing. A normal build alone does not generate
-these test artifacts. Recreate/copy CKTEST.TMP before repeating the test.
+these test artifacts. Recreate/copy CMDTEST.TMP before repeating the test.

@@ -103,7 +103,6 @@ the non-disk I/O statements and extensions. The following are supported
 |            | SAVE "filename.BAS" | Save a program to Disk | FreHD |
 |            | RUN "filename.BAS"  | Load and Run a program | FreHD |
 |            | CMD "command"       | Execute an internal DOS command | Floppy80 |
-|            | KILL "filename"     | Delete a named SD-card file | Floppy80 |
 |            | MERGE "filename"    | Merge a file (todo)    | FreHD | 
 |            | -                   | -                      |       |
 | Statements | &Hxx                | Hexadecimal Constant   |       |
@@ -149,25 +148,6 @@ executing the transfer address, then continues BASIC. The binary must target
 memory or banks reserved by your application; loading over BASIC or DOS can
 corrupt the running system. Use BASIC's `LOAD` for BASIC programs.
 
-`KILL` accepts a single filename/path string expression and uses the existing
-DOS delete service. Deletion is permanent, without a confirmation prompt.
-
-```basic
-10 F$="OLD.DAT"
-20 KILL F$
-30 PRINT "DELETED"
-```
-
-Use 8.3 names and a path of 1-31 characters. Wildcards, whitespace and quoted
-names inside the string are not supported. A relative path uses the current
-directory. Missing files, access denial, write protection, and other disk
-errors stop the BASIC program with a descriptive error; execution does not
-silently continue after a failed command.
-
-These additions do not implement the low-level FCB-based DOS `@KILL` API,
-nor do they add `OPEN`, `CLOSE`, `PRINT#`, `INPUT#`, `LINE INPUT#`, or `EOF`.
-The sequential file-I/O work remains a separate contribution.
-
 ## Callable DOS command API
 
 Machine-code callers can use `CALL $4405` (`@CMNDI`) with HL pointing to
@@ -181,8 +161,8 @@ This returning behavior is a kDOS extension: historical TRSDOS, LDOS and
 NewDOS versions use $4405 as a terminating command entry. Compatibility and
 a broader command-return redesign are deferred for separate review.
 
-BASIC CMD and KILL use this interface; BASIC alone translates DOS error
-numbers into BASIC errors. Both statements share code page 179 and use data
+BASIC CMD uses this interface; BASIC alone translates DOS error
+numbers into BASIC errors. CMD uses code page 179 and data
 page 41 only for a private command-string copy. This API does not implement
 all historical TRSDOS CMD subcommands.
 

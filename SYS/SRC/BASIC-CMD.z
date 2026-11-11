@@ -1,14 +1,14 @@
 ; ======================================================================
-; BASIC CMD/KILL string handling and shared callable services
+; BASIC CMD string handling and shared callable services
 ;
-; One code page handles both statements, ROM expression evaluation and the
+; One code page handles the CMD statement, ROM expression evaluation and the
 ; callable @CMNDI adapter. Re-entering its CALL trampoline around a ROM
 ; expression or DOS command restores the calling code bank even when the
 ; callee switches overlays. No separate one-instruction pages are needed.
 ;
-; CMD and KILL validate a string, copy it into their own data bank, CALL
-; @CMNDI, restore that bank locally, and RET to BASIC. KILL prefixes DEL to
-; its validated path; the DOS command processor owns dispatch and return
+; CMD validates a string, copies it into its own data bank, calls
+; @CMNDI, restores that bank locally, and returns to BASIC.
+; The DOS command processor owns dispatch and return
 ; behavior. DOS exits and call state are defined only by SYS0, not here.
 ;
 ; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
@@ -20,19 +20,14 @@ VIRTUAL_ROUTINE basic_commands_page, PAGE_BASICCOMMANDS
 	jp	z,FRMEVL
 	cp	BCMD_EXECUTE
 	jr	z,_execute
-	cp	BCMD_KILL
-	jp	z,basic_kill
 basic_cmd:
-	xor	a		; mode 0: command text; mode 1: literal KILL path
 	jr	basic_command_string
 _execute:
 	SUPERV	S_CMDCALL	; command processor's returning entry point
 
 basic_command_string:
-	push	af		; keep the mode across ROM expression evaluation
 	ld	a,BCMD_EVALUATE
 	PAGE_CALL PAGE_BASICCOMMANDS
-	pop	bc		; B=mode; pair with the PUSH in this routine
 	; A colon separates BASIC statements on one line; NUL ends the line.
 	; Reject other trailing text before any filesystem operation is started.
 	ld	a,(hl)
@@ -42,25 +37,16 @@ basic_command_string:
 	jp	nz,SNERR
 _syntax_ok:
 	push	hl		; BASIC continuation, restored locally on completion
-	push	bc
 	call	FRESTR		; require string; HL -> length, address-low/high
 	ld	a,(hl)
 	inc	hl
 	ld	e,(hl)
 	inc	hl
 	ld	d,(hl)
-	pop	bc
-	ld	c,b		; C=mode, B=string length
 	ld	b,a
 	or	a
 	jr	z,_bad_length
 	cp	128
-	jr	nc,_bad_length
-	ld	a,c
-	or	a
-	jr	z,_copy_start
-	ld	a,b
-	cp	32		; KILL path limited to 31 characters
 	jr	nc,_bad_length
 _copy_start:
 	; Save the data selector immediately beside the operation that changes
@@ -69,33 +55,10 @@ _copy_start:
 	push	af
 	PAGE_DATA DPAGE_BASICCMD
 	ld	hl,BCMD_BUFFER
-	ld	a,c
-	or	a
-	jr	z,_copy
-	ld	(hl),'D'
-	inc	hl
-	ld	(hl),'E'
-	inc	hl
-	ld	(hl),'L'
-	inc	hl
-	ld	(hl),SPACE
-	inc	hl
 _copy:
 	ld	a,(de)
 	cp	SPACE
 	jr	c,_bad_copy
-	ld	a,c
-	or	a
-	ld	a,(de)
-	jr	z,_copy_byte
-	cp	SPACE
-	jr	z,_bad_copy
-	cp	'*'
-	jr	z,_bad_copy
-	cp	'?'
-	jr	z,_bad_copy
-	cp	'"'
-	jr	z,_bad_copy
 _copy_byte:
 	ld	(hl),a
 	inc	hl
@@ -124,11 +87,7 @@ _bad_length:
 	ld	e,a
 	jp	BASIC_ERROR
 _name_error:
-	ld	a,c
-	or	a
-	ld	a,BERR_FUNCTION		; CMD: Illegal function call
-	ret	z
-	ld	a,BERR_FILENAME		; KILL: Bad file name
+	ld	a,BERR_FUNCTION	; CMD: Illegal function call
 	ret
 
 ; A contains a returned DOS code: TRSDOS or $40 + FatFS. Zero is success.
@@ -163,10 +122,6 @@ _error_value:
 	ld	a,e
 	ret
 
-; KILL uses the same validator/copy path, adding DEL before its literal path.
-basic_kill:
-	ld	a,1
-	jp	basic_command_string
 VIRTUAL_END
 
 ; Only copied text is banked. Command-call state is an ordinary SYS0 byte.

@@ -481,16 +481,15 @@ DPAGE_DEFFN	EQU	32	; Page for Basic Def FN Def User
 DPAGE_DOSHISTORY EQU 33	; Seven consecutive pages: history/draft and state
 ; History reserves data pages 33-39; each exposes only $3600-$37DF.
 
-; CMD/KILL share one callable code page; only their copied text is banked.
+; CMD uses one callable code page; only its copied text is banked.
 PAGE_BASICCOMMANDS EQU 179
 DPAGE_BASICCMD EQU 41
 BCMD_BUFFER EQU $3600          ; 128 bytes, including CR terminator
 BCMD_EVALUATE EQU 0            ; shared-page operation: ROM expression
 BCMD_EXECUTE EQU 1             ; shared-page operation: DOS command call
 BCMD_CMD	EQU	2	; BASIC CMD statement (not a supervisor ID)
-BCMD_KILL	EQU	3	; BASIC KILL statement
 
-; BASIC error numbers used by CMD/KILL and the disk-error message table.
+; BASIC error numbers used by CMD and the disk-error message table.
 BERR_FUNCTION	EQU	$08
 BERR_FIELD	EQU	$64
 BERR_NOTFOUND	EQU	$6A

@@ -1,11 +1,11 @@
-"""ROM-integrated CMD/KILL tests, independent of sequential file I/O.
+"""ROM-integrated CMD tests, independent of sequential file I/O.
 Set KDOS_TEST_ROM to a 12 KiB Model I Level II-compatible ROM (not bundled).
 Run after building SYSP.sys; uses the z80 dependency from test_console.py.
 The real ROM tokenizer, interpreter, expression and error routines execute
 alongside compiled kDOS. BasicRig models paging/console and CommandRig models
 the Pico directory/delete protocol with in-memory files: no host files are
 deleted. Tests cover continuation, errors, cleanup and existing LOAD/RUN.
-The final test exports a tokenized CMDKILL.BAS plus disposable CKTEST.TMP
+The final test exports a tokenized CMDCHECK.BAS plus disposable CMDTEST.TMP
 under build/SD-CARD for hardware testing. Board timing is not simulated.
 """
 import sys, os, json
@@ -194,42 +194,11 @@ def command_tests():
  assert r.statement('CMD LEFT$("PWD",INSTR("PWD","D"))')==b'/TEST\r'
  # Exercise the real ROM error display/unwind, then another successful CMD.
  r=CommandRig();r.m.clear_breakpoint(0x19a2);del r.hooks[0x19a2]
- error=r.statement('KILL "MISSING"',direct=True)
+ error=r.statement('CMD "DEL MISSING"',direct=True)
  assert b'File not found' in error,error
  assert r.statement('CMD "PWD"',direct=True)==b'/TEST\r'
  return {'basic_cmd':'PASS: real DOS dispatch, DIR/paging BREAK, PWD/CD, BASIC continuation, loops/GOSUB, errors and ordinary DOS exits'}
 
-
-def kill_tests():
- r=CommandRig();r.files['DELETE.ME']=bytearray(b'example')
- assert r.statement('KILL "DELETE.ME":PRINT "DELETED"')==b'DELETED\r'
- assert 'DELETE.ME' not in r.files
- assert r.sent[-1]==(0x1b,list(b'DELETE.ME\0'))
- r.files['FOLDER/TEST.DAT']=bytearray(b'test')
- assert r.statement('F$="FOLDER/TEST.DAT":KILL F$:PRINT "NEXT"')==b'NEXT\r'
- assert 'FOLDER/TEST.DAT' not in r.files
- for text,code in [('KILL ""',0x80),('KILL "*.BAS"',0x80),('KILL "A?"',0x80),
-  ('KILL "A B"',0x80),('KILL "'+('A'*32)+'"',0x80),('KILL 1',0x18),
-  ('KILL "MISSING"',0x6a)]:
-  r=CommandRig();expect_error(r,text,code);r.flush();assert r.mem[base.symbol('DOSCALL_ACTIVE')]==0
- # Evaluate and validate the complete statement before deleting anything.
- r=CommandRig();r.files['KEEP']=bytearray(b'keep')
- expect_error(r,'KILL "KEEP",1',2);assert r.files['KEEP']==b'keep' and not r.sent
- # DOS errors propagate as descriptive BASIC errors and clear command-call state.
- for raw,expected in [(4,0x6a),(7,0x8a),(10,0x88),(1,0x72)]:
-  r=CommandRig();original=r.outp
-  def fail_delete(port,value):
-   original(port,value)
-   if r.command==0x1b and len(r.args)==r.io_length:r.status=0x41;r.error=raw
-  r.m.set_output_callback(fail_delete)
-  expect_error(r,'KILL "TEST"',expected)
-  r.flush();assert r.mem[base.symbol('DOSCALL_ACTIVE')]==0
-  assert r.statement('CMD "PWD"')==b'/TEST\r'
- # NEWREADY clears abandoned command state without changing the data bank.
- r=CommandRig();r.mem[base.symbol('DOSCALL_ACTIVE')]=1;r.mem[0x40e1]=1
- r.write(0x37f1,32);r.call(base.symbol('NEWREADY'))
- assert r.mem[base.symbol('DOSCALL_ACTIVE')]==0 and r.dpage==32
- return {'basic_kill':'PASS: deletion, expressions/paths, continuation, invalid names/syntax, missing/access/protection/I/O errors and abandoned-command cleanup'}
 
 def callable_dos_tests():
  # Call the public vector without BASIC, from several caller banks. This
@@ -336,19 +305,19 @@ def basic_loader_tests():
 
 
 def smoke_test():
- r=CommandRig();r.files['CKTEST.TMP']=bytearray(b'disposable test file')
- lines=[(int(number),text) for number,text in (line.split(' ',1) for line in (root/'tests/CMDKILL.txt').read_text().splitlines())]
+ r=CommandRig();r.files['CMDTEST.TMP']=bytearray(b'disposable test file')
+ lines=[(int(number),text) for number,text in (line.split(' ',1) for line in (root/'tests/CMDCHECK.txt').read_text().splitlines())]
  result=r.program(lines)
- assert result.endswith(b'CMD/KILL TEST FINISHED\r') and 'CKTEST.TMP' not in r.files
+ assert result.endswith(b'CMD TEST FINISHED\r') and 'CMDTEST.TMP' not in r.files
  start=int.from_bytes(r.mem[0x40a4:0x40a6],'little')
  end=int.from_bytes(r.mem[0x40f9:0x40fb],'little')
- (base.BUILD/'SD-CARD/CMDKILL.BAS').write_bytes(b'\xff'+bytes(r.mem[start:end]))
- (base.BUILD/'SD-CARD/CKTEST.TMP').write_text('Disposable file for the CMD/KILL hardware test.\n',encoding='ascii')
- return {'smoke':'PASS: CMDKILL.BAS generated; CKTEST.TMP is the disposable deletion target'}
+ (base.BUILD/'SD-CARD/CMDCHECK.BAS').write_bytes(b'\xff'+bytes(r.mem[start:end]))
+ (base.BUILD/'SD-CARD/CMDTEST.TMP').write_text('Disposable file for the CMD hardware test.\n',encoding='ascii')
+ return {'smoke':'PASS: CMDCHECK.BAS generated; CMDTEST.TMP is the disposable deletion target'}
 
 if __name__=='__main__':
  if not os.environ.get('KDOS_TEST_ROM'):raise SystemExit('Set KDOS_TEST_ROM to a 12 KiB Level II-compatible ROM; see tests/README.txt.')
- report=binary_load_tests()|callable_dos_tests()|command_tests()|kill_tests()|basic_loader_tests()|smoke_test()
+ report=binary_load_tests()|callable_dos_tests()|command_tests()|basic_loader_tests()|smoke_test()
  report['scope']='Actual BASIC ROM and compiled DOS handlers; Pico filesystem/ports simulated. Physical board testing required.'
  (base.BUILD/'basic-commands-test-results.json').write_text(json.dumps(report,indent=2))
  print(json.dumps(report,indent=2))

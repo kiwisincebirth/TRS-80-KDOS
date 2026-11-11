@@ -71,7 +71,7 @@
     <None Include="BUILDING.txt" />
     <None Include="tests\test_console.py" />
     <None Include="tests\test_basic_commands.py" />
-    <None Include="tests\CMDKILL.txt" />
+    <None Include="tests\CMDCHECK.txt" />
     <None Include="tests\requirements.txt" />
     <None Include="tests\README.txt" />
   </ItemGroup>
