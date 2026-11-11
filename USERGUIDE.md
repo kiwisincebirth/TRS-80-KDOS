@@ -102,7 +102,7 @@ the non-disk I/O statements and extensions. The following are supported
 | Commands   | LOAD "filename.BAS" | Load a basic Program   | FreHD |
 |            | SAVE "filename.BAS" | Save a program to Disk | FreHD |
 |            | RUN "filename.BAS"  | Load and Run a program | FreHD |
-|            | KILL "filename"     | Delete a file (todo)   | FreHD | 
+|            | KILL "filename"     | Delete a file          |       | 
 |            | MERGE "filename"    | Merge a file (todo)    | FreHD | 
 |            | -                   | -                      |       |
 | Statements | &Hxx                | Hexadecimal Constant   |       |

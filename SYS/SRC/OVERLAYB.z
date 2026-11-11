@@ -41,7 +41,7 @@ import	constants.z
 ; SAVE "XXXXX.BAS" - Save a Basic program to Disk
 ; ----------------------------------------------------------------------
 _BAS_SAVE:
-	call	_GET_STRING	; de points to string, B is the lenght non-zero
+	call	_GET_STRING	; de points to string, B is the length non-zero
 ;
 	ld	c,FA_CREATE_ALWAYS|FA_WRITE	; create with over-write
 	call	api_OPEN	; open file command
@@ -94,11 +94,10 @@ _BAS_RUN:
 ; KILL "XXXXX.BAS" - Delete a program from disk
 ; ----------------------------------------------------------------------
 _BAS_KILL:
-
-	; TODO this needs to be implemented
-	; Overlay O has the structure for this operation.
-
-	jp	L3ERR
+	call	_GET_STRING	; de points to string, B is the length non-zero
+	call	_STR_TERM	; ensure we addd a 0 terminator, replacing " in CMD buffer
+	EX	DE, HL		; DEL_CMD takes pointer to String in HL.
+	SUPERV	S_DELCMD
 ;
 ; ----------------------------------------------------------------------
 ; MERGE "XXXXX.BAS" - Merge a Basic program from Disk
@@ -195,6 +194,21 @@ _GET_STRING:
 	ld	e,(hl)		; get the LSB of string address
 	inc	hl		; advance to MSB address
 	ld	d,(hl)		; string pointer in DE
+	ret
+;
+; Terminate a BASIC String with a ZERO for DOS
+;
+_STR_TERM:
+	push	de		; save String Pointer pointer
+	ld	a,b		; length
+	add	e
+	ld	e,a		; store back
+	jr	nc,_STR_TERM1	; check for carry
+	inc	d		; bump the carry
+_STR_TERM1:
+	xor	a
+	ld 	(de),a		; Put a 0 as terminator
+	pop	de
 	ret
 ;
 ; init the write of bytes to a file
