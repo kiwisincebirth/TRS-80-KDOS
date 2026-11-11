@@ -25,8 +25,8 @@ import	constants.z
 	jp	INTERRUP_SR	; (4012) RST 38h (Interrupt Service) Vector.
 ;
 	ORG	@EXIT
-	jp	RESETR		; (402D) No-Error Exit same as 4400
-	jp	RESETR		; (4030) Error-already-displayed DOS Error Exit.
+	jp	DOS_COMMAND_EXIT	; (402D) return to command caller, or DOS prompt
+	jp	DOS_COMMAND_ABORT	; (4030) error exit owned by the resident DOS core
 ;
 	ORG	$4033		;
 	jp	CIODOS		; (4033) DOS Char I/O Driver for Disk Files
@@ -84,7 +84,7 @@ import	constants.z
 	jp	L3ERR		; MKI - $416A - Done
 	jp	L3ERR		; MKS - $416D - Done
 	jp	L3ERR		; MKD - $4170 - Done
-	jp	L3ERR		; CMD - $4173 - ? User Definable ?
+	SUPERV	S_BASICCMD	; CMD - $4173
 	jp	L3ERR		; TIME$ $4176 - Done
 	jp	L3ERR		; OPEN  $4179
 	jp	L3ERR		; FIELD $417C
@@ -143,6 +143,8 @@ import	constants.z
 ; This allows the DOS to process commands via the L2 Basic Ready prompt
 ;
 NEWREADY
+	xor	a
+	ld	(DOSCALL_ACTIVE),a	; discard state after a nonlocal exit to READY
 	;
 	; first some tests to see if not entering normal Ready command processing
 	; if So we return and let l2 basic handle these cases for us.
@@ -441,9 +443,13 @@ $FREE_CORE1	EQU	SYSFCB - $
 	ORG	DOSENTY
 	; Note * below denotes routines that are different in NewDOS 80 VS TRSDOS 2.3
 	;
-	jp	RESETR		; (4400) @CMD No-Error Exit same as 402D
+	jp	DOS_COMMAND_EXIT	; (4400) same success exit as 402D
 	NOP2			; and 44Ø3H - 44Ø4H contain the program's entry address. 4430
-	jp	RESETR		; (4405) @CMNDI todo Execute a DOS command and return to DOS ready.
+ifdef @D_PICOENHANCED
+	jp	DOS_COMMAND_CALL	; (4405) callable trampoline restores caller code bank
+else
+	SUPERV	S_CMDCALL	; (4405) disk overlay uses the same returning service
+endif
 	nop
 	ld	b,a		; (4409) @ERROR Error Exit - Display Error Messages
 	SUPERV	S_ERRHAND	; Put error code into B -> displaying Disk Error Code
@@ -473,8 +479,33 @@ $FREE_CORE1	EQU	SYSFCB - $
 	SUPERV	S_BKSPFILE	; (4445) @BKSP  BACKSPACE One Record
 	SUPERV	S_PEOFFILE	; (4448) @PEOF  SKIP TO EOF (End of File)
 
-	; todo 28 byte gap here, investigate
-	assert	$ <= $444B
+	assert	$ <= DOS_COMMAND_RETURN
+	ORG	DOS_COMMAND_RETURN
+; OVERLAYC pushes this resident address before dispatching a called command.
+; Its RET clears the explicit call flag and returns
+; A=0/Z on success or A=DOS error/NZ. No BASIC stack or page state lives here.
+	ld	b,a
+	xor	a
+	ld	(DOSCALL_ACTIVE),a
+	ld	a,b
+	or	a
+	ret
+; Internal services still use the core exit vectors. During a call they
+; RET to the resident completion code above; interactive exits reset DOS.
+DOS_COMMAND_EXIT:
+	xor	a
+	jr	_dos_exit_status
+DOS_COMMAND_ABORT:
+	ld	a,INTDOSERR$
+_dos_exit_status:
+	ld	b,a
+	ld	a,(DOSCALL_ACTIVE)
+	or	a
+	jp	z,RESETR
+	ld	a,b
+	or	a
+	ret
+	assert	$ <= $4467
 	ORG	$4467
 
 	jp	DISPSTR		; (4467) @DSPLY display string routine.
@@ -486,7 +517,7 @@ $FREE_CORE1	EQU	SYSFCB - $
 	;
 	; KDOS specific data held $4479 - $447F
 	; See Constants.z
-	nop			; (4479)
+	db	0		; (4479) DOSCALL_ACTIVE, initialized inactive
 	nop			; (447A)
 	nop			; (447B)
 	nop			; (447C)
@@ -512,6 +543,11 @@ $FREE_CORE1	EQU	SYSFCB - $
 	JP	_api_READBYTE
 	JP	_api_WAIT
 	JP	_loader
+ifdef @D_PICOENHANCED
+	JP	BASIC_COMMAND_ENTER
+else
+	JP	L3ERR
+endif
 ;
 ;
 ; ----------------------------------------------------------------------
@@ -661,6 +697,24 @@ endif
 ;
 ; ----------------------------------------------------------------------
 ;
+ifdef @D_PICOENHANCED
+; The shared callable page can also run ROM evaluation. Selecting the DOS
+; operation here lets @CMNDI preserve banked callers without reading a page
+; register or reserving a separate page for this five-byte entry stub.
+DOS_COMMAND_CALL:
+	ld	a,BCMD_EXECUTE
+	PAGE_JP PAGE_BASICCOMMANDS
+endif
+
+ifdef @D_PICOENHANCED
+; Statements can exit nonlocally through BASIC's error handler. Enter the
+; same physical page without its CALL trampoline in that case. Evaluation
+; and @CMNDI still use the callable entry, so their code-bank returns work.
+; Preserve the service ID in A with a locally paired PUSH/POP.
+BASIC_COMMAND_ENTER:
+	PAGE_CODE PAGE_BASICCOMMANDS
+	jp	$3400
+endif
 $FREE_CORE2	EQU	CORE2END - $
 ;
 	; FILL to end of REGION

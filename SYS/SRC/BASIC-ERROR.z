@@ -18,6 +18,8 @@ import	constants.z
 ; There are no RETS in this Code
 ;
 VIRTUAL_PAGE L2ERRORHAND1, PAGE_DOSERROR1
+	xor	a
+	ld	(DOSCALL_ACTIVE),a	; a ROM error abandons any outstanding command call
 ;
 ; ======================================================================
 ;
@@ -44,7 +46,7 @@ _errloop
    	call	$28a7                ; 5805: Here is where we display the message
    	ld	hl,($40a2)           ; 5808: current line number
 ;
-   	jp	$1A0A		     ; entry point back into error handler.
+	jp	BASIC_ERROR_CONT		     ; entry point back into error handler.
    				     ; slightly earlier than TRSDOS does it.
 ;   PREVIOUSLY
 ;   ld	de,$fffe             ; 580b: ???
@@ -95,15 +97,17 @@ VIRTUAL_PAGE L2ERRORHAND2, PAGE_DOSERROR2
 ; ------------------------------
 
 	ld	a,e
-	cp	$64
+	cp	BERR_FIELD
 	jr	c,_unknown
-	cp	$8C
+	cp	BERR_DISK_END
 	jr	nc,_unknown
-	sub	$64
+	; Disk BASIC codes are even values $64..$8A: convert to a zero-based
+	; index, then skip that many NUL-terminated messages below.
+	sub	BERR_FIELD
 	rrca
 	ld	b,a
 	ld	hl,_messages
-	inc	b
+	inc	b			; DJNZ loop needs index + 1 to select entry zero
 _next:
 	djnz	_skip
 	jr	_show
@@ -118,7 +122,7 @@ _unknown:
 _show:
 	call	STROUT
 	ld	hl,(CURLIN)
-	jp	$1A0A
+	jp	BASIC_ERROR_CONT
 _messages:
 	db	"FIELD overflow",0,"Internal error",0,"Bad file number",0
 	db	"File not found",0,"Bad file mode",0,"File already open",0

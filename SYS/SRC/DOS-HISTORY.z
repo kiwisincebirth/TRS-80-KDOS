@@ -1,8 +1,28 @@
-; DOS line input with configurable command history. kDOS extension, 2026.
-; Original kDOS by kiwisincebirth. Uses the standard callable page entry.
-; Code and data windows are independent. No executable code at $3600.
-; Seven data pages hold three 128-byte records each (up to 20 + draft).
-; State follows the records in the first data page. Never use $37E0-$37FF.
+; ======================================================================
+; DOS command-line editor and configurable command history
+;
+; Replace DOS keyboard line input with an editor that recalls previous
+; commands using UP/DOWN. The active line stays in STRBUFF, where the command
+; parser expects it. ENTER returns HL=STRBUFF, B=length and carry clear;
+; BREAK returns carry set and does not store the cancelled command.
+;
+; History is a circular buffer: hist_next is the next slot to overwrite,
+; hist_count is the number of valid entries, and hist_age is the recall
+; distance from that position. Age zero means the current draft. The first
+; UP saves that draft; DOWN past the newest command restores it.
+;
+; Seven data banks hold three 128-byte records each: up to 20 commands plus
+; one draft. Each record holds up to 127 characters and a CR terminator.
+; State follows the records in the first bank. A fourth record would extend
+; into the hardware register range $37E0-$37FF and must never be allocated.
+;
+; HISTORY-CONFIG reads the optional capacity once, on first DOS input rather
+; than during boot. Code and data windows are independent: the callable
+; trampoline restores the caller code bank and every exit restores its data
+; bank. Ordinary BASIC input continues to use the ROM editor.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
 VIRTUAL_ROUTINE dos_history_page, PAGE_DOSHISTORY
 
 	ld	a,(PICOPAGEDAT)
@@ -15,6 +35,7 @@ VIRTUAL_ROUTINE dos_history_page, PAGE_DOSHISTORY
 	ld	(hist_cfg_loaded),a ; try once per kDOS load, never during boot
 	PAGE_CALL	PAGE_HISTORYCFG
 _configured:
+	; Start a new editable line without clearing the retained history ring.
 	xor	a
 	ld	(hist_len),a
 	ld	(hist_age),a
@@ -63,6 +84,7 @@ _up:
 	jr	z,_key          ; oldest entry reached (or no history)
 	or	a
 	jr	nz,_older
+	; Save a terminated copy before replacing the draft with recalled text.
 	call	_terminate
 	ld	a,(hist_limit)     ; draft follows the configured history slots
 	ld	b,1
@@ -85,6 +107,7 @@ _recall:
 	jr	z,_fetch
 	ld	a,(hist_age)
 	ld	b,a
+	; Physical slot = (next overwrite position - recall age) modulo limit.
 	ld	a,(hist_next)
 	sub	b
 	jr	nc,_fetch
@@ -119,6 +142,7 @@ _back:
 	call	_out
 	jp	_key
 _erase:
+	; Remove only the editable characters; keep the prompt and listing visible.
 	ld	a,(hist_len)
 	or	a
 	ret	z
@@ -131,6 +155,8 @@ _erasing:
 	ld	(hist_len),a
         ret
 _enter:
+	; Nonempty submissions enter the ring, including edited/recalled commands.
+	; Advance next modulo capacity; count stops growing once the ring is full.
 	call	_terminate
 	ld	a,(hist_len)
 	or	a
@@ -170,6 +196,8 @@ _break:
         scf
         ; cancelled command never enters history
 _return:
+	; Keep result AF in DE while popping the original data-bank selection.
+	; Restoring that bank must not lose BREAK carry or the returned HL/B.
 	push	af               ; preserve carry (cancel) and length flags
 	pop	de
 	pop	af                ; entry's saved data page
@@ -189,6 +217,7 @@ _endptr:
 	add	hl,de
         ret
 _out:
+	; ROM output may clobber registers used by the erase/copy display loops.
 	push	bc
 	push	de
 	push	hl
@@ -206,6 +235,7 @@ _copy:
 	ld	a,c
 	ld	c,DPAGE_DOSHISTORY
 _slotpage:
+	; Divide slot by three: C becomes the data page, A the record within it.
 	cp	3
 	jr	c,_slotfound
 	sub	3
@@ -228,6 +258,7 @@ _slotready:
 	jr	z,_readslot
 	ex	de,hl
 _readslot:
+	; Copy the whole fixed-size record; the stored CR defines its used length.
 	ld	bc,128
         ldir
 	pop	af
@@ -240,6 +271,12 @@ VIRTUAL_END
 VIRTUAL_DATA DPAGE_DOSHISTORY
 	ds	3*128,0
 ; Shared history state: global names allow the configuration page to access it.
+; len = current line length; age = recall distance (0 is the live draft).
+; count = valid history entries; next = slot overwritten by the next ENTER.
+; limit = configured capacity; slot [limit] is reserved for the saved draft.
+; cfg_left counts unread bytes in a block (0 also encodes 256 on refill).
+; cfg_value/digits hold decimal parsing state; cfg_loaded prevents retries.
+; cfg_budget bounds the number of 256-byte reads for optional configuration.
 hist_len:   db 0
 hist_age:   db 0
 hist_count: db 0

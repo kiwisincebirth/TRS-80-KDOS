@@ -60,8 +60,8 @@ and testing purposes
 
 ## Operation and Use
 
-See the Seperate ![Quick Start](./QUICKSTART.md) for a getting started,
-and the full ![User Guide](./USERGUIDE.md) for detailed operation
+See the Seperate [Quick Start](./QUICKSTART.md) for a getting started,
+and the full [User Guide](./USERGUIDE.md) for detailed operation
 
 ## Work In Progress
 
@@ -74,15 +74,15 @@ for what is and isn't supported.
 
 ### Floppy80
 
-The ![Floppy80-M1](https://github.com/MichaelM4/Floppy80-M1) project 
+The [Floppy80-M1](https://github.com/MichaelM4/Floppy80-M1) project 
 provides the hardware design on which this project relies. 
 Any PCB can be used which conforms to this specification can be used. 
 Other notable designs include.
-* ![Model 1K Floppy 80](https://github.com/kiwisincebirth/TRS-80-MODEL-1-K/tree/main/floppy80)
+* [Model 1K Floppy 80](https://github.com/kiwisincebirth/TRS-80-MODEL-1-K/tree/main/floppy80)
 
 ### Floppy90
 
-The companion ![Floppy90](https://github.com/kiwisincebirth/Floppy90) project 
+The companion [Floppy90](https://github.com/kiwisincebirth/Floppy90) project 
 provides the Firmware that runs on the RP2350. In summary, it provides 
 * A command API similar to (but a superset of) FreHD, to provide needed File capabilities.
 * 256KB of Banked Memory (in the $3000 - $37FF memory region)

@@ -19,6 +19,7 @@ import	constants.z
 ;
 	ORG	OVERLY
 
+
 ; Error Code is in B - copied from A, A used by SuperV
 ; Bit 7 determines if the error is terminating or a CALL and return
 ; Bit 6 can be used to allow more information to be displayed (DOS dependant)
@@ -34,9 +35,18 @@ import	constants.z
 	bit	7,b		; test the 7th bit
 	jr	nz,_HANDERR	; =1 jp down, with RET out
 
+	; A terminal error in @CMNDI is returned to its caller, not printed here.
+	; Bit-7 callable display requests above keep their original semantics.
+	ld	a,(DOSCALL_ACTIVE)
+	or	a
+	jr	z,_terminal_error
+	ld	a,b
+	or	a
+	ret
+_terminal_error:
 	; otherwise if bit 7=0 then
 	call	_HANDERR		; display the error
-	jp	@EXIT		; JP back to DOS
+	jp	@ABORT		; error-already-displayed exit owned by SYS0
 ;
 ; ----------------------------------------------------------------------
 ;
