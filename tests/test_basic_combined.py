@@ -1,4 +1,4 @@
-"""Check CMD/KILL and sequential file I/O together using the real BASIC ROM.
+"""Check CMD and sequential file I/O together using the real BASIC ROM.
 The existing harnesses model board ports; all BASIC/DOS instructions execute.
 Requires KDOS_TEST_ROM and the same dependency as the individual suites.
 """
@@ -21,11 +21,11 @@ def combined_test():
   (50,'CLOSE 1'),(60,'OPEN "I",1,"MERGE.DAT"'),
   (70,'LINE INPUT#1,A$'),(80,'CMD "DIR"'),(90,'LINE INPUT#1,B$'),
   (100,'IF A$<>"BEFORE" OR B$<>"AFTER" THEN STOP'),
-  (110,'CLOSE 1'),(120,'KILL "MERGE.DAT"'),
+  (110,'CLOSE 1'),(120,'CMD "DEL MERGE.DAT"'),
   (130,'PRINT "COMBINED PASS"'),(140,'END')])
  assert result.endswith(b'COMBINED PASS\r'),result
  assert 'MERGE.DAT' not in r.files and not r.handles and not r.page_returns
- return {'combined':'PASS: open file survives CMD PWD/DIR, continued write/read, CLOSE and KILL'}
+ return {'combined':'PASS: open file survives CMD PWD/DIR, continued write/read, CLOSE and CMD DEL'}
 
 if __name__=='__main__':
  report=combined_test()

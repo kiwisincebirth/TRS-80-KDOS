@@ -112,7 +112,7 @@ include	BASIC-FILE.z
 include	BASIC-FILE-PRINT.z
 include	BASIC-FILE-INPUT.z
 include	BASIC-FILE-ITEM.z
-include	BASIC-CMD.z		; shared CMD/KILL statement page
+include	BASIC-CMD.z		; CMD statement page
 
 include BASIC-ERROR.z		; $41A6
 include BASIC-USR.z		; $41A9

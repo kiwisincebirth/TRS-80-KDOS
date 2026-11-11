@@ -34,7 +34,7 @@ import	constants.z
 	cp	S_BASICCMD
 	jr	z,_BAS_COMMAND
 	cp	S_BASICKILL
-	jr	z,_BAS_KILL	; translate supervisor IDs at the overlay boundary
+	jr	z,_BAS_KILL	; KILL
 	;
 	ld	a, INTDOSERR$	; Internal Failure
 	jp	@ERROR
@@ -93,14 +93,11 @@ _BAS_RUN:
 	jr	_LOADER		; skip to LOAD
 ;
 ; ----------------------------------------------------------------------
-; CMD/KILL - translate supervisor services into BASIC page operations
+; CMD - enter the BASIC command extension
 ; ----------------------------------------------------------------------
 _BAS_COMMAND:
 	ld	a,BCMD_CMD
-	jr	_BAS_ENTER
-_BAS_KILL:
-	ld	a,BCMD_KILL
-_BAS_ENTER:
+
 ifdef @D_PICOENHANCED
 	; The page has a CALL trampoline: PAGE_JP would still leave a firmware
 	; return frame that ROM errors abandon. Select it from resident code;
@@ -109,6 +106,16 @@ ifdef @D_PICOENHANCED
 else
 	jp	L3ERR		; banked BASIC extensions require the Pico build
 endif
+;
+; ----------------------------------------------------------------------
+; KILL "XXXXX.BAS" - Delete a program from disk
+; ----------------------------------------------------------------------
+_BAS_KILL:
+
+	; TODO this needs to be implemented
+	; Overlay O has the structure for this operation.
+
+	jp	L3ERR
 ;
 ; ----------------------------------------------------------------------
 ; MERGE "XXXXX.BAS" - Merge a Basic program from Disk
