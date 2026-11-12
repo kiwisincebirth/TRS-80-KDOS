@@ -37,6 +37,9 @@ RESETR		EQU	$06CC
 LINPRT		EQU	$0FAF
 CONSTR		EQU	$18F7	; address of L2 basic Math support routines
 READYM		EQU	$1929	; "READY" Message
+SNERR		EQU	$1997	; ROM Syntax error entry
+BASIC_ERROR	EQU	$19A2	; ROM error handler; E=BASIC error code
+BASIC_ERROR_CONT EQU	$1A0A	; resume ROM error handler after message display
 READYC		EQU	$1A88	; Continue Normal READY process loop
 FINI		EQU	$1AE8
 FINIDE		EQU	$1AE9
@@ -45,9 +48,6 @@ SCRATH		EQU	$1B49
 SCRTCH		EQU	$1B4D
 RUNC		EQU	$1B5D
 NEWSTT		EQU	$1D1E
-SNERR		EQU	$1997	; ROM Syntax error entry
-BASIC_ERROR	EQU	$19A2	; ROM error handler; E=BASIC error code
-BASIC_ERROR_CONT EQU	$1A0A	; resume ROM error handler after message display
 FCERR		EQU	$1E4A
 CRDONZ		EQU	$20F9
 CRDO		EQU	$20FE
