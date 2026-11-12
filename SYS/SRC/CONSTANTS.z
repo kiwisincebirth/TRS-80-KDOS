@@ -232,6 +232,15 @@ FCB_LRL		EQU	9		; Byte 9 - Logical Rec Length 0=256
 ; BASIC Error Codes
 ; ----------------------------------------------------------------------
 ERRSN		EQU	02H	; Syntax Error
+BERR_FUNCTION	EQU	$08	; Illegal Function Call
+;
+BERR_FIELD	EQU	$64
+BERR_NOTFOUND	EQU	$6A
+BERR_IO		EQU	$72
+BERR_FILENAME	EQU	$80
+BERR_PROTECTED	EQU	$88
+BERR_ACCESS	EQU	$8A
+BERR_DISK_END	EQU	BERR_ACCESS+2 ; exclusive upper bound
 ;
 ; DOS ERROR CODES
 ; ----------------------------------------------------------------------
@@ -371,6 +380,13 @@ AM_VOL		EQU     008H            ; Volume label
 AM_DIR		EQU     010H            ; Directory
 AM_ARC		EQU     020H            ; Archive
 ;
+; Enhanced Pico exposes FatFS results with the DOS $40 offset.
+FATFS_DOS_BASE	EQU	$40
+FATFS_NO_FILE	EQU	FATFS_DOS_BASE+4
+FATFS_NO_PATH	EQU	FATFS_DOS_BASE+5
+FATFS_DENIED	EQU	FATFS_DOS_BASE+7
+FATFS_PROTECTED	EQU	FATFS_DOS_BASE+10
+;
 ; PICO Status Bits
 ; ----------------------------------------------------------------------
 STATUS_BUSY     EQU	0x80		; Interface is BUSY, must wait for completion
@@ -410,7 +426,15 @@ NOP3 	macro
 	NOP
 	NOP
 	endm
-
+;
+; ----------------------------------------------------------------------
+; BASIC Commands
+;
+BCMD_BUFFER EQU $3600          ; 128 bytes, including CR terminator
+BCMD_EVALUATE EQU 0            ; shared-page operation: ROM expression
+BCMD_EXECUTE EQU 1             ; shared-page operation: DOS command call
+BCMD_CMD	EQU	2	; BASIC CMD statement (not a supervisor ID)
+;
 ; ======================================================================
 ; Memory Banking
 ; ======================================================================
@@ -418,6 +442,44 @@ NOP3 	macro
 ; Bank Pages ($3400)
 ; ----------------------------------------------------------------------
 
+;
+; DOS command input extension
+; Pages - ???? C0 (182) to DF (223)
+;
+PAGE_DOSHISTORY EQU	183	; DOS command editor (code only)
+PAGE_HISTORYCFG EQU	184	; Read HistorySize on first DOS input
+;
+HISTORY_DEFAULT EQU	8
+HISTORY_MAX     EQU	20
+HISTORY_PAGES   EQU	7	; 20 commands + draft, three 128-byte slots/page
+        assert HISTORY_DEFAULT >= 1 && HISTORY_DEFAULT <= HISTORY_MAX
+        assert HISTORY_MAX+1 <= HISTORY_PAGES*3
+;
+; Basic Extensions & other Misc Pages (32)
+; Pages - C0 (192) to DF (223)
+;
+PAGE_INTERRUPT	EQU	193	; Interrupt Service Routing
+PAGE_KEYBDRV	EQU	194	; (Optional) Keyboard Driver
+PAGE_BASICHELP	EQU	195	; Text for HELP command (Basic)
+;
+PAGE_AMPERSAND	EQU	206
+PAGE_BASICCOMMANDS EQU	207
+PAGE_CVI	EQU	208
+PAGE_CVS	EQU	209
+PAGE_CVD	EQU	210
+PAGE_DOSERROR1	EQU	211
+PAGE_DOSERROR2	EQU	212
+PAGE_DEFINE	EQU	213
+PAGE_DEFINEFN	EQU	214
+PAGE_INSTRFUNC	EQU	215
+PAGE_LINEINP	EQU	216
+PAGE_MIDOLLAR	EQU	217
+PAGE_MKI	EQU	218
+PAGE_MKS	EQU	219
+PAGE_MKD	EQU	220
+PAGE_TIMEDOLL	EQU	221
+PAGE_USRN	EQU	222
+;
 ; DOS Overlays (32 of them) $00 - $1F
 ; Map to Page in range $E0 (224) to $FF (255)
 ; Which Map to entry addresses $3380 to $33FC
@@ -437,40 +499,7 @@ PAGE_OVERLAYL	EQU	$EC	; @LOAD @RUN CMD File
 PAGE_OVERLAYM	EQU	$ED	; -unused
 PAGE_OVERLAYN	EQU	$EE	; -unused
 PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
-
-; DOS command input extension
-PAGE_DOSHISTORY EQU 183	; DOS command editor (code only)
-PAGE_HISTORYCFG EQU 184	; Read HistorySize on first DOS input
-HISTORY_DEFAULT EQU 8
-HISTORY_MAX     EQU 20
-HISTORY_PAGES   EQU 7	; 20 commands + draft, three 128-byte slots/page
-        assert HISTORY_DEFAULT >= 1 && HISTORY_DEFAULT <= HISTORY_MAX
-        assert HISTORY_MAX+1 <= HISTORY_PAGES*3
-
-; Basic Extensions & other Misc Pages (32)
-; Pages - C0 (192) to DF (223)
 ;
-PAGE_INTERRUPT	EQU	193	; Interrupt Service Routing
-PAGE_KEYBDRV	EQU	194	; (Optional) Keyboard Driver
-PAGE_BASICHELP	EQU	195	; Text for HELP command (Basic)
-;
-PAGE_AMPERSAND	EQU	207
-PAGE_CVI	EQU	208
-PAGE_CVS	EQU	209
-PAGE_CVD	EQU	210
-PAGE_DOSERROR1	EQU	211
-PAGE_DOSERROR2	EQU	212
-PAGE_DEFINE	EQU	213
-PAGE_DEFINEFN	EQU	214
-PAGE_INSTRFUNC	EQU	215
-PAGE_LINEINP	EQU	216
-PAGE_MIDOLLAR	EQU	217
-PAGE_MKI	EQU	218
-PAGE_MKS	EQU	219
-PAGE_MKD	EQU	220
-PAGE_TIMEDOLL	EQU	221
-PAGE_USRN	EQU	222
-
 ; Data Bank Pages ($3600)
 ; ----------------------------------------------------------------------
 ;
@@ -478,33 +507,12 @@ PAGE_USRN	EQU	222
 ; Pages 1-31 are reserved for Disk Basic File Handling
 ;
 DPAGE_DEFFN	EQU	32	; Page for Basic Def FN Def User
-DPAGE_DOSHISTORY EQU 33	; Seven consecutive pages: history/draft and state
+DPAGE_DOSHISTORY EQU 	33	; Seven consecutive pages: history/draft and state
 ; History reserves data pages 33-39; each exposes only $3600-$37DF.
 
 ; CMD uses one callable code page; only its copied text is banked.
-PAGE_BASICCOMMANDS EQU 179
-DPAGE_BASICCMD EQU 41
-BCMD_BUFFER EQU $3600          ; 128 bytes, including CR terminator
-BCMD_EVALUATE EQU 0            ; shared-page operation: ROM expression
-BCMD_EXECUTE EQU 1             ; shared-page operation: DOS command call
-BCMD_CMD	EQU	2	; BASIC CMD statement (not a supervisor ID)
-
-; BASIC error numbers used by CMD and the disk-error message table.
-BERR_FUNCTION	EQU	$08
-BERR_FIELD	EQU	$64
-BERR_NOTFOUND	EQU	$6A
-BERR_IO		EQU	$72
-BERR_FILENAME	EQU	$80
-BERR_PROTECTED	EQU	$88
-BERR_ACCESS	EQU	$8A
-BERR_DISK_END	EQU	BERR_ACCESS+2 ; exclusive upper bound
-; Enhanced Pico exposes FatFS results with the DOS $40 offset.
-FATFS_DOS_BASE	EQU	$40
-FATFS_NO_FILE	EQU	FATFS_DOS_BASE+4
-FATFS_NO_PATH	EQU	FATFS_DOS_BASE+5
-FATFS_DENIED	EQU	FATFS_DOS_BASE+7
-FATFS_PROTECTED	EQU	FATFS_DOS_BASE+10
-
+DPAGE_BASICCMD 	EQU 	41
+;
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------
 
