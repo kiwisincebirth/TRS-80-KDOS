@@ -66,7 +66,10 @@ _copy_byte:
 	djnz	_copy
 	ld	(hl),ENTER	; command parser terminator, outside BASIC's text
 	ld	hl,BCMD_BUFFER
+	;
+	; Actually Call the Command Processor via it PUBLI API
 	call	@CMNDI		; A=0/Z success, A=DOS error/NZ otherwise
+	;
 	call	_error_code	; convert returned DOS status to BASIC numbering
 _complete:
 	ld	b,a
@@ -95,9 +98,11 @@ _name_error:
 _error_code:
 	or	a
 	ret	z
-	cp	ILLFILNAM$
+	;
 	ld	e,BERR_FUNCTION		; unknown/unsafe callable command
+	cp	ILLFILNAM$
 	jr	z,_error_value
+	;
 	ld	e,BERR_NOTFOUND		; File not found
 	cp	FILNOTFND$
 	jr	z,_error_value
@@ -107,16 +112,19 @@ _error_code:
 	jr	z,_error_value
 	cp	FATFS_NO_PATH		; FatFS FR_NO_PATH
 	jr	z,_error_value
+	;
 	ld	e,BERR_PROTECTED		; Disk write protected
 	cp	WRITEPROT$
 	jr	z,_error_value
 	cp	FATFS_PROTECTED		; FatFS FR_WRITE_PROTECTED
 	jr	z,_error_value
+	;
 	ld	e,BERR_ACCESS		; File access denied
 	cp	ACCESSDEN$
 	jr	z,_error_value
 	cp	FATFS_DENIED		; FatFS FR_DENIED
 	jr	z,_error_value
+	;
 	ld	e,BERR_IO		; Disk I/O error fallback
 _error_value:
 	ld	a,e
