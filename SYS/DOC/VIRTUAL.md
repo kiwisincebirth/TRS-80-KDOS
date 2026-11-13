@@ -107,7 +107,7 @@ A routine that changes the Stack    -> Make it a Jump
 
 ### In summary
 
-Normally Virtual Pges should be set up as Virtual Routine (CALL syntax). Used For:
+Normally Virtual Pages should be set up as Virtual Routine (CALL syntax). Used For:
 * Any routine that you CALL #1
 * Any code that ONLY exits via RET #2
 
