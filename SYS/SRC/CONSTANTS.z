@@ -135,8 +135,10 @@ PICOPAGEDAT	EQU	$37F1		; Pico Virtual Data Page Number
 KBDMATRX	EQU	$3800
 ;
 CORE1		EQU	$41F8		; DOS Core Resident Code Block
+CORE1END	EQU	$42F1
+;
 SYSFCB  	EQU	$42F1		; DOS System FCB BUFFER
-CORE1END	EQU	$4311		; Note there are some bytes starting 4312 debugging BREAK related
+					; Note there are some bytes starting 4312 debugging BREAK related
 STRBUFF		EQU	$4318		; L2 Basic String Buffer (formally 41E5H)
 					; requires 3 bytes preamble
 					; L2 Basic Assigns $103 bytes to this buffer

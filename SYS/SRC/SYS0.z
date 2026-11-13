@@ -419,11 +419,11 @@ _waitTRS
 ;
 ; ======================================================================
 ;
-$FREE_CORE1	EQU	SYSFCB - $
+$FREE_CORE1	EQU	CORE1END - $
 ;
 	; FILL to end of REGION
-	assert	$ <= SYSFCB
-	DC	SYSFCB - $,0
+	assert	$ <= CORE1END
+	DC	$FREE_CORE1,0
 ;
 ; ======================================================================
 ; 42F1 - System FCB
