@@ -180,7 +180,7 @@ numbers into BASIC errors. CMD uses code page 179 and data
 page 41 only for a private command-string copy. This API does not implement
 all historical TRSDOS CMD subcommands.
 
-### Appendix
+## Appendix
 
 ### Filenames
 
