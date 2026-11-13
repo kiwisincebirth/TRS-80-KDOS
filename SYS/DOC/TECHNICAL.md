@@ -88,11 +88,20 @@ The high level Memory map
 |             |                       | 4500 - 4700 Overlays |
 | 44D4        | BASIC Program Start   | Moved up to 4704     |
 
+And some important DOS Vectors
+
+| Address |        | Contents                   | Issues          |
+|---------|--------|----------------------------|-----------------|
+| 400C    | RST28  | DOS Super Call Dispatcher  |                 |
+| 400F    | RST30  | DOS DEBUG entry point      |                 |
+| 4012    | RST38  | DOS Interrupt Service      |                 |
+| 4033    |        | Char I/O for Disk Files    |                 |
+
 ## DOS Entry Points
 
 | Address |        | Contents                   | Issues          |
 |---------|--------|----------------------------|-----------------|
-| 402D    |        | No Error DOS Exit (44400)  |                 |
+| 402D    |        | No Error DOS Exit          | (Sane as 4400)  |
 | 4400    | @CMD   | No Error DOS Exit          |                 |
 | 4405    | @CMNDI | Execute CMD and Exit       |                 |
 | 4409    | @ERROR | Exit and Display Error     |                 |
@@ -115,17 +124,13 @@ The high level Memory map
 | 4448    | @PEOF  | Position File to EOF       |                 |
 | 4467    | @DSPLY | Display a String           |                 |
 | 446A    | @PRINT | Print a String             |                 |
-| 446D    | @TIME  | Time into (HL) buffer      | todo            |
-| 4470    | @DATE  | Date into (HL) buffer      | todo            |
+| 446D    | @TIME  | Time into (HL) buffer      |                 |
+| 4470    | @DATE  | Date into (HL) buffer      |                 |
 | 4473    | @FEXT  | Default Filename extension |                 |
 
-; todo should we insert these int table below
-; (400C) RST 28H DOS Supervisor Call Dispatcher     
-; (400F) RST 30h (DOS DEBUG entry point) Vector.
-; (4012) RST 38h (Interrupt Service) Vector.                                                                                                 
-; (4033) DOS Char I/O Driver for Disk Files
-; (4427) * ND8Ø $82 identifying ND(8)0v(2)                                        
-; (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
+ALSO
+* (4427) * ND8Ø $82 identifying ND(8)0v(2) ???                                       
+* (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
 
 ## DOS Error Codes 
 

@@ -214,6 +214,9 @@ S_MDCMD		EQU	'O' - SUP_OFF + $80	; #MKDIR command
 S_RENCMD	EQU	'O' - SUP_OFF + $A0	; #REN #RENAME #MV #MOVE command
 S_PWDCMD	EQU	'O' - SUP_OFF + $C0	; #PWD (NO ARGS) command
 ;
+S_TIME		EQU	'T' - SUP_OFF + $20	; (446D) @TIME
+S_DATE		EQU	'T' - SUP_OFF + $40	; (4470) @DATE
+;
 SUPERV 	macro	p1
 	ld	a,p1	; load supervisor id
 	rst	28h	; call supervisor
@@ -499,6 +502,11 @@ PAGE_OVERLAYL	EQU	$EC	; @LOAD @RUN CMD File
 PAGE_OVERLAYM	EQU	$ED	; -unused
 PAGE_OVERLAYN	EQU	$EE	; -unused
 PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
+PAGE_OVERLAYP	EQU	$F0	; -unused
+PAGE_OVERLAYQ	EQU	$F1	; -unused
+PAGE_OVERLAYR	EQU	$F2	; -unused
+PAGE_OVERLAYS	EQU	$F3	; -unused
+PAGE_OVERLAYT	EQU	$F4	; @TIME @DATE DOS API's
 ;
 ; Data Bank Pages ($3600)
 ; ----------------------------------------------------------------------

@@ -20,6 +20,7 @@ set -e
 #./zmac overlayh.z --oo lst,cim
 #./zmac overlayl.z --oo lst,cim
 #./zmac overlayo.z --oo lst,cim
+#./zmac overlayt.z --oo lst,cim
 #
 #echo Building Keyboard
 #./zmac keyboard.z --oo lst,cmd,hex
@@ -40,6 +41,7 @@ set -e
 #cp zout/overlayh.cim ../overlayh.sys
 #cp zout/overlayl.cim ../overlayl.sys
 #cp zout/overlayo.cim ../overlayo.sys
+#cp zout/overlayt.cim ../overlayt.sys
 #cp zout/keyboard.cmd ../KEYBOARD.CMD
 
 echo Copying Files to FreHD
@@ -57,6 +59,7 @@ cp zout/overlayg.cim ~/Documents/FreHD/SYS/overlayg.sys
 cp zout/overlayh.cim ~/Documents/FreHD/SYS/overlayh.sys
 cp zout/overlayl.cim ~/Documents/FreHD/SYS/overlayl.sys
 cp zout/overlayo.cim ~/Documents/FreHD/SYS/overlayo.sys
+cp zout/overlayt.cim ~/Documents/FreHD/SYS/overlayt.sys
 cp zout/keyboard.cmd ~/Documents/FreHD/KEYBOARD.CMD
 
 echo TRS80GP
@@ -83,6 +86,7 @@ cp zout/overlayg.cim /Volumes/KDOS/SYS/overlayg.sys
 cp zout/overlayh.cim /Volumes/KDOS/SYS/overlayh.sys
 cp zout/overlayl.cim /Volumes/KDOS/SYS/overlayl.sys
 cp zout/overlayo.cim /Volumes/KDOS/SYS/overlayo.sys
+cp zout/overlayt.cim /Volumes/KDOS/SYS/overlayt.sys
 cp zout/keyboard.cmd /Volumes/KDOS/SYS/KEYBOARD.CMD
 
 echo Unmounting KDOS
