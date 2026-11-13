@@ -30,6 +30,47 @@ Install the RP2350 firmware (from /SYS/FIRMWARE) onto the (RP2350) Floppy-80 M1
 ## Usage
 
 Once started you should see the message "kDOS Loaded", and be dropped into a BASIC
-"READY>" Prompt. Pressing "ENTER" (without typing a command) will switch to the 
+"READY>" Prompt. On a modern Enhanced L2 ROM
+
+```
+Enhanced Level II BASIC
+Release 1.4
+47,294 Free Bytes
+kDOS Loaded
+READY
+>_
+```
+
+or, on a traditional L2 ROM
+
+```
+MEM SIZE?
+KDOS LOADED
+READY
+>_
+```
+
+Pressing "ENTER" (without typing a command) will switch to the 
 DOS ":" prompt. To get a summary of DOS commands type the command "HELP"
+
+```
+READY
+>
+:HELP
+kDOS - (ver Beta.2)
+  Press <Enter> to switch from BASIC to DOS : prompt
+  Programs can be run by typing name of CMD file
+DOS Commands
+  DIR <filter> - show dir files  LOAD <file.cmd> - load binary
+  CD <path> - change directory   MD <path> - make directory
+  COPY <file1> <file2> - single  REN <file1> <file2> - rename
+  DEL <file> - delete a file     PWD - show current path
+  DI EI - disable/enable Clock
+BASIC Commands
+  LOAD - SAVE - RUN - KILL - MERGE "<file.bas>"
+  &Hxx &Oxxx CVI$ DEF FN USR INSTR$ MKI MID$ TIME$ LINE INPUT
+:_    
+```
+
+Typing DIR will list contents of the drive.
 

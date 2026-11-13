@@ -28,7 +28,7 @@ _HELP_MSG:
 	defb 'BASIC Commands', ENTER
 ;	defb '  LOAD "<file.bas>" SAVE "<file.bas>"', ENTER
 ;	defb '  RUN "<file.bas>" MERGE "<file.bas>"', ENTER
-	defb '  LOAD - SAVE - RUN - MERGE "<file.bas>"', ENTER
+	defb '  LOAD - SAVE - RUN - KILL - MERGE "<file.bas>"', ENTER
 	defb '  &Hxx &Oxxx CVI$ DEF FN USR INSTR$ MKI MID$ TIME$ LINE INPUT', ENTER
 	defb 0
 
