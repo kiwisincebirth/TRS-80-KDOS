@@ -32,7 +32,8 @@ import	constants.z
 	jr	z,_BAS_MERGE	; MERGE
 	;
 	cp	S_BASICCMD
-	jr	z,_BAS_COMMAND
+	jr	z,_BAS_COMMAND	; CMD
+	;
 	cp	S_BASICKILL
 	jr	z,_BAS_KILL	; KILL
 	;
