@@ -84,16 +84,16 @@ To prevent the internal hardware stack from overflowing, the system distinguishe
 
 The following is an analysis of best approach for defining virtual memory pages
 
-| Calling Code | Springboard  | Exit From VM | Unwind of the Virtual Page                   | Call Stack |     | 
-|--------------|--------------|--------------|----------------------------------------------|------------|-----|
-| JUMP         | JUMP         | JUMP         | GOOD. No expectation of unwind               | GOOD       | A # |
-| JUMP         | JUMP         | RET          | ** OK. Expectation of unwind                 | GOOD       | C # |
-| JUMP         | CALL (push)  | JUMP         | ** BAD **                                    | ** BAD **  | F-  |
-| JUMP         | CALL (push)  | RET          | GOOD. Normal Ret from routine as final line  | GOOD       | A # |
-| CALL         | JUMP         | JUMP         | ** OK. Future ret will bypass the unwind     | GOOD       | C   |
-| CALL         | JUMP         | RET          | ** OK. Bypass unwind of Virtual Memory       | OK         | C - |
-| CALL         | CALL (push)  | JUMP         | GOOD. Normal Call, future ret will unwind VM | GOOD       | A # |
-| CALL         | CALL (push)  | RET          | GOOD. Normal Call/Ret pttern                 | GOOD       | A # |
+| Calling Code | Springboard  | Exit Page | Unwind of the Virtual Page             | Call Stack |          | 
+|--------------|--------------|-----------|----------------------------------------|------------|----------|
+| JUMP         | JUMP         | JUMP      | No expectation of unwind               | **GOOD**   | A #3     |
+| JUMP         | JUMP         | RET       | Expectation of unwind                  | OK         | C *2     |
+| JUMP         | CALL (push)  | JUMP      | ** BAD **                              | **BAD**    | F- *3    |
+| JUMP         | CALL (push)  | RET       | Normal Ret from routine as final line  | **GOOD**   | A #2     |
+| CALL         | JUMP         | JUMP      | Future ret will bypass the unwind      | OK         | C *1     |
+| CALL         | JUMP         | RET       | Bypass unwind of Virtual Memory        | OK         | C- *1 *2 |
+| CALL         | CALL (push)  | JUMP      | Normal Call, future ret will unwind VM | **GOOD**   | A #1     |
+| CALL         | CALL (push)  | RET       | Normal Call/Ret pttern                 | **GOOD**   | A #1 #2  |
 
 Call to a Routine that Returns Only -> Make it a CALL
 Call to a routine that Jumps Only   -> Make it a CALL
@@ -107,13 +107,20 @@ A routine that changes the Stack    -> Make it a Jump
 
 ### In summary
 
-Normally These should be set up as a CALL
-* Any routine that You CALL
-* Any code that ONLY exits via RET
+Normally Virtual Pges should be set up as Virtual Routine (CALL syntax). Used For:
+* Any routine that you CALL #1
+* Any code that ONLY exits via RET #2
 
-Exceptions where a JUMP should be used
+Exceptions where a Virtual Page (JUMP syntax) should be used instead:
+* Any code you Jump to that doesn't exclusively RET
 * Any code that directly manipulates the Stack
-* Any code you Jump to that doesn't exclusivly RET
+
+| Calling Code | Springboard | Exit Page | Unwind of the Virtual Page             | Defined As  | 
+|--------------|-------------|-----------|----------------------------------------|-------------|
+| JUMP         | JUMP        | JUMP      | No expectation of unwind               | **PAGE**    |
+| JUMP         | CALL        | RET       | Normal Ret from routine as final line  | **ROUTINE** |
+| CALL         | CALL        | JUMP      | Normal Call, future ret will unwind VM | **ROUTINE** |
+| CALL         | CALL        | RET       | Normal Call/Ret pttern                 | **ROUTINE** |
 
 ## Potential Pitfalls to Watch
 
