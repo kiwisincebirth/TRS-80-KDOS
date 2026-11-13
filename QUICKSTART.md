@@ -35,7 +35,7 @@ Once started you should see the message "kDOS Loaded", and be dropped into a BAS
 ```
 Enhanced Level II BASIC
 Release 1.4
-47,294 Free Bytes
+47,806 Free Bytes
 kDOS Loaded
 READY
 >_
