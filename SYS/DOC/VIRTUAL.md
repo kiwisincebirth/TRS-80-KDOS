@@ -115,12 +115,12 @@ Exceptions where a Virtual Page (JUMP syntax) should be used instead:
 * Any code you Jump to that doesn't exclusively RET
 * Any code that directly manipulates the Stack
 
-| Calling Code | Springboard | Exit Page | Unwind of the Virtual Page             | Defined As  | 
-|--------------|-------------|-----------|----------------------------------------|-------------|
-| JUMP         | JUMP        | JUMP      | No expectation of unwind               | **PAGE**    |
-| JUMP         | CALL        | RET       | Normal Ret from routine as final line  | **ROUTINE** |
-| CALL         | CALL        | JUMP      | Normal Call, future ret will unwind VM | **ROUTINE** |
-| CALL         | CALL        | RET       | Normal Call/Ret pttern                 | **ROUTINE** |
+| Calling Code | Exit From Page | Unwind of the Virtual Page             | Defined As  | 
+|--------------|----------------|----------------------------------------|-------------|
+| JUMP         | JUMP           | No expectation of unwind               | **PAGE**    |
+| JUMP         | RET            | Normal Ret from routine as final line  | **ROUTINE** |
+| CALL         | JUMP           | Normal Call, future ret will unwind VM | **ROUTINE** |
+| CALL         | RET            | Normal Call/Ret pttern                 | **ROUTINE** |
 
 ## Potential Pitfalls to Watch
 
