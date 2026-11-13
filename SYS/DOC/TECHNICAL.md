@@ -9,7 +9,7 @@
 | /SYS/KEYBOARD.CMD   | Loads /SYS/SYSP.SYS                       | CMD    | KEYBOARD.z   |
 | /SYS/OVERLAY{x}.SYS | Non Banked RAM Runtime Overlays           | Binary | OVERLAY{x}.z |
 | /SYS/SYS0.SYS       | Non Banked RAM Kernal Only                | CMD    | SYS0F.z      |
-| /SYS/SYSP.SYS       | Full Banked RAM System, incl all overlays | CMD    |              |
+| /SYS/SYSP.SYS       | Full Banked RAM System, incl all overlays | CMD    | SYS0P.z      |
 
 * FreHD.ROM - is a direct copy of BOOT.SYS in CMD format
 * BOOT.SYS - 256 byte binary image, with ORG = $6000
