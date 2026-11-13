@@ -66,7 +66,7 @@ until that test passes.
 BASIC CMD - merged with sequential file I/O
 This branch includes both features. The CMD revision adds the returning
 DOS @CMNDI API to SYS0 and
-consolidates CMD into code page 179, with data page 41 for copied text.
+consolidates CMD into code page 207, with data page 41 for copied text.
 SYS/SYSP.sys contains the paged implementation. The unpaged core and affected
 overlays also change: SYS/SYS0.sys, SYS/overlayb.sys, SYS/overlayc.sys and
 SYS/overlaye.sys. Keep all five SYS files matched when deploying this revision.
@@ -92,4 +92,4 @@ external command names remain unsupported. USERGUIDE.md explains the limits.
 Re-test DIR/BREAK and history at the DOS prompt. Commit only after physical
 hardware testing. Both features are included in this build.
 I/O uses code pages 160-178 and data pages 1-3/40; CMD uses code page
-179 and data page 41. The allocations do not overlap.
+207 and data page 41. The allocations do not overlap.

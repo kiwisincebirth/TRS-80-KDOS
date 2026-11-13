@@ -111,10 +111,15 @@ endif
 ; KILL "XXXXX.BAS" - Delete a program from disk
 ; ----------------------------------------------------------------------
 _BAS_KILL:
+ifdef @D_PICOENHANCED
 	call	_GET_STRING	; de points to string, B is the length non-zero
 	call	_STR_TERM	; ensure we addd a 0 terminator, replacing " in CMD buffer
+	; TODO Adding terminator will corrupt Basic Program
 	EX	DE, HL		; DEL_CMD takes pointer to String in HL.
 	SUPERV	S_DELCMD
+else
+	jp	L3ERR		; KILL DELETE is not supported without PICO
+endif
 ;
 ; ----------------------------------------------------------------------
 ; MERGE "XXXXX.BAS" - Merge a Basic program from Disk

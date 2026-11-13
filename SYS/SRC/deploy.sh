@@ -61,9 +61,10 @@ cp zout/keyboard.cmd ~/Documents/FreHD/KEYBOARD.CMD
 
 echo TRS80GP
 
-open -a trs80gp --args -m1 \
+open -a trs80gp --args -m1 -dx \
   -frehd -frehd_dir ~/Documents/FreHD \
   -rom ~/GITHUB/TRS-80-ROMS/MDL1REV4.bin \
+#  -frehd_patch \
 
 if mount | grep -q "/Volumes/KDOS"; then
 

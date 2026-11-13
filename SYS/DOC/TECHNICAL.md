@@ -94,7 +94,7 @@ The high level Memory map
 |---------|--------|----------------------------|-----------------|
 | 402D    |        | No Error DOS Exit (44400)  |                 |
 | 4400    | @CMD   | No Error DOS Exit          |                 |
-| 4405    | @CMNDI | Execute CMD and Exit       | (Same as 4400)  |
+| 4405    | @CMNDI | Execute CMD and Exit       |                 |
 | 4409    | @ERROR | Exit and Display Error     |                 |
 | 440D    | @DEBUG | Debug Mode                 | Not Implemented |
 | 4410    | @ADTSK | Add Interrupt Task         | Not Implemented |
