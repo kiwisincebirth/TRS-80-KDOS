@@ -432,6 +432,24 @@ NOP3 	macro
 	NOP
 	endm
 ;
+DISAVE	macro
+	; --- Disable & Save Interrupt State ---
+	; --- This macro destroys AF
+	; --- This macro uses the stack and must be paired with EISAVE
+	LD	A, I    ; Copy IFF2 into P/V flag (PE = enabled, PO = disabled)
+	DI     		; Disable interrupts immediately
+	PUSH	AF      ; Save the P/V flag state onto the stack
+	endm
+
+EIREST	macro
+	; --- Conditionally Restore Interrupts ---
+	; --- This macro uses the stack and must be paired with DISAVE
+	POP	AF    		; Retrieve saved flags (P/V holds previous EI state)
+	JP	PO,$+4   	; If P/V = 0 (PO), interrupts were disabled; skip EI
+				; $+4 -> 3 bytes Jump and 1 byte EI
+	EI                  	; Otherwise, re-enable interrupts
+	endm
+;
 ; ----------------------------------------------------------------------
 ; BASIC Commands
 ;

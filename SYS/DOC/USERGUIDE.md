@@ -160,24 +160,7 @@ executing the transfer address, then continues BASIC. The binary must target
 memory or banks reserved by your application; loading over BASIC or DOS can
 corrupt the running system. Use BASIC's `LOAD` for BASIC programs.
 
-## DOS Machine Language API's
-
-### @CMNDI (4405) - Execute Command
-
-Machine-code callers can use `CALL $4405` (`@CMNDI`) with HL pointing to
-writable CR- or NUL-terminated command text. The command processor executes
-an internal command and returns A=0/Z on success, or A=DOS error/NZ on failure.
-BC, DE and HL may change. The paged implementation restores the caller's
-code bank; the caller's data bank and DOS prompt mode are preserved.
-Nested calls are rejected with Internal DOS Error. External program names
-are excluded; internal LOAD is supported without executing the loaded code.
-This returning behavior is a kDOS extension: historical TRSDOS, LDOS and
-NewDOS versions use $4405 as a terminating command entry. Compatibility and
-a broader command-return redesign are deferred for separate review.
-
-BASIC CMD uses this interface; BASIC alone translates DOS error
-numbers into BASIC errors. CMD uses code page 179 and data
-page 41 only for a private command-string copy. This API does not implement
+BASIC translates DOS error numbers into BASIC errors. This API does not implement
 all historical TRSDOS CMD subcommands.
 
 ## Appendix

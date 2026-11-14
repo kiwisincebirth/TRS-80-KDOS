@@ -22,12 +22,16 @@ VIRTUAL_PAGE timedollar, PAGE_TIMEDOLL
 ; Original Source from TRSDOS 2.3, See
 ; https://www.trs-80.com/sub-disassem-dos-td23-basic-cmd.htm
 ;
+	;
 	rst	$0010                 ; 5745:
 	push	hl                    ; 5746:
 	ld	a,$11                 ; 5747:
 	call	STRINI                ; 5749:
 	ld	hl,($40d4)            ; 574c:
 	ld	de,XTIME+5            ; 574f:
+	;
+	DISAVE		      	; Push interrupt state and disable DI
+	;
 	call	_5776                 ; 5752:
 	ld	(hl),'/'              ; 5755:
 	inc	hl                    ; 5757:
@@ -44,7 +48,11 @@ VIRTUAL_PAGE timedollar, PAGE_TIMEDOLL
 	ld	(hl),':'              ; 576d:
 	inc	hl                    ; 576f:
 	call	_5776                 ; 5770:
+	;
+	EIREST		      ; POP and restore interrupt state
+	;
 	jp	PUTNEW                ; 5773:
+	;
 _5776:
 	ld	a,(de)                ; 5776:
 	dec	de                    ; 5777:

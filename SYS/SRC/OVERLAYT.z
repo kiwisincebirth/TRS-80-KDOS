@@ -47,6 +47,7 @@ _TIME
 	ld	de,$4043      ;4cb7:
         ld	c,$3a         ;4cba:
 _4cbc:
+	DISAVE		      ; Push interrupt state and disable DI
         ld	b,$03         ;4cbc:
 _4cbe:
         ld	a,(de)        ;4cbe:
@@ -61,10 +62,14 @@ _4cc2:
         ld	(hl),a        ;4cca:
         inc	hl            ;4ccb:
         dec	b             ;4ccc:
-        ret	z             ;4ccd:
+        jr	z,_dtComplete ;4ccd:
         ld	(hl),c        ;4cce:
         inc	hl            ;4ccf:
         jr	_4cbe         ;4cd0:
+;
+_dtComplete
+	EIREST		      ; POP and restore interrupt state
+	ret		      ;4ccd:
 ;
 ; ======================================================================
 ; 4700 - End Of Overlay
