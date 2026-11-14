@@ -419,11 +419,11 @@ _waitTRS
 ;
 ; ======================================================================
 ;
-$FREE_CORE1	EQU	SYSFCB - $
+$FREE_CORE1	EQU	CORE1END - $
 ;
 	; FILL to end of REGION
-	assert	$ <= SYSFCB
-	DC	SYSFCB - $,0
+	assert	$ <= CORE1END
+	DC	$FREE_CORE1,0
 ;
 ; ======================================================================
 ; 42F1 - System FCB
@@ -510,8 +510,8 @@ _dos_exit_status:
 
 	jp	DISPSTR		; (4467) @DSPLY display string routine.
 	jp	PRINTSTR	; (446A) @PRINT print string routine.
-	RET3			; (446D) @TIME todo Get the time "23:59:59" into (HL)
-	RET3			; (4470) @DATE todo Get the date "12/12/99" into (HL)
+	SUPERV	S_TIME		; (446D) @TIME Get the time "23:59:59" into (HL)
+	SUPERV	S_DATE		; (4470) @DATE Get the date "12/12/99" into (HL)
 	SUPERV	S_FILEEXTNT	; (4473) @FEXT Insert a default file extension
 	RET3			; (4476) * Ldos and Trsdos have a function defined here
 	;
@@ -525,7 +525,7 @@ _dos_exit_status:
 	nop			; (447E)
 	nop			; (447F)
 ;
-	assert	$ == CORE2
+	assert	$ <= CORE2
 ;
 ; ======================================================================
 ; 4480 - Main Core Resident Code

@@ -84,6 +84,12 @@ VIRTUAL_PAGE _basic_overs, PAGE_OVERLAYO
 include	overlayo.z
 VIRTUAL_END
 
+; Time Related Functions
+; These are DOS routines that ALL return to caller
+VIRTUAL_ROUTINE _basic_overt, PAGE_OVERLAYT
+include	overlayt.z
+VIRTUAL_END
+
 ; ----------------------------------------------------------------------
 ; Misc Code Extensions
 ; ----------------------------------------------------------------------

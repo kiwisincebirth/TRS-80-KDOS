@@ -28,6 +28,7 @@ overlays:
 	@${zmacbin} overlayh.z
 	@${zmacbin} overlayl.z
 	@${zmacbin} overlayo.z
+	@${zmacbin} overlayt.z
 
 extras:
 	@${zmaccmd} keyboard.z
@@ -47,6 +48,7 @@ deploy:
 	@cp zout/overlayh.cim ../overlayh.sys
 	@cp zout/overlayl.cim ../overlayl.sys
 	@cp zout/overlayo.cim ../overlayo.sys
+	@cp zout/overlayt.cim ../overlayt.sys
 	@cp zout/keyboard.cmd ../KEYBOARD.CMD
 
 clean:

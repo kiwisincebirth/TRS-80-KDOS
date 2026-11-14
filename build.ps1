@@ -39,7 +39,7 @@ New-Item -ItemType Directory -Force -Path $source,(Join-Path $destination 'SYS')
 # Assemble a fresh source copy so build products never modify tracked sources.
 Copy-Item -Path (Join-Path $PSScriptRoot 'SYS/SRC/*.z') -Destination $source -Force
 $targets = @(@('BOOT.z','lst,cim,cmd'),@('SYS0P.z','lst,cmd'),@('SYS0F.z','lst,cmd'),@('keyboard.z','lst,cmd'))
-foreach ($letter in @('b','c','d','e','f','g','h','l','o')) {
+foreach ($letter in @('b','c','d','e','f','g','h','l','o','t')) {
     $targets += ,@("overlay$letter.z",'lst,cim')
 }
 Push-Location $source
@@ -53,7 +53,7 @@ try {
         'sys0p.cmd'='SYS/SYSP.sys'; 'sys0f.cmd'='SYS/SYS0.sys';
         'keyboard.cmd'='SYS/KEYBOARD.CMD'
     }
-    foreach ($letter in @('b','c','d','e','f','g','h','l','o')) {
+    foreach ($letter in @('b','c','d','e','f','g','h','l','o','t')) {
         $copies["overlay$letter.cim"]="SYS/overlay$letter.sys"
     }
     foreach ($entry in $copies.GetEnumerator()) {

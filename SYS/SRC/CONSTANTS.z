@@ -135,8 +135,10 @@ PICOPAGEDAT	EQU	$37F1		; Pico Virtual Data Page Number
 KBDMATRX	EQU	$3800
 ;
 CORE1		EQU	$41F8		; DOS Core Resident Code Block
+CORE1END	EQU	$42F1
+;
 SYSFCB  	EQU	$42F1		; DOS System FCB BUFFER
-CORE1END	EQU	$4311		; Note there are some bytes starting 4312 debugging BREAK related
+					; Note there are some bytes starting 4312 debugging BREAK related
 STRBUFF		EQU	$4318		; L2 Basic String Buffer (formally 41E5H)
 					; requires 3 bytes preamble
 					; L2 Basic Assigns $103 bytes to this buffer
@@ -213,6 +215,9 @@ S_DELCMD	EQU	'O' - SUP_OFF + $60	; #DEL #DELETE #KILL #RM command
 S_MDCMD		EQU	'O' - SUP_OFF + $80	; #MKDIR command
 S_RENCMD	EQU	'O' - SUP_OFF + $A0	; #REN #RENAME #MV #MOVE command
 S_PWDCMD	EQU	'O' - SUP_OFF + $C0	; #PWD (NO ARGS) command
+;
+S_TIME		EQU	'T' - SUP_OFF + $20	; (446D) @TIME
+S_DATE		EQU	'T' - SUP_OFF + $40	; (4470) @DATE
 ;
 SUPERV 	macro	p1
 	ld	a,p1	; load supervisor id
@@ -427,6 +432,24 @@ NOP3 	macro
 	NOP
 	endm
 ;
+DISAVE	macro
+	; --- Disable & Save Interrupt State ---
+	; --- This macro destroys AF
+	; --- This macro uses the stack and must be paired with EISAVE
+	LD	A, I    ; Copy IFF2 into P/V flag (PE = enabled, PO = disabled)
+	DI     		; Disable interrupts immediately
+	PUSH	AF      ; Save the P/V flag state onto the stack
+	endm
+
+EIREST	macro
+	; --- Conditionally Restore Interrupts ---
+	; --- This macro uses the stack and must be paired with DISAVE
+	POP	AF    		; Retrieve saved flags (P/V holds previous EI state)
+	JP	PO,$+4   	; If P/V = 0 (PO), interrupts were disabled; skip EI
+				; $+4 -> 3 bytes Jump and 1 byte EI
+	EI                  	; Otherwise, re-enable interrupts
+	endm
+;
 ; ----------------------------------------------------------------------
 ; BASIC Commands
 ;
@@ -499,6 +522,11 @@ PAGE_OVERLAYL	EQU	$EC	; @LOAD @RUN CMD File
 PAGE_OVERLAYM	EQU	$ED	; -unused
 PAGE_OVERLAYN	EQU	$EE	; -unused
 PAGE_OVERLAYO	EQU	$EF	; #CD #MD #REN #DEL Commands
+PAGE_OVERLAYP	EQU	$F0	; -unused
+PAGE_OVERLAYQ	EQU	$F1	; -unused
+PAGE_OVERLAYR	EQU	$F2	; -unused
+PAGE_OVERLAYS	EQU	$F3	; -unused
+PAGE_OVERLAYT	EQU	$F4	; @TIME @DATE DOS API's
 ;
 ; Data Bank Pages ($3600)
 ; ----------------------------------------------------------------------

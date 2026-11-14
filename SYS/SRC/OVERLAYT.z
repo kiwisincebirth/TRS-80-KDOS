@@ -1,0 +1,82 @@
+; ======================================================================
+;       	KDOS
+;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
+;
+;     Clock Date Time and OTHER Interrupt Command Routines.
+;	This EXCLUDES Interrupt Servicing Routines Themselves.
+;
+; 4CB7H writes the time as HH:MM:SS and 4CD2H the date as MM/DD/YY,
+; eight characters at Register Pair HL. Each of the three values (00-99, binary)
+; is turned into two decimal digits; the separator is in Register C.
+; Register Pair HL returns just past the text.
+;
+; TODO Could be a system option to support Date Format in Form DD/MM/YY
+;
+;     Source Code Created By : kiwisincebirth - 2026
+;     [https://github.com/kiwisincebirth/TRS-80]
+;
+; ======================================================================
+;     NOTE: this code has been formatted with 8 spaces per tab
+; ----------------------------------------------------------------------
+;
+import	constants.z
+;
+; ======================================================================
+; Overlay Region (4500h - 4700h)
+; ======================================================================
+;
+	ORG	OVERLY
+	;
+	cp	S_TIME		; WAS it a @TIME 446D
+ 	jr	z,_TIME
+	;
+	cp	S_DATE		; WAS it a @DATE 4470
+ 	jr	z,_DATE	;
+	;
+	ld	a, INTDOSERR$	; Internal Failure
+	jp	@ERROR
+;
+; Original Source from TRSDOS 2.3, See
+; https://www.trs-80.com/sub-disassem-dos-td23-sys-0.htm#4CB7H
+;
+_DATE:
+        ld	de,$4046      ;4cd2:
+        ld	c,$2f         ;4cd5:
+        jr	_4cbc         ;4cd7:
+_TIME
+	ld	de,$4043      ;4cb7:
+        ld	c,$3a         ;4cba:
+_4cbc:
+	DISAVE		      ; Push interrupt state and disable DI
+        ld	b,$03         ;4cbc:
+_4cbe:
+        ld	a,(de)        ;4cbe:
+        dec	de            ;4cbf:
+        ld	(hl),$2f      ;4cc0:
+_4cc2:
+        inc	(hl)          ;4cc2:
+        sub	$0a           ;4cc3:
+        jr	nc,_4cc2      ;4cc5:
+        add	a,$3a         ;4cc7:
+        inc	hl            ;4cc9:
+        ld	(hl),a        ;4cca:
+        inc	hl            ;4ccb:
+        dec	b             ;4ccc:
+        jr	z,_dtComplete ;4ccd:
+        ld	(hl),c        ;4cce:
+        inc	hl            ;4ccf:
+        jr	_4cbe         ;4cd0:
+;
+_dtComplete
+	EIREST		      ; POP and restore interrupt state
+	ret		      ;4ccd:
+;
+; ======================================================================
+; 4700 - End Of Overlay
+; ======================================================================
+;
+FREE_OVERLAYT	EQU	OVERLY + $200 - $
+;
+	; FILL to end of REGION
+	DC	FREE_OVERLAYT , $0D
+;
