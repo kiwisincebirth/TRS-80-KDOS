@@ -61,7 +61,7 @@ and testing purposes
 ## Operation and Use
 
 See the Seperate [Quick Start](./QUICKSTART.md) for a getting started,
-and the full [User Guide](./USERGUIDE.md) for detailed operation
+and the full [User Guide](SYS/DOC/USERGUIDE.md) for detailed operation
 
 ## Work In Progress
 

@@ -2,7 +2,7 @@
 ;       	KDOS
 ;	based on TRSDOS, LDOS, and NEWDOS/80 for Model 1
 ;
-;     MISC Stuff -> @DATE @TIME
+;     MISC Stuff -> UNUSED
 ;
 ;     Source Code Created By : kiwisincebirth - 2026
 ;     [https://github.com/kiwisincebirth/TRS-80]
@@ -17,34 +17,6 @@ import	constants.z
 ; Overlay Region (4500h - 4700h)
 ; ======================================================================
 ;
-
-; (446D) @TIME -> 4CB7 Get the time "23:59:59" into (HL)
-; (4470) @DATE -> 4CD2 Get the date "12/12/99" into (HL)
-
-4cb7:   ld	de,$4043
-4cba:   ld	c,$3a
-4cbc:   ld	b,$03
-4cbe:   ld	a,(de)
-4cbf:   dec	de
-4cc0:   ld	(hl),$2f
-4cc2:   inc	(hl)
-4cc3:   sub	$0a
-4cc5:   jr	nc,$4cc2
-4cc7:   add	a,$3a
-4cc9:   inc	hl
-4cca:   ld	(hl),a
-4ccb:   inc	hl
-4ccc:   dec	b
-4ccd:   ret	z
-4cce:   ld	(hl),c
-4ccf:   inc	hl
-4cd0:   jr	$4cbe
-
-4cd2:   ld	de,$4046
-4cd5:   ld	c,$2f
-4cd7:   jr	$4cbc
-
-;; ----------
 
 ; Move into CMD processor Overlay, where it is most needed
 ; ensure we pass in ther SUper ID, to distinguish with the existing command processor.
