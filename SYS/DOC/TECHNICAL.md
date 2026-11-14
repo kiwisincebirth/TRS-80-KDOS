@@ -88,11 +88,28 @@ The high level Memory map
 |             |                       | 4500 - 4700 Overlays |
 | 44D4        | BASIC Program Start   | Moved up to 4704     |
 
+And some important DOS Vectors and values
+
+| Address |        | Contents                   | Issues |
+|---------|--------|----------------------------|--------|
+| 400C    | RST28  | DOS Super Call Dispatcher  |        |
+| 400F    | RST30  | DOS DEBUG entry point      | (todo) |
+| 4012    | RST38  | DOS Interrupt Service      |        |
+| 4033    |        | Char I/O for Disk Files    |        |
+| 4040    |        | Interrupt Timer Tick Count |        |
+| 4041    |        | Time Seconds (0-59)        |        |
+| 4042    |        | Time Minutes (0-59)        |        |
+| 4043    |        | Time Hours (0-23)          |        |
+| 4044    |        | Date Year (0-99)           |        |
+| 4045    |        | Date Day (1-31)            |        |
+| 4046    |        | Date Month (1-12)          |        |
+
 ## DOS Entry Points
 
 | Address |        | Contents                   | Issues          |
 |---------|--------|----------------------------|-----------------|
-| 402D    |        | No Error DOS Exit (44400)  |                 |
+| 402D    | @EXIT  | No Error DOS Exit          | (Same as 4400)  |
+| 4030    | @ABORT | DOS Error Exit             |                 |
 | 4400    | @CMD   | No Error DOS Exit          |                 |
 | 4405    | @CMNDI | Execute CMD and Exit       |                 |
 | 4409    | @ERROR | Exit and Display Error     |                 |
@@ -115,17 +132,43 @@ The high level Memory map
 | 4448    | @PEOF  | Position File to EOF       |                 |
 | 4467    | @DSPLY | Display a String           |                 |
 | 446A    | @PRINT | Print a String             |                 |
-| 446D    | @TIME  | Time into (HL) buffer      | todo            |
-| 4470    | @DATE  | Date into (HL) buffer      | todo            |
+| 446D    | @TIME  | Time into (HL) buffer      |                 |
+| 4470    | @DATE  | Date into (HL) buffer      |                 |
 | 4473    | @FEXT  | Default Filename extension |                 |
 
-; todo should we insert these int table below
-; (400C) RST 28H DOS Supervisor Call Dispatcher     
-; (400F) RST 30h (DOS DEBUG entry point) Vector.
-; (4012) RST 38h (Interrupt Service) Vector.                                                                                                 
-; (4033) DOS Char I/O Driver for Disk Files
-; (4427) * ND8Ø $82 identifying ND(8)0v(2)                                        
-; (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
+ALSO
+* (4427) * ND8Ø $82 identifying ND(8)0v(2) ???                                       
+* (442B) * ND8Ø $Ø1 if Model I and $Ø3 if Model III.
+
+### @CMNDI (4405) - Execute Command
+
+Machine-code callers can use `CALL $4405` (`@CMNDI`) with HL pointing to
+writable CR- or NUL-terminated command text. The command processor executes
+an internal command and returns A=0/Z on success, or A=DOS error/NZ on failure.
+BC, DE and HL may change. The paged implementation restores the caller's
+code bank; the caller's data bank and DOS prompt mode are preserved.
+Nested calls are rejected with Internal DOS Error. External program names
+are excluded; internal LOAD is supported without executing the loaded code.
+This returning behavior is a kDOS extension: historical TRSDOS, LDOS and
+NewDOS versions use $4405 as a terminating command entry. Compatibility and
+a broader command-return redesign are deferred for separate review.
+
+BASIC CMD uses this interface; CMD uses code page 179 and data
+page 41 only for a private command-string copy.
+
+### @TIME (446D) Copy Time into (HL) buffer
+
+Writes the time as HH:MM:SS eight characters at Register Pair HL. 
+Each of the three values (00-99, binary) is turned into two decimal digits. 
+Register Pair HL returns just past the text.
+This API write exactly eight characters and do not append a terminator
+
+### @DATE (4470) Copy Date into (HL) buffer
+
+Writes the date as MM/DD/YY, eight characters at Register Pair HL. 
+Each of the three values (00-99, binary) is turned into two decimal digits. 
+Register Pair HL returns just past the text.
+This API write exactly eight characters and do not append a terminator
 
 ## DOS Error Codes 
 
