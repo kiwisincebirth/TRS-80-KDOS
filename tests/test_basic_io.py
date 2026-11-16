@@ -73,10 +73,12 @@ class BasicRig(base.Rig):
   if port==0xc4:
    self.command=v;self.args=[];self.data.clear();self.status=0x40;self.error=0
    if v==0:self.data.extend([1,2,0x55,0xaa])
-   elif v in (0x20,0x21,0x15):
+   elif v in (0x20,0x21,0x15,0x26):
     assert self.selected in self.handles,('invalid handle',self.selected)
     h=self.handles[self.selected]
-    if v==0x20:
+    if v==0x26:
+     fcb=bytearray(9);fcb[0]=h['pos']&255;fcb[1]=h['pos']>>8;fcb[2]=self.selected;fcb[4]=1;self.data.extend(fcb)
+    elif v==0x20:
      if h['pos']==len(self.files[h['name']]): self.status=0x41;self.error=0x40|28
      else:self.data.append(self.files[h['name']][h['pos']]);h['pos']+=1
     elif v==0x15:
@@ -87,11 +89,11 @@ class BasicRig(base.Rig):
    if self.command==0x14 and len(self.args)==36:
     options,lrl,lo,hi,*name=self.args;name=bytes(name).split(b'\0')[0].decode()
     assert lrl==1
-    if options==1 and name not in self.files:self.status=0x41;self.error=0x40|24;return
-    if options&8:self.files[name]=bytearray()
-    ident=next(i for i in range(1,32) if i not in self.handles)
+    if not options&0x1c and name not in self.files:self.status=0x41;self.error=0x40|24;return
+    if options&8 or name not in self.files:self.files[name]=bytearray()
+    ident=next(i for i in range(16) if i not in self.handles)
     self.handles[ident]={'name':name,'pos':0,'mode':options}
-    fcb=bytearray(32);fcb[3:5]=bytes([lo,hi]);fcb[7]=ident;fcb[9]=lrl;self.data.extend(fcb)
+    fcb=bytearray(32);fcb[0]=0x80;fcb[3:5]=bytes([lo,hi]);fcb[7]=ident;fcb[9]=lrl;self.data.extend(fcb)
    elif self.command==0x21:
     h=self.handles[self.selected];assert h['mode']&2
     self.files[h['name']].append(v);h['pos']+=1
@@ -240,7 +242,7 @@ def tests():
  assert r.statement('PRINT EOF(1)')==b'-1 \r'
  r.statement('CLOSE')
 
- for text,code in [('OPEN "I",0,"X"',0x68),('OPEN "I",4,"X"',0x68),('OPEN "R",1,"X"',0x6c),('OPEN "I",1,"MISSING"',0x6a),('OPEN "O",1,""',0x80),('OPEN "O",1,"'+('X'*32)+'"',0x80),('PRINT#1,"X"',0x6c),('PRINT EOF(0)',0x68)]:
+ for text,code in [('OPEN "I",0,"X"',0x68),('OPEN "I",17,"X"',0x68),('OPEN "R",1,"X"',0x6c),('OPEN "I",1,"MISSING"',0x6a),('OPEN "O",1,""',0x80),('OPEN "O",1,"'+('X'*32)+'"',0x80),('PRINT#1,"X"',0x6c),('PRINT EOF(0)',0x68)]:
   expect_error(BasicRig(),text,code)
  r=BasicRig();r.statement('OPEN "O",1,"X"');r.statement('PRINT#1,"KEEP"')
  expect_error(r,'OPEN "O",1,"X"',0x6e)
@@ -299,8 +301,75 @@ def tests():
  return {'basic_file_io':'PASS: real ROM parsing/evaluation, typed variables, arrays/GC, three files, EOF lookahead, CR/LF, boundaries, error cases and close lifecycle',
  'scope':'Pico file API and ROM console are simulated; physical firmware timing still needs hardware testing.'}
 
+
+def review_regressions():
+ # Exercise every slot at once, including firmware handle 0 and BASIC 16.
+ r=BasicRig();r.write(0x37f1,0);r.mem[0x3600:0x37e0]=bytes([0x5a])*480
+ for i in range(1,17):
+  r.statement(f'OPEN "O",{i},"F{i}"')
+  r.statement(f'PRINT#{i},"SLOT{i}"')
+ assert len(r.handles)==16
+ r.statement('CLOSE 16');r.statement('OPEN "I",16,"F16"')
+ r.statement('LINE INPUT#16,A$');assert r.statement('PRINT A$')==b'SLOT16\r'
+ assert r.statement('PRINT EOF(16)')==b'-1 \r'
+ expect_error(r,'OPEN "O",17,"BAD"',0x68)
+ expect_error(r,'PRINT EOF(17)',0x68)
+ r.statement('CLOSE');assert not r.handles
+ r.write(0x37f1,0);assert bytes(r.mem[0x3600:0x37e0])==bytes([0x5a])*480
+ for i in range(1,17):assert r.files[f'F{i}']==f'SLOT{i}\r\n'.encode()
+
+ # Call actual ROM _GET/_PUT with a normal-RAM FCB, outside BASIC banks.
+ # @INIT must retain existing contents; @OPEN must fail on a missing file.
+ r=BasicRig();r.files['RAW']=bytearray(b'old')
+ fcb=0x7000;buf=0x7100
+ def open_dos(name,entry):
+  r.mem[fcb:fcb+32]=name.encode().ljust(32,b'\0')
+  r.m.de=fcb;r.m.hl=buf;r.m.b=1;r.call(entry)
+ open_dos('MISSING',0x4424);assert not r.m.f&0x40 and r.m.a==24
+ open_dos('RAW',0x4420);assert r.m.f&0x40 and r.files['RAW']==b'old'
+ r.m.de=fcb;r.call(0x4428);assert r.m.f&0x40
+ open_dos('BYTES',0x4420);assert r.m.f&0x40
+ r.write(0x37f0,base.symbol('PAGE_BIO_PRINT'));r.write(0x37f1,32)
+ for byte in b'A\r\nZ':
+  r.m.a=byte;r.m.de=fcb;r.m.hl=0x1234;r.m.bc=0x5678;r.m.ix=0x789a
+  r.call(0x1b)
+  assert r.m.f&0x40
+  assert (r.m.de,r.m.hl,r.m.bc,r.m.ix)==(fcb,0x1234,0x5678,0x789a)
+  assert r.page==base.symbol('PAGE_BIO_PRINT') and r.dpage==32 and not r.page_returns
+ assert r.files['BYTES']==b'A\r\nZ'
+ r.m.de=fcb;r.call(0x4428);assert r.m.f&0x40
+ open_dos('BYTES',0x4424);assert r.m.f&0x40
+ for byte in b'A\r\nZ':
+  r.m.de=fcb;r.m.hl=0x1234;r.m.bc=0x5678;r.m.ix=0x789a;r.call(0x13)
+  assert r.m.f&0x40 and r.m.a==byte
+  assert (r.m.de,r.m.hl,r.m.bc,r.m.ix)==(fcb,0x1234,0x5678,0x789a)
+ r.m.de=fcb;r.call(0x13);assert not r.m.f&0x40 and r.m.a==28
+ r.mem[fcb+9]=0;r.m.de=fcb;r.call(0x13)
+ assert not r.m.f&0x40 and r.m.a==61 # buffering is explicitly unsupported
+ r.mem[fcb+9]=1;r.m.de=fcb;r.call(0x4428)
+
+ # A failed CLOSE must preserve the local open state for a later retry.
+ r=BasicRig();r.statement('OPEN "O",1,"CLOSEERR"');original=r.outp
+ def fail_close(port,value):
+  if port&255==0xc4 and value==0x15:
+   r.command=value;r.status=0x41;r.error=1;r.data.clear();return
+  original(port,value)
+ r.m.set_output_callback(fail_close)
+ expect_error(r,'CLOSE 1',0x72)
+ r.write(0x37f1,1);assert r.mem[0x3620]==ord('O') and r.handles
+ r.m.set_output_callback(original);r.statement('CLOSE 1');assert not r.handles
+
+ # Shared ROM dispatch must still restore banked callers for nested INSTR
+ # and EOF expressions in filename/file-number/subscript positions.
+ r=BasicRig();r.files['NEST']=bytearray(b'12\n')
+ r.statement('OPEN "I",INSTR("A","A"),"NEST"')
+ r.statement('DIM A(2)');r.statement('INPUT#1,A(1+EOF(1))')
+ assert r.statement('PRINT A(1)')==b' 12 \r'
+ r.statement('CLOSE')
+ return {'review_regressions':'PASS: 16 slots, slot bounds, page 0 intact, public DOS OPEN/INIT/CLOSE, ROM GET/PUT with RAM FCB, registers/banks, raw CR/LF, EOF, nested ROM evaluation'}
+
 if __name__=='__main__':
  if not os.environ.get('KDOS_TEST_ROM'):raise SystemExit('Set KDOS_TEST_ROM to a Model I Level II-compatible ROM file; see tests/README.txt.')
- report=tests()|basic_loader_tests()
+ report=tests()|basic_loader_tests()|review_regressions()
  (base.BUILD/'basic-io-test-results.json').write_text(json.dumps(report,indent=2))
  print(json.dumps(report,indent=2))

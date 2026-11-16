@@ -42,7 +42,10 @@ import	constants.z
 	cp	S_OPENFILE	; (4424) @OPEN API Function
  	jp	z,_init_open	; same function as INIT, it checks.
  	;
- 	cp	S_CLOSEFILE	; (4428) @CLOSE API Function
+	cp	S_CREATEFILE	; explicit create/truncate, unlike @INIT
+	jp	z,_init_open
+	;
+	cp	S_CLOSEFILE	; (4428) @CLOSE API Function
  	jp	z,_closefile
  	;
  	cp	S_KILLFILE	; (4428) @KILL API Function
@@ -233,6 +236,11 @@ _init_open:
 ;
  	; byte 0 : open options
 	pop	af			; get the Super ID back
+	cp	S_CREATEFILE
+	jr	nz,_open_existing_options
+	ld	a,FA_CREATE_ALWAYS|FA_RW
+	jr	_open_skip1
+_open_existing_options:
 	cp	S_INITFILE		; Open Existing or Create New
 	ld	a,FA_OPEN_EXIST|FA_RW	; Default to Open Existing file @OPEN
 	jr	nz, _open_skip1		; skip IF NOT an INIT, is OPEN
@@ -297,12 +305,15 @@ _closefile
 	out	(APICMND),a		; send the command
 	;
 	call	api_WAIT		; wait for status
+	ret	nz			; no reply body is available on failure
+	push	af			; INIR changes flags; preserve DOS status
 
 	; copy the FCB data back overiting the FCB
 	ld	h,d			; copy fcb into HL
 	ld	l,e
 	ld	bc,$2000+APIDATA		; copy B=$20 bytes from Port C=DATA
 	inir				; transfer the data back to HL
+	pop	af
 
 	ret
 ;

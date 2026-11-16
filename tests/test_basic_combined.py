@@ -7,9 +7,18 @@ from test_basic_commands import CommandRig, base
 from test_basic_io import BasicRig as IORig
 
 class CombinedRig(CommandRig):
+ def __init__(self):
+  super().__init__()
+  # Keep the command harness screen sink, but execute ROM _PUT for files.
+  self.hook(0x1b,self.put_dispatch)
+ def put_dispatch(self):
+  if self.m.de==0x401d:return self.out()
+  # Execute the PUSH BC at the hooked entry, then resume the real ROM.
+  self.m.sp-=2;self.mem[self.m.sp:self.m.sp+2]=self.m.bc.to_bytes(2,'little')
+  self.m.pc=0x1c
  def outp(self,port,value):
   p=port&255
-  file_commands=(0x14,0x15,0x20,0x21)
+  file_commands=(0x14,0x15,0x20,0x21,0x26)
   if p==0xc6 or (p==0xc4 and value in file_commands) or (p==0xc2 and self.command in file_commands):
    return IORig.outp(self,port,value)
   return super().outp(port,value)

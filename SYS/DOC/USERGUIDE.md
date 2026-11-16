@@ -133,8 +133,8 @@ the non-disk I/O statements and extensions. The following are supported
 As well as this BASIC will display the descriptive error messages.
 ### Sequential file I/O (Floppy80)
 
-BASIC programs can read and write ordinary text files on the SD card. Three
-files may be open at once, numbered **1, 2, and 3**. Filenames use the current
+BASIC programs can read and write ordinary text files on the SD card. Up to sixteen
+files may be open at once, numbered **1 through 16**. Filenames use the current
 directory unless a path is specified; the maximum filename/path length for
 these commands is 31 characters. The existing 8.3 naming guidance applies.
 
@@ -180,11 +180,13 @@ be open for input to use `EOF`, `INPUT#`, or `LINE INPUT#`.
 Close files when finished. `END`, `NEW`, `CLEAR`, and a fresh `RUN` also close
 open files. Explicitly use `CLOSE` before removing the SD card or powering off.
 
-This first implementation uses one-byte Pico file records for exact file
-lengths and EOF handling. Large transfers may be slow. Append, random-access
+BASIC uses the shared DOS byte driver through ROM `_GET` and `_PUT`
+(vector `$4033`), with one-byte records for exact lengths and EOF handling. Large transfers may be slow. Append, random-access
 records (`FIELD`, `GET`, `PUT`, etc.), `PRINT# USING`, `TAB` and `SPC` in
 `PRINT#` are not included yet. These new commands target Floppy80's enhanced
-file API; they do not add FreHD support.
+file API; they do not add FreHD support. The DOS byte driver also accepts
+machine-code callers with their own FCB and buffer; currently it requires
+LRL=1. Buffered byte access for other record lengths is future work.
 
 See `tests/IOCHECK.txt` for a complete test program and `BUILDING.txt` for
 deployment instructions.

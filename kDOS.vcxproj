@@ -61,6 +61,7 @@
     <None Include="SYS\SRC\OVERLAYF.z" />
     <None Include="SYS\SRC\OVERLAYG.z" />
     <None Include="SYS\SRC\OVERLAYH.z" />
+    <None Include="SYS\SRC\OVERLAYI.z" />
     <None Include="SYS\SRC\OVERLAYL.z" />
     <None Include="SYS\SRC\OVERLAYM.z" />
     <None Include="SYS\SRC\OVERLAYO.z" />

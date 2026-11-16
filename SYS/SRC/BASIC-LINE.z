@@ -33,7 +33,10 @@ VIRTUAL_PAGE basiclineinput, PAGE_LINEINP
 ; so JUMP to 5F4CH which is part of the LINE INPUT routine which will read
 ; code for item fetching from sequential input files
 	cp	"#"
-	jp	z,bio_lineinput
+	jr	nz,_keyboard_line
+	ld	a,1		; full-line mode in the shared file input engine
+	jp	bio_input_engine
+_keyboard_line:
 
 	call	$21cd        ; 5791:
 	call	$260d        ; 5794:

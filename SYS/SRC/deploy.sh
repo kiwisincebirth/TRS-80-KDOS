@@ -18,6 +18,7 @@ set -e
 #./zmac overlayf.z --oo lst,cim
 #./zmac overlayg.z --oo lst,cim
 #./zmac overlayh.z --oo lst,cim
+#./zmac overlayi.z --oo lst,cim
 #./zmac overlayl.z --oo lst,cim
 #./zmac overlayo.z --oo lst,cim
 #./zmac overlayt.z --oo lst,cim
@@ -39,6 +40,7 @@ set -e
 #cp zout/overlayf.cim ../overlayf.sys
 #cp zout/overlayg.cim ../overlayg.sys
 #cp zout/overlayh.cim ../overlayh.sys
+#cp zout/overlayi.cim ../overlayi.sys
 #cp zout/overlayl.cim ../overlayl.sys
 #cp zout/overlayo.cim ../overlayo.sys
 #cp zout/overlayt.cim ../overlayt.sys
@@ -57,6 +59,7 @@ cp zout/overlaye.cim ~/Documents/FreHD/SYS/overlaye.sys
 cp zout/overlayf.cim ~/Documents/FreHD/SYS/overlayf.sys
 cp zout/overlayg.cim ~/Documents/FreHD/SYS/overlayg.sys
 cp zout/overlayh.cim ~/Documents/FreHD/SYS/overlayh.sys
+cp zout/overlayi.cim ~/Documents/FreHD/SYS/overlayi.sys
 cp zout/overlayl.cim ~/Documents/FreHD/SYS/overlayl.sys
 cp zout/overlayo.cim ~/Documents/FreHD/SYS/overlayo.sys
 cp zout/overlayt.cim ~/Documents/FreHD/SYS/overlayt.sys
@@ -84,6 +87,7 @@ cp zout/overlaye.cim /Volumes/KDOS/SYS/overlaye.sys
 cp zout/overlayf.cim /Volumes/KDOS/SYS/overlayf.sys
 cp zout/overlayg.cim /Volumes/KDOS/SYS/overlayg.sys
 cp zout/overlayh.cim /Volumes/KDOS/SYS/overlayh.sys
+cp zout/overlayi.cim /Volumes/KDOS/SYS/overlayi.sys
 cp zout/overlayl.cim /Volumes/KDOS/SYS/overlayl.sys
 cp zout/overlayo.cim /Volumes/KDOS/SYS/overlayo.sys
 cp zout/overlayt.cim /Volumes/KDOS/SYS/overlayt.sys

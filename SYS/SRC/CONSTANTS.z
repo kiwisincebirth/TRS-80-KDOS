@@ -27,6 +27,8 @@ OPRET		EQU	$C9	; RET (Opcode)
 ; Level 2 Basic ROM Entry Addresses
 ;
 @WHERE		EQU	$000B	; Used for Code relocation.
+ROM_GET		EQU	$0013	; ROM character input, DE=DCB/FCB
+ROM_PUT		EQU	$001B	; ROM character output, A=byte, DE=DCB/FCB
 KBWAIT		EQU	$0049
 DELAY		EQU	$0060	; delay routine
 INIT2		EQU	$0075	; L2 Basic Non Disk Init
@@ -88,6 +90,7 @@ PRGFIN		EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 @ERROR		EQU	$4409 ; Abort with AND DISPLAY error (A) message
 @INIT		EQU	$4420
 @OPEN		EQU	$4424
+@CLOSE		EQU	$4428
 @LOAD		EQU	$4430 ; load a program file (DE)
 @RUN		EQU	$4433 ; load a program file (DE), and execute it
 @DSPLY		EQU     $4467
@@ -193,7 +196,8 @@ S_FILESPEC	EQU	'F' - SUP_OFF + $40	; (441C) @FSPEC API Function
 S_INITFILE	EQU	'F' - SUP_OFF + $60	; (4420) @INIT API Function
 S_OPENFILE	EQU	'F' - SUP_OFF + $80	; (4424) @OPEN API Function
 S_CLOSEFILE	EQU	'F' - SUP_OFF + $A0	; (4428) @CLOSE API Function
-S_KILLFILE	EQU	'F' - SUP_OFF + $C0	; (4428) @KILL API Function
+S_KILLFILE	EQU	'F' - SUP_OFF + $C0	; (442C) @KILL API Function
+S_CREATEFILE	EQU	'F' - SUP_OFF + $E0	; create/truncate; @INIT unchanged
 ;
 S_READFILE	EQU	'G' - SUP_OFF + $20	; (4436) @READ API Function
 S_WRITEFILE	EQU	'G' - SUP_OFF + $40	; (4439) @WRITE API Function
@@ -204,6 +208,8 @@ S_BKSPFILE	EQU	'G' - SUP_OFF + $C0	; (4445) @BKSP API Function
 S_PEOFFILE	EQU	'G' - SUP_OFF + $E0	; (4448) @PEOF API Function
 ;
 S_HELPCMD	EQU	'H' - SUP_OFF + $20	; #HELP command
+;
+S_BYTEIO	EQU	'I' - SUP_OFF + $20	; ROM $4033 character I/O
 ;
 S_LOADFILE	EQU	'L' - SUP_OFF + $20	; (4430) @LOAD DOS Function
 S_RUNFILE	EQU	'L' - SUP_OFF + $40	; (4433) @RUN  DOS Function
@@ -466,8 +472,22 @@ BCMD_CMD	EQU	2	; BASIC CMD statement (not a supervisor ID)
 ; ----------------------------------------------------------------------
 
 ;
-; DOS command input extension
-; Pages - ???? C0 (182) to DF (223)
+; Sequential Disk BASIC code pages. File data uses pages 1-16.
+; All code pages must stay >=128; gaps are available for later handlers.
+PAGE_BIO_NUMBER		EQU	160
+PAGE_BIO_OPEN		EQU	161
+PAGE_BIO_CLOSE		EQU	162
+PAGE_BIO_READ		EQU	163
+PAGE_BIO_WRITE		EQU	164
+PAGE_BIO_EOF		EQU	165
+PAGE_BIO_PRINT		EQU	166
+PAGE_BIO_ITEM		EQU	168
+PAGE_BIO_DISKERROR	EQU	171
+PAGE_BIO_INPUT_ENGINE	EQU	173
+PAGE_BIO_CLOSE_ONE	EQU	174
+PAGE_BIO_CLOSE_ALL	EQU	175
+;
+; DOS command input extension, pages 183-184
 ;
 PAGE_DOSHISTORY EQU	183	; DOS command editor (code only)
 PAGE_HISTORYCFG EQU	184	; Read HistorySize on first DOS input
@@ -477,27 +497,6 @@ HISTORY_MAX     EQU	20
 HISTORY_PAGES   EQU	7	; 20 commands + draft, three 128-byte slots/page
         assert HISTORY_DEFAULT >= 1 && HISTORY_DEFAULT <= HISTORY_MAX
         assert HISTORY_MAX+1 <= HISTORY_PAGES*3
-;
-; Sequential Disk BASIC code pages. File data uses pages 1-3.
-PAGE_BIO_NUMBER		EQU	160
-PAGE_BIO_OPEN		EQU	161
-PAGE_BIO_CLOSE		EQU	162
-PAGE_BIO_READ		EQU	163
-PAGE_BIO_WRITE		EQU	164
-PAGE_BIO_EOF		EQU	165
-PAGE_BIO_PRINT		EQU	166
-PAGE_BIO_INPUT		EQU	167
-PAGE_BIO_ITEM		EQU	168
-PAGE_BIO_ERROR		EQU	169
-PAGE_BIO_ACTIVE		EQU	170
-PAGE_BIO_DISKERROR	EQU	171
-PAGE_BIO_LINE		EQU	172
-PAGE_BIO_INPUT_ENGINE	EQU	173
-PAGE_BIO_CLOSE_ONE	EQU	174
-PAGE_BIO_CLOSE_ALL	EQU	175
-PAGE_BIO_EVAL		EQU	176
-PAGE_BIO_GETBYTE	EQU	177
-PAGE_BIO_PTRGET		EQU	178
 ;
 ; Basic Extensions & other Misc Pages (32)
 ; Pages - C0 (192) to DF (223)
@@ -536,7 +535,7 @@ PAGE_OVERLAYE	EQU	$E5	; @ERROR Handling Display
 PAGE_OVERLAYF	EQU	$E6	; @OPEN @INIT File Handling
 PAGE_OVERLAYG	EQU	$E7	; @READ @WRITE File Handling
 PAGE_OVERLAYH	EQU	$E8	; #HELP
-PAGE_OVERLAYI	EQU	$E9	; -unused
+PAGE_OVERLAYI	EQU	$E9	; DOS character I/O via ROM $4033
 PAGE_OVERLAYJ	EQU	$EA	; -unused
 PAGE_OVERLAYK	EQU	$EB	; -unused
 PAGE_OVERLAYL	EQU	$EC	; @LOAD @RUN CMD File
@@ -565,7 +564,10 @@ DPAGE_BIO_WORK	EQU	40
 DPAGE_BASICCMD 	EQU 	41
 ;
 ; Sequential Disk BASIC file/work layouts and error numbers.
-BIO_FILES		EQU	3
+BIO_FILES		EQU	16	; BASIC slots; independent of Pico handle IDs
+	assert	BIO_FILES <= 31
+	assert	PAGE_BIO_NUMBER >= 128
+; Per-file data bank: firmware FCB followed by BASIC-only stream state.
 BIO_FCB			EQU	$3600
 BIO_MODE		EQU	$3620
 BIO_CACHE		EQU	$3621
@@ -573,12 +575,14 @@ BIO_CACHED		EQU	$3622
 BIO_COLUMN		EQU	$3623
 BIO_BYTE		EQU	$3624
 BIO_SKIPLF		EQU	$3625
+; Work data bank: text/assignment state shared by PRINT# and INPUT#.
 BIO_TEXT		EQU	$3600		; work bank only, 256 bytes
 BIO_FILE		EQU	$3700
 BIO_LENGTH		EQU	$3701
 BIO_LINE		EQU	$3702		; 0=INPUT#, 1=LINE INPUT#
 BIO_TYPE		EQU	$3703
 BIO_VAR			EQU	$3704		; 2-byte variable address
+; Disk BASIC error numbers, passed in E to the ROM error handler.
 BIO_ERRNUMBER		EQU	$68
 BIO_ERRNOTFOUND		EQU	$6A
 BIO_ERRMODE		EQU	$6C
@@ -657,4 +661,26 @@ PAGE_CODE macro pagenum
 	ld	a,pagenum
 	ld	(PICOPAGENUM),a
 	pop	af
+endm
+
+; Inline file selection: preserves BC/DE/HL, changes AF and data bank.
+BIO_ACTIVE macro
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_FILE)
+	ld	(PICOPAGEDAT),a
+	ld	a,(BIO_MODE)
+endm
+
+; Shared number/ROM helper page. No dedicated one-instruction pages.
+BIO_PARSE_NUMBER macro
+	xor	a
+	PAGE_CALL	PAGE_BIO_NUMBER
+endm
+
+; 1=FRMEVL, 2=GETBYT, 3=PTRGET. The callable dispatch restores the caller
+; code bank even when ROM evaluation invokes a nonreturning BASIC page.
+BIO_ROM macro operation
+	assert	operation >= 1 && operation <= 3
+	ld	a,operation
+	PAGE_CALL	PAGE_BIO_NUMBER
 endm

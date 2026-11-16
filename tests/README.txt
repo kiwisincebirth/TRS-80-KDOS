@@ -50,7 +50,7 @@ PowerShell:
 
 These tests execute the real ROM tokenizer, interpreter, expression evaluator,
 variables, arrays and string garbage collector, together with the compiled
-kDOS handlers. They cover three simultaneous files, repeated EOF lookahead,
+kDOS handlers. They cover sixteen simultaneous files, repeated EOF lookahead,
 numeric/string fields, double precision, CR/LF variants, length boundaries,
 file errors, nested EOF expressions, and automatic close on END.
 The test harness intercepts errors at the ROM error entry; it does not prove
@@ -89,3 +89,9 @@ these test artifacts. Recreate/copy CMDTEST.TMP before repeating the test.
 Combined-feature regression: python tests/test_basic_combined.py
 Keeps a sequential file open across CMD, continues writing, reads it back,
 and uses CMD DEL after closing it. Uses the same ROM and emulator dependency.
+
+PR #27 regression coverage also calls ROM _GET/$0013 and _PUT/$001B with
+an FCB in ordinary RAM, checks caller registers/banks, raw CR/LF and EOF,
+and verifies that @INIT retains contents while BASIC OPEN O truncates.
+The shared DOS byte driver currently requires a file opened with LRL=1;
+other record sizes return Illegal DOS function until buffering is added.

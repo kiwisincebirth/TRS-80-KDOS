@@ -220,13 +220,9 @@ _DSPSTR9:
 ;
 ; CIO Routine for DOS Devices
 CIODOS:
-	; TODO This is the Disk File IO for bytes - IT IS responsible
-	; for reading writing single bytes to disk files with
-	; ** TBC **
-	; c -> The character to PUT
-	; DE -> pointer to the Files FCB
-	ld	a,$00
-	ret
+	; ROM preserves BC/DE/HL/IX and supplies B=1 GET, B=2 PUT, C=byte.
+	; Keep this resident entry small; the callable overlay restores banks.
+	SUPERV	S_BYTEIO
 ;
 ; ======================================================================
 ; File loader

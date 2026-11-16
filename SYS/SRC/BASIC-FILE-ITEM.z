@@ -121,7 +121,7 @@ _numeric_separator:
 	; This is the first byte of the next field, not a separator. Put it
 	; back in the file lookahead cache so the next read receives it.
 	push	af
-	PAGE_CALL	PAGE_BIO_ACTIVE
+	BIO_ACTIVE
 	pop	af
 	ld	(BIO_CACHE),a
 	ld	a,1
@@ -155,7 +155,7 @@ _append:
 	ld	(BIO_LENGTH),a
 	ret
 _get:
-	PAGE_CALL	PAGE_BIO_ACTIVE
+	BIO_ACTIVE
 	PAGE_CALL	PAGE_BIO_READ
 	push	af				; preserve the byte and EOF status across bank selection
 	PAGE_DATA	DPAGE_BIO_WORK
@@ -163,11 +163,11 @@ _get:
 	ret
 _past_end:
 	ld	e,BIO_ERREOF
-	jp	bio_error
+	jp	BASIC_ERROR
 _bad:
 	ld	e,$2A				; Bad file data
-	jp	bio_error
+	jp	BASIC_ERROR
 _long:
 	ld	e,$1C				; String too long
-	jp	bio_error
+	jp	BASIC_ERROR
 VIRTUAL_END

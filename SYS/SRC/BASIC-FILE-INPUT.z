@@ -18,22 +18,24 @@
 ; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
 ; ======================================================================
 import	constants.z
-VIRTUAL_PAGE bio_input, PAGE_BIO_INPUT
-	cp	'#'
-	ret	nz				; retain ordinary INPUT
-	; The ROM called this extension from inside ordinary INPUT. Once # is
-	; recognized, discard that inner return and own the entire statement.
-	pop	af				; discard EXUNKN hook return
-	xor	a
-	jp	bio_input_engine
-VIRTUAL_END
+
+; ----------------------------------------------------------------------
+; INPUT# and LINE INPUT# share this page. A=1 is LINE's explicit entry;
+; the ordinary INPUT hook supplies its current token and an inner return.
 VIRTUAL_PAGE bio_input_engine, PAGE_BIO_INPUT_ENGINE
+	cp	1
+	jr	z,_input_engine
+	cp	'#'
+	ret	nz				; ordinary keyboard INPUT stays in ROM
+	pop	af				; discard the inner EXUNKN hook return
+	xor	a				; INPUT fields, rather than a whole line
+_input_engine:
 	ld	b,a				; PAGE_DATA overwrites A, so preserve it in B
 	PAGE_DATA	DPAGE_BIO_WORK
 	ld	a,b
 	ld	(BIO_LINE),a
 	GETCHR
-	PAGE_CALL	PAGE_BIO_NUMBER
+	BIO_PARSE_NUMBER
 	push	af
 	rst	8
 	db	','
@@ -43,7 +45,7 @@ VIRTUAL_PAGE bio_input_engine, PAGE_BIO_INPUT_ENGINE
 	ld	a,b
 	ld	(BIO_FILE),a
 _variable:
-	PAGE_CALL	PAGE_BIO_PTRGET		; PTRGET, DE=variable storage
+	BIO_ROM	3		; PTRGET, DE=variable storage
 	push	hl				; next program delimiter
 	PAGE_DATA	DPAGE_BIO_WORK
 	ld	(BIO_VAR),de
@@ -139,13 +141,8 @@ _assigned:
 	jp	_variable
 _bad_data:
 	ld	e,$2A				; Bad file data
-	jp	bio_error
+	jp	BASIC_ERROR
 VIRTUAL_END
 
-; LINE INPUT enters the shared engine with its full-line flag set.
-VIRTUAL_PAGE bio_lineinput, PAGE_BIO_LINE
-	ld	a,1
-	jp	bio_input_engine
-VIRTUAL_END
 	ORG	$41D6
-	jp	bio_input
+	jp	bio_input_engine

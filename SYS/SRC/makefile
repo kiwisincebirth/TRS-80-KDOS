@@ -25,7 +25,7 @@ overlays:
 	@${zmacbin} overlayf.z
 	@${zmacbin} overlayg.z
 	@${zmacbin} overlayh.z
-	@${zmacbin} overlayh.z
+	@${zmacbin} overlayi.z
 	@${zmacbin} overlayl.z
 	@${zmacbin} overlayo.z
 	@${zmacbin} overlayt.z
@@ -46,6 +46,7 @@ deploy:
 	@cp zout/overlayf.cim ../overlayf.sys
 	@cp zout/overlayg.cim ../overlayg.sys
 	@cp zout/overlayh.cim ../overlayh.sys
+	@cp zout/overlayi.cim ../overlayi.sys
 	@cp zout/overlayl.cim ../overlayl.sys
 	@cp zout/overlayo.cim ../overlayo.sys
 	@cp zout/overlayt.cim ../overlayt.sys

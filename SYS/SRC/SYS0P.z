@@ -65,6 +65,11 @@ VIRTUAL_ROUTINE _basic_overg, PAGE_OVERLAYG
 include	overlayg.z
 VIRTUAL_END
 
+; Shared DOS byte I/O for BASIC and machine-code callers.
+VIRTUAL_ROUTINE _dos_byteio, PAGE_OVERLAYI
+include	overlayi.z
+VIRTUAL_END
+
 ; Help Command Text
 ; Loader Command has a Jump to DOS
 VIRTUAL_PAGE _basic_overh, PAGE_OVERLAYH

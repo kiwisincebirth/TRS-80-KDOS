@@ -23,7 +23,7 @@ VIRTUAL_PAGE bio_print, PAGE_BIO_PRINT
 	; Drop the inner ROM hook return so our final RET ends PRINT itself.
 	pop	af				; discard FILGET hook return, handle statement
 	GETCHR
-	PAGE_CALL	PAGE_BIO_NUMBER
+	BIO_PARSE_NUMBER
 	push	af
 	rst	8
 	db	','
@@ -32,25 +32,25 @@ VIRTUAL_PAGE bio_print, PAGE_BIO_PRINT
 	PAGE_DATA	DPAGE_BIO_WORK
 	ld	a,b
 	ld	(BIO_FILE),a
-	PAGE_CALL	PAGE_BIO_ACTIVE
+	BIO_ACTIVE
 	cp	'O'
-	jr	nz,_mode
+	jp	nz,_mode
 _next:
 	ld	a,(hl)
 	or	a
-	jr	z,_newline
+	jp	z,_newline
 	cp	':'
-	jr	z,_newline
+	jp	z,_newline
 	cp	';'
 	jr	z,_separator
 	cp	','
 	jr	z,_comma
-	PAGE_CALL	PAGE_BIO_EVAL
+	BIO_ROM	1
 	push	hl
 	rst	$20				; ROM type test: Z means a string result
 	jr	z,_string
 	call	$0FBD				; FOUT: numeric value to ASCII
-	PAGE_CALL	PAGE_BIO_ACTIVE
+	BIO_ACTIVE
 _number:
 	ld	a,(hl)
 	or	a
@@ -72,7 +72,7 @@ _string:
 	inc	hl
 	ld	d,(hl)
 	ex	de,hl
-	PAGE_CALL	PAGE_BIO_ACTIVE
+	BIO_ACTIVE
 	ld	a,b
 	or	a
 	jr	z,_item_done
@@ -83,9 +83,9 @@ _chars:
 	djnz	_chars
 _item_done:
 	pop	hl
-	jr	_next
+	jp	_next
 _comma:
-	PAGE_CALL	PAGE_BIO_ACTIVE
+	BIO_ACTIVE
 	ld	a,(BIO_COLUMN)
 	and	15				; column modulo 16; pad a full zone if already aligned
 	ld	b,a
@@ -99,10 +99,10 @@ _spaces:
 _separator:
 	GETCHR
 	ret	z				; trailing separator suppresses CR/LF
-	jr	_next
+	jp	_next
 _newline:
 	; End-of-line or colon completes the statement unless a separator returned.
-	PAGE_CALL	PAGE_BIO_ACTIVE
+	BIO_ACTIVE
 	ld	a,ENTER
 	PAGE_CALL	PAGE_BIO_WRITE
 	ld	a,LINEF
@@ -110,7 +110,7 @@ _newline:
 	ret
 _mode:
 	ld	e,BIO_ERRMODE
-	jp	bio_error
+	jp	BASIC_ERROR
 VIRTUAL_END
 	ORG	$41CA
 	jp	bio_print
