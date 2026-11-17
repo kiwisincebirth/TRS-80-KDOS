@@ -16,7 +16,7 @@
 ;
 ; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
 ; ======================================================================
-import	constants.z
+import	basic-file-defs.z
 VIRTUAL_PAGE bio_print, PAGE_BIO_PRINT
 	cp	'#'
 	ret	nz				; ordinary PRINT continues in ROM
@@ -45,7 +45,7 @@ _next:
 	jr	z,_separator
 	cp	','
 	jr	z,_comma
-	BIO_ROM	1
+	BIO_ROM	BIO_ROM_FRMEVL	; evaluate the next value to print
 	push	hl
 	rst	$20				; ROM type test: Z means a string result
 	jr	z,_string
@@ -109,7 +109,7 @@ _newline:
 	PAGE_CALL	PAGE_BIO_WRITE
 	ret
 _mode:
-	ld	e,BIO_ERRMODE
+	ld	e,BERR_FILEMODE
 	jp	BASIC_ERROR
 VIRTUAL_END
 	ORG	$41CA

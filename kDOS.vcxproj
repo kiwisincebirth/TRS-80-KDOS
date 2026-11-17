@@ -41,6 +41,7 @@
     <None Include="SYS\SRC\BASIC-INSTR.z" />
     <None Include="SYS\SRC\BASIC-LINE.z" />
     <None Include="SYS\SRC\BASIC-FILE.z" />
+    <None Include="SYS\SRC\BASIC-FILE-DEFS.z" />
     <None Include="SYS\SRC\BASIC-FILE-PRINT.z" />
     <None Include="SYS\SRC\BASIC-FILE-INPUT.z" />
     <None Include="SYS\SRC\BASIC-FILE-ITEM.z" />
@@ -78,6 +79,9 @@
     <None Include="tests\test_console.py" />
     <None Include="tests\test_basic_io.py" />
     <None Include="tests\IOCHECK.txt" />
+    <None Include="tests\SIMPLEIO.txt" />
+    <None Include="SYS\Tests\IOCHECK.BAS" />
+    <None Include="SYS\Tests\SIMPLEIO.BAS" />
     <None Include="tests\test_basic_commands.py" />
     <None Include="tests\test_basic_combined.py" />
     <None Include="tests\CMDCHECK.txt" />

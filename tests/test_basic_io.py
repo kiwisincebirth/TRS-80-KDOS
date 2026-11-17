@@ -5,8 +5,8 @@ The real ROM tokenizer, interpreter, expressions, variables and garbage
 collector execute alongside compiled kDOS. BasicRig models page switching
 and Pico file commands with in-memory files; no host file data is modified.
 Tests cover typed input/output, EOF, boundaries, errors, lifecycle closes,
-and the existing LOAD/RUN path. The smoke program is exported as a tokenized
-IOCHECK.BAS under build/SD-CARD. Firmware timing still needs hardware tests.
+and the existing LOAD/RUN path. Both hardware smoke programs and their staged tokenized copies are checked
+against their source listings. Firmware timing still needs hardware tests.
 """
 import sys, os, json
 from pathlib import Path
@@ -271,8 +271,11 @@ def tests():
  assert result==b' 1  2 \r 2  4 \r 3  6 \r 4  8 \r 5  10 \r',result
  assert not r.handles
 
- # Disk error injection: use the actual API wait's FatFS/TRSDOS mapping.
- for raw,expected in [(4,0x6a),(5,0x6a),(7,0x8a),(10,0x88),(0x40|27,0x7a),(1,0x72)]:
+ # Inject firmware-translated TRSDOS results; api_WAIT removes bit 6.
+ # Unmapped firmware errors remain generic I/O failures, not FatFS cases.
+ for raw,expected in [(0x40|24,0x6a),(0x40|60,0x6a),(0x40|58,0x8a),
+                      (0x40|25,0x8a),(0x40|15,0x88),(0x40|27,0x7a),
+                      (0x40|59,0x74),(0x40|19,0x80),(1,0x72),(16,0x72)]:
   r=BasicRig();original=r.outp
   def fail_open(port,value):
    original(port,value)
@@ -288,16 +291,20 @@ def tests():
  r.m.set_output_callback(fail_write)
  expect_error(r,'PRINT#1,"FAIL"',0x72)
  assert r.files['BAD']==b''
- # Execute the hardware smoke program and export a tokenized LOADable copy.
- r=BasicRig()
- lines=[(int(number),text) for number,text in (line.split(' ',1) for line in (root/'tests/IOCHECK.txt').read_text().splitlines() if line)]
- assert r.program(lines)==b'BASIC FILE I/O PASS\r'
- assert not r.handles
- start=int.from_bytes(r.mem[0x40a4:0x40a6],'little')
- end=int.from_bytes(r.mem[0x40f9:0x40fb],'little')
- program=b'\xff'+bytes(r.mem[start:end])
- assert program.endswith(b'\0\0\0')
- (base.BUILD/'SD-CARD/IOCHECK.BAS').write_bytes(program)
+ # Run both hardware programs through the ROM and verify the checked-in
+ # tokenized versions match their readable sources. Tests never rewrite source.
+ for name,count in [('IOCHECK',7),('SIMPLEIO',4)]:
+  r=BasicRig()
+  lines=[(int(number),text) for number,text in (line.split(' ',1) for line in (root/f'tests/{name}.txt').read_text().splitlines() if line)]
+  output=r.program(lines)
+  assert f'ALL {count} CHECKS PASSED'.encode() in output and b'FAILED CHECK' not in output,output
+  assert not r.handles
+  start=int.from_bytes(r.mem[0x40a4:0x40a6],'little')
+  end=int.from_bytes(r.mem[0x40f9:0x40fb],'little')
+  program=b'\xff'+bytes(r.mem[start:end])
+  assert program.endswith(b'\0\0\0')
+  assert (root/f'SYS/Tests/{name}.BAS').read_bytes()==program, f'Retokenize {name}.BAS after editing its listing'
+  assert (base.BUILD/f'SD-CARD/SYS/tests/{name}.BAS').read_bytes()==program
  return {'basic_file_io':'PASS: real ROM parsing/evaluation, typed variables, arrays/GC, three files, EOF lookahead, CR/LF, boundaries, error cases and close lifecycle',
  'scope':'Pico file API and ROM console are simulated; physical firmware timing still needs hardware testing.'}
 
@@ -368,8 +375,36 @@ def review_regressions():
  r.statement('CLOSE')
  return {'review_regressions':'PASS: 16 slots, slot bounds, page 0 intact, public DOS OPEN/INIT/CLOSE, ROM GET/PUT with RAM FCB, registers/banks, raw CR/LF, EOF, nested ROM evaluation'}
 
+def bank_restore_regression():
+ # Trace actual ROM evaluation of EOF inside PRINT#. EOF uses a JP page:
+ # its RET unwinds into ROM, leaving EOF selected until the helper stub.
+ r=BasicRig();r.files['IN']=bytearray(b'X')
+ r.statement('OPEN "I",1,"IN"');r.statement('OPEN "O",2,"OUT"')
+ helper=base.symbol('PAGE_BIO_NUMBER');printer=base.symbol('PAGE_BIO_PRINT')
+ eof=base.symbol('PAGE_BIO_EOF');events=[];enter=r.enter
+ def trace_enter(page):
+  if page==helper and r.m.a==base.symbol('BIO_ROM_FRMEVL'):
+   events.append(('evaluate',r.page,page))
+  if page==eof:events.append(('nested EOF',r.page,page))
+  enter(page)
+ r.enter=trace_enter
+ def trace_return():
+  previous=r.page;target=r.page_returns[-1]
+  r.page_return()
+  if previous==eof:
+   events.append(('restore',previous,target))
+   assert 0x3400<=r.m.pc<0x3600 and r.page==printer
+ r.hooks[0x3000+4*helper+3]=trace_return
+ r.statement('PRINT#2,EOF(1)')
+ assert events==[('evaluate',printer,helper),('nested EOF',helper,eof),
+                 ('restore',eof,printer)],events
+ assert r.files['OUT']==b' 0 \r\n' and not r.page_returns
+ r.statement('CLOSE')
+ return {'rom_bank_restoration':'PASS: PRINT page 166 -> callable helper 160 -> ROM FRMEVL -> EOF JP page 165 -> ROM -> helper return stub -> PRINT page 166'}
+
+
 if __name__=='__main__':
  if not os.environ.get('KDOS_TEST_ROM'):raise SystemExit('Set KDOS_TEST_ROM to a Model I Level II-compatible ROM file; see tests/README.txt.')
- report=tests()|basic_loader_tests()|review_regressions()
+ report=tests()|basic_loader_tests()|review_regressions()|bank_restore_regression()
  (base.BUILD/'basic-io-test-results.json').write_text(json.dumps(report,indent=2))
  print(json.dumps(report,indent=2))

@@ -57,10 +57,14 @@ The test harness intercepts errors at the ROM error entry; it does not prove
 full error recovery. Pico ports and banking are modeled, so hardware timing,
 firmware compatibility and actual SD-card persistence still require testing.
 
-The suite also executes tests/IOCHECK.txt and writes a tokenized copy to
-build/SD-CARD/IOCHECK.BAS. The .txt file is a source listing, not a LOADable
-BASIC file. This generated .BAS requires the test command above; a normal
-Visual Studio build alone does not regenerate it.
+The suite executes tests/IOCHECK.txt and tests/SIMPLEIO.txt, checks their
+step-by-step results, and verifies they match the tokenized files in
+SYS/Tests and the build/SD-CARD/SYS/tests staging directory. The checked-in
+.BAS files are copied by normal builds; no ROM or Python is needed to stage
+these programs. The .txt files are readable listings, not LOADable files.
+When changing a listing, regenerate its tokenized .BAS using a compatible
+BASIC tokenizer and run this suite to verify that both versions match.
+
 BASIC CMD tests
 Use the same Python dependency, and supply your own 12 KiB Model I Level II-
 compatible ROM. Development tests used system80_original.rom from the

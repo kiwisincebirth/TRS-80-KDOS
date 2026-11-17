@@ -19,7 +19,7 @@
 ;
 ; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
 ; ======================================================================
-import	constants.z
+import	basic-file-defs.z
 VIRTUAL_ROUTINE bio_item, PAGE_BIO_ITEM
 	PAGE_DATA	DPAGE_BIO_WORK
 	xor	a
@@ -162,12 +162,12 @@ _get:
 	pop	af
 	ret
 _past_end:
-	ld	e,BIO_ERREOF
+	ld	e,BERR_EOF
 	jp	BASIC_ERROR
 _bad:
-	ld	e,$2A				; Bad file data
+	ld	e,BERR_FILEDATA				; Bad file data
 	jp	BASIC_ERROR
 _long:
-	ld	e,$1C				; String too long
+	ld	e,BERR_STRINGLONG				; String too long
 	jp	BASIC_ERROR
 VIRTUAL_END

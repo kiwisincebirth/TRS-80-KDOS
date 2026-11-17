@@ -17,7 +17,7 @@
 ;
 ; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
 ; ======================================================================
-import	constants.z
+import	basic-file-defs.z
 
 ; ----------------------------------------------------------------------
 ; INPUT# and LINE INPUT# share this page. A=1 is LINE's explicit entry;
@@ -45,7 +45,7 @@ _input_engine:
 	ld	a,b
 	ld	(BIO_FILE),a
 _variable:
-	BIO_ROM	3		; PTRGET, DE=variable storage
+	BIO_ROM	BIO_ROM_PTRGET	; resolve destination, including array subscript
 	push	hl				; next program delimiter
 	PAGE_DATA	DPAGE_BIO_WORK
 	ld	(BIO_VAR),de
@@ -140,7 +140,7 @@ _assigned:
 	db	','
 	jp	_variable
 _bad_data:
-	ld	e,$2A				; Bad file data
+	ld	e,BERR_FILEDATA				; Bad file data
 	jp	BASIC_ERROR
 VIRTUAL_END
 

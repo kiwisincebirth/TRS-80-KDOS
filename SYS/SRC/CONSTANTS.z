@@ -27,8 +27,8 @@ OPRET		EQU	$C9	; RET (Opcode)
 ; Level 2 Basic ROM Entry Addresses
 ;
 @WHERE		EQU	$000B	; Used for Code relocation.
-ROM_GET		EQU	$0013	; ROM character input, DE=DCB/FCB
-ROM_PUT		EQU	$001B	; ROM character output, A=byte, DE=DCB/FCB
+ROM_GET		EQU	$0013	; L2 _GET: character input, DE=DCB/FCB
+ROM_PUT		EQU	$001B	; L2 _PUT: character output, A=byte, DE=DCB/FCB
 KBWAIT		EQU	$0049
 DELAY		EQU	$0060	; delay routine
 INIT2		EQU	$0075	; L2 Basic Non Disk Init
@@ -54,10 +54,12 @@ FCERR		EQU	$1E4A
 CRDONZ		EQU	$20F9
 CRDO		EQU	$20FE
 FRMEVL		EQU	$2337
+PTRGET		EQU	$260D	; resolve variable/array element, DE=storage
 STRINI		EQU	$2857
 PUTNEW		EQU	$2884
 STROUT		EQU	$28A7
 FRESTR		EQU	$29D7
+GETBYT		EQU	$2B1C	; evaluate byte expression, A/E=result
 LISPRT		EQU	$2B75
 
 ;
@@ -245,9 +247,17 @@ FCB_LRL		EQU	9		; Byte 9 - Logical Rec Length 0=256
 ERRSN		EQU	02H	; Syntax Error
 BERR_FUNCTION	EQU	$08	; Illegal Function Call
 ;
+BERR_STRINGLONG	EQU	$1C	; String too long
+BERR_FILEDATA	EQU	$2A	; Bad file data
 BERR_FIELD	EQU	$64
+BERR_FILENUMBER	EQU	$68
 BERR_NOTFOUND	EQU	$6A
+BERR_FILEMODE	EQU	$6C
+BERR_FILEOPEN	EQU	$6E
 BERR_IO		EQU	$72
+BERR_FILEEXISTS	EQU	$74
+BERR_DISKFULL	EQU	$7A
+BERR_EOF	EQU	$7C
 BERR_FILENAME	EQU	$80
 BERR_PROTECTED	EQU	$88
 BERR_ACCESS	EQU	$8A
@@ -262,7 +272,7 @@ ILLFILNAM$	EQU	19	; Illegal Filename
 FILNOTFND$	EQU	24	; File Not Found
 ACCESSDEN$	EQU	25	; Access Denied
 ;DIRSPCFUL$	EQU	26	; Directory Space Full
-;DSCSPCFUL$	EQU	27	; Disk Space Full
+DSCSPCFUL$	EQU	27	; Disk Space Full
 ENDOFFILE$	EQU	28	; End of File Encountered
 PRGNOTFND$	EQU	31	; Program not found
 ILLDRINUM$	EQU	32	; Illegal Drive Number
@@ -563,40 +573,12 @@ DPAGE_BIO_WORK	EQU	40
 ; CMD uses one callable code page; only its copied text is banked.
 DPAGE_BASICCMD 	EQU 	41
 ;
-; Sequential Disk BASIC file/work layouts and error numbers.
-BIO_FILES		EQU	16	; BASIC slots; independent of Pico handle IDs
-	assert	BIO_FILES <= 31
-	assert	PAGE_BIO_NUMBER >= 128
-; Per-file data bank: firmware FCB followed by BASIC-only stream state.
-BIO_FCB			EQU	$3600
-BIO_MODE		EQU	$3620
-BIO_CACHE		EQU	$3621
-BIO_CACHED		EQU	$3622
-BIO_COLUMN		EQU	$3623
-BIO_BYTE		EQU	$3624
-BIO_SKIPLF		EQU	$3625
-; Work data bank: text/assignment state shared by PRINT# and INPUT#.
-BIO_TEXT		EQU	$3600		; work bank only, 256 bytes
-BIO_FILE		EQU	$3700
-BIO_LENGTH		EQU	$3701
-BIO_LINE		EQU	$3702		; 0=INPUT#, 1=LINE INPUT#
-BIO_TYPE		EQU	$3703
-BIO_VAR			EQU	$3704		; 2-byte variable address
-; Disk BASIC error numbers, passed in E to the ROM error handler.
-BIO_ERRNUMBER		EQU	$68
-BIO_ERRNOTFOUND		EQU	$6A
-BIO_ERRMODE		EQU	$6C
-BIO_ERROPEN		EQU	$6E
-BIO_ERRIO		EQU	$72
-BIO_ERREOF		EQU	$7C
-BIO_ERRNAME		EQU	$80
-;
 ; BANK PAGING MACROS
 ; ----------------------------------------------------------------------
 
 ; Callable Routine that Returns
 VIRTUAL_ROUTINE macro label, pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	assert pagenum>=128 && pagenum<$100	; Parameter validation
 	ORG  	$3000 + (pagenum * 4)		; Trampoline address
 label	EQU	$		; Define a program label for Entry
 	DEFB 	$CD		; Write CALL opcode to Offset $0
@@ -605,7 +587,7 @@ endm
 
 ; NON Returning routine, just JUMP into it
 VIRTUAL_PAGE macro label, pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	assert pagenum>=128 && pagenum<$100	; Parameter validation
 	ORG  	$3000 + (pagenum * 4)		; Trampoline address
 label	EQU	$		; Define a program label for Entry
 	DEFB 	$C3		; Write JP opcode to Offset $0
@@ -618,13 +600,13 @@ endm
 
 ; Call routine in Page
 PAGE_CALL macro pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	assert pagenum>=128 && pagenum<$100	; Parameter validation
 	CALL  	$3000 + (pagenum * 4)		; Trampoline address
 endm
 
 ; Jump to routine in Page
 PAGE_JP macro pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	assert pagenum>=128 && pagenum<$100	; Parameter validation
 	JP  	$3000 + (pagenum * 4)		; Trampoline address
 endm
 
@@ -655,32 +637,10 @@ endm
 ; Select a code page while preserving AF. Execute only from resident code:
 ; changing the selector replaces every instruction in $3400-$35FF.
 PAGE_CODE macro pagenum
-	assert pagenum>=0 && pagenum<$100
+	assert pagenum>=128 && pagenum<$100
 	assert $ < $3400 || $ >= $3600
 	push	af
 	ld	a,pagenum
 	ld	(PICOPAGENUM),a
 	pop	af
-endm
-
-; Inline file selection: preserves BC/DE/HL, changes AF and data bank.
-BIO_ACTIVE macro
-	PAGE_DATA	DPAGE_BIO_WORK
-	ld	a,(BIO_FILE)
-	ld	(PICOPAGEDAT),a
-	ld	a,(BIO_MODE)
-endm
-
-; Shared number/ROM helper page. No dedicated one-instruction pages.
-BIO_PARSE_NUMBER macro
-	xor	a
-	PAGE_CALL	PAGE_BIO_NUMBER
-endm
-
-; 1=FRMEVL, 2=GETBYT, 3=PTRGET. The callable dispatch restores the caller
-; code bank even when ROM evaluation invokes a nonreturning BASIC page.
-BIO_ROM macro operation
-	assert	operation >= 1 && operation <= 3
-	ld	a,operation
-	PAGE_CALL	PAGE_BIO_NUMBER
 endm
