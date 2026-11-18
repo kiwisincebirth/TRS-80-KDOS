@@ -1,0 +1,171 @@
+; ======================================================================
+; Sequential input field/line parser for BASIC file statements
+;
+; Read through bio_read into the shared work-bank buffer BIO_TEXT. The
+; caller supplies BIO_FILE, BIO_LINE and BIO_TYPE. Return with the work bank
+; selected, BIO_LENGTH set and a NUL after the text (255 characters maximum).
+; This module parses boundaries only; BASIC-FILE-INPUT.z assigns the value.
+;
+; LINE INPUT preserves every byte up to a line ending. INPUT recognizes
+; commas/line endings, trims unquoted surrounding whitespace, and preserves
+; commas/spaces inside quotes. Numeric fields also end at whitespace, which
+; allows PRINT# print-zone output to be read back. Quoted fields have no
+; CSV-style escaped-quote handling.
+;
+; The byte reader handles CR/LF pairs and EOF lookahead. Each fetch switches
+; to the file bank, then restores the work bank while preserving A/carry.
+; EOF before a field raises Input past end; EOF after a partial unquoted
+; field/line returns that final value. An unclosed quote is Bad file data.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
+import	basic-file-defs.z
+VIRTUAL_ROUTINE bio_item, PAGE_BIO_ITEM
+	PAGE_DATA	DPAGE_BIO_WORK
+	xor	a
+	ld	(BIO_LENGTH),a
+	call	_get
+	jp	c,_past_end
+	ld	b,a
+	ld	a,(BIO_LINE)
+	or	a
+	ld	a,b
+	jp	nz,_line
+_leading:
+	cp	SPACE
+	jp	z,_skip
+	cp	TAB
+	jp	nz,_first
+_skip:
+	call	_get
+	jp	c,_finish
+	jp	_leading
+_first:
+	cp	'"'
+	jp	nz,_unquoted
+_quoted:
+	call	_get
+	jp	c,_bad
+	cp	'"'
+	jp	z,_afterquote
+	call	_append
+	jp	_quoted
+_afterquote:
+	; Only whitespace, a delimiter or EOF may follow a closing quote.
+	call	_get
+	jp	c,_finish
+	cp	SPACE
+	jp	z,_afterquote
+	cp	TAB
+	jp	z,_afterquote
+	cp	','
+	jp	z,_finish
+	cp	ENTER
+	jp	z,_finish
+	cp	LINEF
+	jp	z,_finish
+	jp	_bad
+_unquoted:
+	ld	b,a
+	ld	a,(BIO_TYPE)
+	cp	3
+	ld	a,b
+	jp	z,_field_character
+	cp	SPACE
+	jp	z,_numeric_separator
+	cp	TAB
+	jp	z,_numeric_separator
+_field_character:
+	cp	','
+	jp	z,_trim
+	cp	ENTER
+	jp	z,_trim
+	cp	LINEF
+	jp	z,_trim
+	call	_append
+	call	_get
+	jp	nc,_unquoted
+_trim:
+	; BIO_TEXT is page-aligned: H selects its page, L indexes the buffer.
+	; Walk backward over trailing spaces/tabs without moving the contents.
+	ld	a,(BIO_LENGTH)
+	or	a
+	jp	z,_finish
+	ld	l,a
+	ld	h,BIO_TEXT / $100
+	dec	hl
+	ld	a,(hl)
+	cp	SPACE
+	jp	z,_remove
+	cp	TAB
+	jp	nz,_finish
+_remove:
+	ld	a,(BIO_LENGTH)
+	dec	a
+	ld	(BIO_LENGTH),a
+	jp	_trim
+; Numeric fields also terminate on whitespace (PRINT# comma zones).
+_numeric_separator:
+	call	_get
+	jp	c,_finish
+	cp	SPACE
+	jp	z,_numeric_separator
+	cp	TAB
+	jp	z,_numeric_separator
+	cp	','
+	jp	z,_finish
+	cp	ENTER
+	jp	z,_finish
+	cp	LINEF
+	jp	z,_finish
+	; This is the first byte of the next field, not a separator. Put it
+	; back in the file lookahead cache so the next read receives it.
+	push	af
+	BIO_ACTIVE
+	pop	af
+	ld	(BIO_CACHE),a
+	ld	a,1
+	ld	(BIO_CACHED),a
+	PAGE_DATA	DPAGE_BIO_WORK
+	jp	_finish
+_line:
+	cp	ENTER
+	jp	z,_finish
+	cp	LINEF
+	jp	z,_finish
+	call	_append
+	call	_get
+	jp	nc,_line
+_finish:
+	ld	a,(BIO_LENGTH)
+	ld	l,a
+	ld	h,BIO_TEXT / $100
+	ld	(hl),0
+	ret
+_append:
+	; Reserve byte 255 for the NUL terminator; BASIC strings max out at 255.
+	ld	b,a
+	ld	a,(BIO_LENGTH)
+	cp	255
+	jp	z,_long
+	ld	l,a
+	ld	h,BIO_TEXT / $100
+	ld	(hl),b
+	inc	a
+	ld	(BIO_LENGTH),a
+	ret
+_get:
+	BIO_ACTIVE
+	PAGE_CALL	PAGE_BIO_READ
+	PAGE_DATA	DPAGE_BIO_WORK	; preserves the byte and EOF status
+	ret
+_past_end:
+	ld	e,BERR_EOF
+	jp	BASIC_ERROR
+_bad:
+	ld	e,BERR_FILEDATA				; Bad file data
+	jp	BASIC_ERROR
+_long:
+	ld	e,BERR_STRINGLONG				; String too long
+	jp	BASIC_ERROR
+VIRTUAL_END

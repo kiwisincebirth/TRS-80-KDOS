@@ -1,0 +1,114 @@
+; ======================================================================
+; BASIC PRINT# - sequential text output to an open file
+;
+; Recognize # at the ROM PRINT extension hook and handle the complete file
+; statement; ordinary screen PRINT stays in ROM. BASIC evaluates expressions
+; and formats numbers, while bio_write sends each byte to the selected file.
+;
+; Semicolons join items, commas insert spaces to the next 16-column zone,
+; and a trailing separator suppresses the final CR/LF. Commas are formatting
+; operators, not automatic CSV delimiters. Strings are written as-is without
+; added quotes. PRINT# USING, TAB and SPC are not implemented here.
+;
+; Save each expression's continuation pointer while its value is emitted.
+; Reselect the statement's file after expression evaluation because a nested
+; function such as EOF on another file can change the active data bank.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
+import	basic-file-defs.z
+VIRTUAL_PAGE bio_print, PAGE_BIO_PRINT
+	cp	'#'
+	ret	nz				; ordinary PRINT continues in ROM
+	; Drop the inner ROM hook return so our final RET ends PRINT itself.
+	pop	af				; discard FILGET hook return, handle statement
+	GETCHR
+	BIO_PARSE_NUMBER
+	push	af
+	rst	8
+	db	','
+	pop	af
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	(BIO_FILE),a
+	BIO_ACTIVE
+	cp	'O'
+	jp	nz,_mode
+_next:
+	ld	a,(hl)
+	or	a
+	jp	z,_newline
+	cp	':'
+	jp	z,_newline
+	cp	';'
+	jr	z,_separator
+	cp	','
+	jr	z,_comma
+	BIO_ROM	BIO_ROM_FRMEVL	; evaluate the next value to print
+	push	hl
+	rst	$20				; ROM type test: Z means a string result
+	jr	z,_string
+	call	$0FBD				; FOUT: numeric value to ASCII
+	BIO_ACTIVE
+_number:
+	ld	a,(hl)
+	or	a
+	jr	z,_number_end
+	PAGE_CALL	PAGE_BIO_WRITE
+	inc	hl
+	jr	_number
+_number_end:
+	; Match BASIC numeric output by adding a space after the formatted value.
+	ld	a,SPACE
+	PAGE_CALL	PAGE_BIO_WRITE
+	jr	_item_done
+_string:
+	; FRESTR supplies length/address; emit exactly that many bytes, not NUL.
+	call	FRESTR
+	ld	b,(hl)
+	inc	hl
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	ex	de,hl
+	BIO_ACTIVE
+	ld	a,b
+	or	a
+	jr	z,_item_done
+_chars:
+	ld	a,(hl)
+	PAGE_CALL	PAGE_BIO_WRITE
+	inc	hl
+	djnz	_chars
+_item_done:
+	pop	hl
+	jp	_next
+_comma:
+	BIO_ACTIVE
+	ld	a,(BIO_COLUMN)
+	and	15				; column modulo 16; pad a full zone if already aligned
+	ld	b,a
+	ld	a,16
+	sub	b
+	ld	b,a
+_spaces:
+	ld	a,SPACE
+	PAGE_CALL	PAGE_BIO_WRITE
+	djnz	_spaces
+_separator:
+	GETCHR
+	ret	z				; trailing separator suppresses CR/LF
+	jp	_next
+_newline:
+	; End-of-line or colon completes the statement unless a separator returned.
+	BIO_ACTIVE
+	ld	a,ENTER
+	PAGE_CALL	PAGE_BIO_WRITE
+	ld	a,LINEF
+	PAGE_CALL	PAGE_BIO_WRITE
+	ret
+_mode:
+	ld	e,BERR_FILEMODE
+	jp	BASIC_ERROR
+VIRTUAL_END
+	ORG	$41CA
+	jp	bio_print

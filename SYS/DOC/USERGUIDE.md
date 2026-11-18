@@ -105,7 +105,7 @@ The following are supported
 | SAVE "filename.BAS"  | Save a program to Disk          |
 | RUN "filename.BAS"   | Load and Run a program          |
 | KILL "filename.EXT"  | Delete a file                   |
-| MERGE "filename.BAS" | Merge a file (todo)             | 
+| MERGE "filename.BAS" | Merge a file (todo)             |
 
 Note: Ony Tokenised BAS files are supported. ASCII files will not work.
 
@@ -131,7 +131,65 @@ the non-disk I/O statements and extensions. The following are supported
 | USRn(A)             | Invoke a Call address           |
 
 As well as this BASIC will display the descriptive error messages.
-Disk Basic I/O function are a future feature
+### Sequential file I/O (Floppy80)
+
+BASIC programs can read and write ordinary text files on the SD card. Up to sixteen
+files may be open at once, numbered **1 through 16**. Filenames use the current
+directory unless a path is specified; the maximum filename/path length for
+these commands is 31 characters. The existing 8.3 naming guidance applies.
+
+| Syntax | Purpose |
+|--------|---------|
+| `OPEN "I",1,"DATA.TXT"` | Open an existing file for sequential input. |
+| `OPEN "O",1,"DATA.TXT"` | Create a sequential output file; **replaces its contents if it already exists**. |
+| `CLOSE 1` | Close one file. `CLOSE 1,2` closes a list; `CLOSE` closes all. |
+| `PRINT#1,A$;",";N` | Write expressions to a file. |
+| `INPUT#1,A$,N` | Read text/numeric fields into variables or array elements. |
+| `LINE INPUT#1,A$` | Read a complete line into a string, preserving spaces and commas. |
+| `EOF(1)` | Return 0 when more input remains, or -1 at end of file. |
+
+`OPEN` and `CLOSE` also accept a `#` before the file number. Mode letters
+may be upper or lower case. `INPUT#` and `LINE INPUT#` must run inside a
+BASIC program, following the existing BASIC input-statement restriction.
+
+`PRINT#` uses BASIC's numeric formatting. A semicolon joins items; a comma
+advances to the next 16-character print zone. Neither automatically writes
+a comma delimiter. To create comma-separated fields, print a literal comma
+as shown above. To preserve commas or surrounding spaces inside a string
+field, write quotes explicitly, for example:
+
+```basic
+PRINT#1,CHR$(34);A$;CHR$(34);",";N
+```
+
+A trailing semicolon or comma suppresses the line ending. Otherwise each
+`PRINT#` ends with CR/LF. `PRINT#1,` writes a blank line. Strings containing
+embedded quotation marks do not have CSV-style escape handling in this version.
+
+`INPUT#` accepts comma-separated fields and line endings; numeric fields may
+also be separated by whitespace. Unquoted fields have surrounding spaces
+and tabs removed. Quoted fields preserve spaces and commas. `LINE INPUT#`
+reads the whole line without its line ending. CR/LF, CR-only and LF-only
+files are supported, as is a final line without a line ending. A field or
+line may contain at most 255 characters.
+
+`EOF` uses lookahead: calling it repeatedly does not remove input. Check it
+before reading; reading beyond the end raises `Input past end`. A file must
+be open for input to use `EOF`, `INPUT#`, or `LINE INPUT#`.
+
+Close files when finished. `END`, `NEW`, `CLEAR`, and a fresh `RUN` also close
+open files. Explicitly use `CLOSE` before removing the SD card or powering off.
+
+BASIC uses the shared DOS byte driver through ROM `_GET` and `_PUT`
+(vector `$4033`), with one-byte records for exact lengths and EOF handling. Large transfers may be slow. Append, random-access
+records (`FIELD`, `GET`, `PUT`, etc.), `PRINT# USING`, `TAB` and `SPC` in
+`PRINT#` are not included yet. These new commands target Floppy80's enhanced
+file API; they do not add FreHD support. The DOS byte driver also accepts
+machine-code callers with their own FCB and buffer; currently it requires
+LRL=1. Buffered byte access for other record lengths is future work.
+
+See `tests/IOCHECK.txt` for a complete test program and `BUILDING.txt` for
+deployment instructions.
 
 ### CMD - Calling DOS commands.
 

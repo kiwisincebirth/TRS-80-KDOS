@@ -65,6 +65,11 @@ VIRTUAL_ROUTINE _basic_overg, PAGE_OVERLAYG
 include	overlayg.z
 VIRTUAL_END
 
+; Shared DOS byte I/O for BASIC and machine-code callers.
+VIRTUAL_ROUTINE _dos_byteio, PAGE_OVERLAYI
+include	overlayi.z
+VIRTUAL_END
+
 ; Help Command Text
 ; Loader Command has a Jump to DOS
 VIRTUAL_PAGE _basic_overh, PAGE_OVERLAYH
@@ -111,9 +116,13 @@ include	BASIC-INSTR.z		; $419D
 include	BASIC-LINE.z		; $41A3
 ;
 ; ----------------------------------------------------------------------
-; DOS Exits
+; Sequential Disk BASIC and DOS Exits
 ; ----------------------------------------------------------------------
 ;
+include	BASIC-FILE.z
+include	BASIC-FILE-PRINT.z
+include	BASIC-FILE-INPUT.z
+include	BASIC-FILE-ITEM.z
 include	BASIC-CMD.z		; CMD statement page
 
 include BASIC-ERROR.z		; $41A6

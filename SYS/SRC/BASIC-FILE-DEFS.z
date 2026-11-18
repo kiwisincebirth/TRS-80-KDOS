@@ -1,0 +1,66 @@
+; ======================================================================
+; Shared definitions for the sequential Disk BASIC implementation
+;
+; Imported by BASIC-FILE*.z and the BASIC-LINE.z entry adapter. Defines file/workspace offsets and inline
+; helpers used by OPEN, CLOSE, EOF, PRINT# and INPUT#. Code/data page numbers
+; and common BASIC error codes remain in CONSTANTS.z for project-wide use.
+;
+; BIO_ROM identifies the ROM service to execute through the shared callable
+; dispatch. Its trampoline restores the caller's code bank after evaluation
+; of a nested banked BASIC function; it does not restore the data bank.
+; BIO_ACTIVE explicitly reselects the statement's file when that is needed.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
+import	constants.z
+
+; Sequential Disk BASIC file/work layouts.
+BIO_FILES		EQU	16	; BASIC slots; independent of Pico handle IDs
+	assert	BIO_FILES <= 31
+; Per-file data bank: firmware FCB followed by BASIC-only stream state.
+BIO_FCB			EQU	$3600
+BIO_MODE		EQU	$3620
+BIO_CACHE		EQU	$3621
+BIO_CACHED		EQU	$3622
+BIO_COLUMN		EQU	$3623
+BIO_BYTE		EQU	$3624
+BIO_SKIPLF		EQU	$3625
+; Work data bank: text/assignment state shared by PRINT# and INPUT#.
+BIO_TEXT		EQU	$3600		; work bank only, 256 bytes
+BIO_FILE		EQU	$3700
+BIO_LENGTH		EQU	$3701
+BIO_LINE		EQU	$3702		; BIO_INPUT_FIELDS or BIO_INPUT_LINE
+BIO_TYPE		EQU	$3703
+BIO_VAR			EQU	$3704		; 2-byte variable address
+
+; Shared input-engine modes; LINE supplies its mode at the entry adapter.
+BIO_INPUT_FIELDS	EQU	0	; INPUT# comma-separated fields
+BIO_INPUT_LINE		EQU	1	; LINE INPUT# entire line
+
+; Shared helper operations, used by both the callers and dispatcher.
+BIO_ROM_PARSE_NUMBER	EQU	0	; optional # followed by file number
+BIO_ROM_FRMEVL		EQU	1	; ROM expression evaluation
+BIO_ROM_GETBYT		EQU	2	; ROM byte expression evaluation
+BIO_ROM_PTRGET		EQU	3	; ROM variable/array lookup
+
+; Inline file selection: preserves BC/DE/HL, changes AF and data bank.
+BIO_ACTIVE macro
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_FILE)
+	ld	(PICOPAGEDAT),a
+	ld	a,(BIO_MODE)
+endm
+
+; Shared number/ROM helper page. No dedicated one-instruction pages.
+BIO_PARSE_NUMBER macro
+	ld	a,BIO_ROM_PARSE_NUMBER
+	PAGE_CALL	PAGE_BIO_NUMBER
+endm
+
+; Named ROM operation. The callable dispatch restores the caller
+; code bank even when ROM evaluation invokes a nonreturning BASIC page.
+BIO_ROM macro operation
+	assert	operation == BIO_ROM_FRMEVL || operation == BIO_ROM_GETBYT || operation == BIO_ROM_PTRGET
+	ld	a,operation
+	PAGE_CALL	PAGE_BIO_NUMBER
+endm
