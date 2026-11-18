@@ -27,6 +27,8 @@ OPRET		EQU	$C9	; RET (Opcode)
 ; Level 2 Basic ROM Entry Addresses
 ;
 @WHERE		EQU	$000B	; Used for Code relocation.
+ROM_GET		EQU	$0013	; L2 _GET: character input, DE=DCB/FCB
+ROM_PUT		EQU	$001B	; L2 _PUT: character output, A=byte, DE=DCB/FCB
 KBWAIT		EQU	$0049
 DELAY		EQU	$0060	; delay routine
 INIT2		EQU	$0075	; L2 Basic Non Disk Init
@@ -52,10 +54,12 @@ FCERR		EQU	$1E4A
 CRDONZ		EQU	$20F9
 CRDO		EQU	$20FE
 FRMEVL		EQU	$2337
+PTRGET		EQU	$260D	; resolve variable/array element, DE=storage
 STRINI		EQU	$2857
 PUTNEW		EQU	$2884
 STROUT		EQU	$28A7
 FRESTR		EQU	$29D7
+GETBYT		EQU	$2B1C	; evaluate byte expression, A/E=result
 LISPRT		EQU	$2B75
 
 ;
@@ -88,6 +92,7 @@ PRGFIN		EQU	$41AC	; Dos EXit for Just before BASIC's 'READY' message
 @ERROR		EQU	$4409 ; Abort with AND DISPLAY error (A) message
 @INIT		EQU	$4420
 @OPEN		EQU	$4424
+@CLOSE		EQU	$4428
 @LOAD		EQU	$4430 ; load a program file (DE)
 @RUN		EQU	$4433 ; load a program file (DE), and execute it
 @DSPLY		EQU     $4467
@@ -193,7 +198,8 @@ S_FILESPEC	EQU	'F' - SUP_OFF + $40	; (441C) @FSPEC API Function
 S_INITFILE	EQU	'F' - SUP_OFF + $60	; (4420) @INIT API Function
 S_OPENFILE	EQU	'F' - SUP_OFF + $80	; (4424) @OPEN API Function
 S_CLOSEFILE	EQU	'F' - SUP_OFF + $A0	; (4428) @CLOSE API Function
-S_KILLFILE	EQU	'F' - SUP_OFF + $C0	; (4428) @KILL API Function
+S_KILLFILE	EQU	'F' - SUP_OFF + $C0	; (442C) @KILL API Function
+S_CREATEFILE	EQU	'F' - SUP_OFF + $E0	; create/truncate; @INIT unchanged
 ;
 S_READFILE	EQU	'G' - SUP_OFF + $20	; (4436) @READ API Function
 S_WRITEFILE	EQU	'G' - SUP_OFF + $40	; (4439) @WRITE API Function
@@ -204,6 +210,8 @@ S_BKSPFILE	EQU	'G' - SUP_OFF + $C0	; (4445) @BKSP API Function
 S_PEOFFILE	EQU	'G' - SUP_OFF + $E0	; (4448) @PEOF API Function
 ;
 S_HELPCMD	EQU	'H' - SUP_OFF + $20	; #HELP command
+;
+S_BYTEIO	EQU	'I' - SUP_OFF + $20	; ROM $4033 character I/O
 ;
 S_LOADFILE	EQU	'L' - SUP_OFF + $20	; (4430) @LOAD DOS Function
 S_RUNFILE	EQU	'L' - SUP_OFF + $40	; (4433) @RUN  DOS Function
@@ -239,9 +247,17 @@ FCB_LRL		EQU	9		; Byte 9 - Logical Rec Length 0=256
 ERRSN		EQU	02H	; Syntax Error
 BERR_FUNCTION	EQU	$08	; Illegal Function Call
 ;
+BERR_STRINGLONG	EQU	$1C	; String too long
+BERR_FILEDATA	EQU	$2A	; Bad file data
 BERR_FIELD	EQU	$64
+BERR_FILENUMBER	EQU	$68
 BERR_NOTFOUND	EQU	$6A
+BERR_FILEMODE	EQU	$6C
+BERR_FILEOPEN	EQU	$6E
 BERR_IO		EQU	$72
+BERR_FILEEXISTS	EQU	$74
+BERR_DISKFULL	EQU	$7A
+BERR_EOF	EQU	$7C
 BERR_FILENAME	EQU	$80
 BERR_PROTECTED	EQU	$88
 BERR_ACCESS	EQU	$8A
@@ -256,7 +272,7 @@ ILLFILNAM$	EQU	19	; Illegal Filename
 FILNOTFND$	EQU	24	; File Not Found
 ACCESSDEN$	EQU	25	; Access Denied
 ;DIRSPCFUL$	EQU	26	; Directory Space Full
-;DSCSPCFUL$	EQU	27	; Disk Space Full
+DSCSPCFUL$	EQU	27	; Disk Space Full
 ENDOFFILE$	EQU	28	; End of File Encountered
 PRGNOTFND$	EQU	31	; Program not found
 ILLDRINUM$	EQU	32	; Illegal Drive Number
@@ -466,8 +482,22 @@ BCMD_CMD	EQU	2	; BASIC CMD statement (not a supervisor ID)
 ; ----------------------------------------------------------------------
 
 ;
-; DOS command input extension
-; Pages - ???? C0 (182) to DF (223)
+; Sequential Disk BASIC code pages. File data uses pages 1-16.
+; All code pages must stay >=128; gaps are available for later handlers.
+PAGE_BIO_NUMBER		EQU	160
+PAGE_BIO_OPEN		EQU	161
+PAGE_BIO_CLOSE		EQU	162
+PAGE_BIO_READ		EQU	163
+PAGE_BIO_WRITE		EQU	164
+PAGE_BIO_EOF		EQU	165
+PAGE_BIO_PRINT		EQU	166
+PAGE_BIO_ITEM		EQU	168
+PAGE_BIO_DISKERROR	EQU	171
+PAGE_BIO_INPUT_ENGINE	EQU	173
+PAGE_BIO_CLOSE_ONE	EQU	174
+PAGE_BIO_CLOSE_ALL	EQU	175
+;
+; DOS command input extension, pages 183-184
 ;
 PAGE_DOSHISTORY EQU	183	; DOS command editor (code only)
 PAGE_HISTORYCFG EQU	184	; Read HistorySize on first DOS input
@@ -515,7 +545,7 @@ PAGE_OVERLAYE	EQU	$E5	; @ERROR Handling Display
 PAGE_OVERLAYF	EQU	$E6	; @OPEN @INIT File Handling
 PAGE_OVERLAYG	EQU	$E7	; @READ @WRITE File Handling
 PAGE_OVERLAYH	EQU	$E8	; #HELP
-PAGE_OVERLAYI	EQU	$E9	; -unused
+PAGE_OVERLAYI	EQU	$E9	; DOS character I/O via ROM $4033
 PAGE_OVERLAYJ	EQU	$EA	; -unused
 PAGE_OVERLAYK	EQU	$EB	; -unused
 PAGE_OVERLAYL	EQU	$EC	; @LOAD @RUN CMD File
@@ -538,6 +568,8 @@ DPAGE_DEFFN	EQU	32	; Page for Basic Def FN Def User
 DPAGE_DOSHISTORY EQU 	33	; Seven consecutive pages: history/draft and state
 ; History reserves data pages 33-39; each exposes only $3600-$37DF.
 
+; Sequential Disk BASIC work area; data page 0 remains untouched.
+DPAGE_BIO_WORK	EQU	40
 ; CMD uses one callable code page; only its copied text is banked.
 DPAGE_BASICCMD 	EQU 	41
 ;
@@ -546,7 +578,7 @@ DPAGE_BASICCMD 	EQU 	41
 
 ; Callable Routine that Returns
 VIRTUAL_ROUTINE macro label, pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	assert pagenum>=128 && pagenum<$100	; Parameter validation
 	ORG  	$3000 + (pagenum * 4)		; Trampoline address
 label	EQU	$		; Define a program label for Entry
 	DEFB 	$CD		; Write CALL opcode to Offset $0
@@ -555,7 +587,7 @@ endm
 
 ; NON Returning routine, just JUMP into it
 VIRTUAL_PAGE macro label, pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	assert pagenum>=128 && pagenum<$100	; Parameter validation
 	ORG  	$3000 + (pagenum * 4)		; Trampoline address
 label	EQU	$		; Define a program label for Entry
 	DEFB 	$C3		; Write JP opcode to Offset $0
@@ -568,13 +600,13 @@ endm
 
 ; Call routine in Page
 PAGE_CALL macro pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	assert pagenum>=128 && pagenum<$100	; Parameter validation
 	CALL  	$3000 + (pagenum * 4)		; Trampoline address
 endm
 
 ; Jump to routine in Page
 PAGE_JP macro pagenum
-	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	assert pagenum>=128 && pagenum<$100	; Parameter validation
 	JP  	$3000 + (pagenum * 4)		; Trampoline address
 endm
 
@@ -595,17 +627,19 @@ VIRTUAL_DATA_END macro
 endm
 
 ; Change to a specified Data Page
-; NOTE: destroys the A register!
+; Preserve AF, including a byte result and its EOF/status flags.
 PAGE_DATA macro pagenum
 	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	push	af
 	LD	a,pagenum
 	LD	(PICOPAGEDAT),a	; Write the page number to the Data Page Reg
+	pop	af
 endm
 
 ; Select a code page while preserving AF. Execute only from resident code:
 ; changing the selector replaces every instruction in $3400-$35FF.
 PAGE_CODE macro pagenum
-	assert pagenum>=0 && pagenum<$100
+	assert pagenum>=128 && pagenum<$100
 	assert $ < $3400 || $ >= $3600
 	push	af
 	ld	a,pagenum

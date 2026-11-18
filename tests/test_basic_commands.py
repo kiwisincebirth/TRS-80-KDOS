@@ -301,7 +301,7 @@ def basic_loader_tests():
    r.hooks[0x1d1e]=lambda:setattr(r.m,'pc',0x1d25)
    assert r.statement('RUN')==b'LOADED OK\r'
    r.hooks[0x1d1e]=r.statement_end
- return {'basic_load':'PASS: LOAD, ROM reset/linker and RUN; repeated loads with no sequential-I/O feature; caller code/data bank restoration'}
+ return {'basic_load':'PASS: LOAD, ROM reset/linker and RUN; repeated loads with no open sequential files; caller code/data bank restoration'}
 
 
 def smoke_test():

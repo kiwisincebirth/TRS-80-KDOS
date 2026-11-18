@@ -11,7 +11,7 @@
 ;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
 ;
-import	constants.z
+import	basic-file-defs.z
 ;
 ; ======================================================================
 ;
@@ -32,8 +32,11 @@ VIRTUAL_PAGE basiclineinput, PAGE_LINEINP
 ; If we have a LINE INPUT #, then the the Z FLAG (Zero) will have been set,
 ; so JUMP to 5F4CH which is part of the LINE INPUT routine which will read
 ; code for item fetching from sequential input files
-;	cp	"#"          ; 578c:
-;	jp	z,$5f4c      ; 578e:
+	cp	"#"
+	jr	nz,_keyboard_line
+	ld	a,BIO_INPUT_LINE	; full-line mode in the shared file input engine
+	jp	bio_input_engine
+_keyboard_line:
 
 	call	$21cd        ; 5791:
 	call	$260d        ; 5794:

@@ -1,0 +1,56 @@
+; ======================================================================
+; DOS character I/O behind ROM _GET/$0013 and _PUT/$001B, vector $4033.
+;
+; ROM enters here when its built-in drivers cannot service GET/PUT.
+; This does not by itself identify an open FCB: check byte 0 bit 7 before
+; reading file-specific fields. Other device types are unsupported here.
+; ROM preserves BC/DE/HL/IX and supplies DE/IX=control block, B=operation
+; (1 GET, 2 PUT), C=output byte. Return A=byte on GET success, Z=success;
+; NZ returns a DOS error code, including EOF, without BASIC error handling.
+;
+; This first version supports FCBs opened with LRL=1. Other record lengths
+; need a buffered byte cursor and dirty-buffer handling, deferred work.
+; This driver requires paged DOS: a disk-loaded overlay cannot call
+; another overlay and then resume in its overwritten code.
+; Use the caller-owned buffer recorded in the FCB, never BASIC globals.
+; All transfers use the public @READ/@WRITE services, which sync metadata.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
+import	constants.z
+	ORG	OVERLY
+ifdef @D_PICOENHANCED
+	cp	S_BYTEIO
+	jr	nz,_unsupported
+	call	enh_VER
+	jr	z,_unsupported
+	bit	7,(ix+0)	; require the open-FCB flag before interpreting its fields
+	jr	z,_unsupported
+	ld	a,(ix+FCB_LRL)
+	cp	1
+	jr	nz,_unsupported
+	ld	l,(ix+FCB_BUFFLSB)
+	ld	h,(ix+FCB_BUFFMSB)
+	ld	a,b
+	cp	1
+	jr	z,_get
+	cp	2
+	jr	nz,_unsupported
+	ld	(hl),c
+	call	$4439		; @WRITE updates FCB; returns DOS status
+	ret
+_get:
+	push	hl		; @READ advances HL past the received byte
+	call	$4436
+	pop	hl
+	ret	nz
+	ld	a,(hl)		; LD leaves the success Z flag intact
+	ret
+endif
+_unsupported:
+	ld	a,ILLDOSFUN$
+	or	a
+	ret
+FREE_OVERLAYI	EQU	OVERLY+$200-$
+	assert	FREE_OVERLAYI >= 0
+	DC	FREE_OVERLAYI,0

@@ -1,0 +1,144 @@
+; ======================================================================
+; BASIC INPUT# and LINE INPUT# statement handling
+;
+; Intercept file input while leaving ordinary keyboard INPUT in ROM. Both
+; file forms use a common engine: resolve the file and destination variable,
+; ask BASIC-FILE-ITEM.z to read a field/line, then assign its value using the
+; ROM's string allocator and numeric conversion routines.
+;
+; Strings must be copied into BASIC-owned heap memory. A descriptor pointing
+; into the banked input buffer would become invalid on a bank switch or the
+; next read. Numeric values pass through BASIC's accumulator (FAC), including
+; its separate double-precision representation, before assignment.
+;
+; The work bank saves the target address/type and selected file across ROM
+; calls. BASIC text pointers remain on the stack while fields are consumed.
+; INPUT# accepts a variable list; LINE INPUT# requires one string variable.
+;
+; Original kDOS by kiwisincebirth. Formatted with 8-column tab stops.
+; ======================================================================
+import	basic-file-defs.z
+
+; ----------------------------------------------------------------------
+; INPUT# and LINE INPUT# share this page. A=BIO_INPUT_LINE selects LINE;
+; the ordinary INPUT hook supplies its current token and an inner return.
+VIRTUAL_PAGE bio_input_engine, PAGE_BIO_INPUT_ENGINE
+	cp	BIO_INPUT_LINE
+	jr	z,_input_engine
+	cp	'#'
+	ret	nz				; ordinary keyboard INPUT stays in ROM
+	pop	af				; discard the inner EXUNKN hook return
+	ld	a,BIO_INPUT_FIELDS		; INPUT fields, rather than a whole line
+_input_engine:
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	(BIO_LINE),a
+	GETCHR
+	BIO_PARSE_NUMBER
+	push	af
+	rst	8
+	db	','
+	pop	af
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	(BIO_FILE),a
+_variable:
+	BIO_ROM	BIO_ROM_PTRGET	; resolve destination, including array subscript
+	push	hl				; next program delimiter
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	(BIO_VAR),de
+	ld	a,($40AF)			; VALTYP: 2 integer,3 string,4 single,8 double
+	ld	(BIO_TYPE),a
+	ld	b,a
+	ld	a,(BIO_LINE)
+	or	a
+	jr	z,_read
+	ld	a,b
+	cp	3
+	jp	nz,$0AF4			; CHKSTR raises type mismatch
+_read:
+	; bio_item returns with the work bank selected and BIO_TEXT populated.
+	PAGE_CALL	PAGE_BIO_ITEM
+	ld	a,(BIO_TYPE)
+	cp	3
+	jr	nz,_numeric
+	ld	a,(BIO_LENGTH)
+	call	STRINI				; allocate string on BASIC heap, DE=storage
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_LENGTH)
+	; Write a standard string descriptor: length followed by heap pointer.
+	ld	hl,(BIO_VAR)
+	ld	(hl),a
+	inc	hl
+	ld	(hl),e
+	inc	hl
+	ld	(hl),d
+	ld	c,a
+	ld	b,0
+	or	a
+	jr	z,_assigned
+	ld	hl,BIO_TEXT
+	ldir
+	jr	_assigned
+_numeric:
+	; Parse numeric text, not a BASIC expression. Reject nonnumeric starts
+	; and any unconsumed suffix so a field such as 12ABC is not accepted.
+	ld	hl,BIO_TEXT
+	ld	a,(BIO_LENGTH)
+	or	a
+	jr	z,_zero
+	ld	a,(hl)
+	cp	'+'
+	jr	z,_convert
+	cp	'-'
+	jr	z,_convert
+	cp	'.'
+	jr	z,_convert
+	cp	'0'
+	jr	c,_bad_data
+	cp	'9'+1
+	jr	nc,_bad_data
+_convert:
+	ld	a,(BIO_TYPE)
+	cp	8
+	jr	z,_double
+	call	$0E6C				; FIN (numeric text only; no expressions)
+	jr	_tail
+_double:
+	call	$0E65				; FINDBL: parse directly at double precision
+_tail:
+	ld	a,(hl)
+	or	a
+	jr	nz,_bad_data
+	jr	_store_number
+_zero:
+	; An empty numeric field has the BASIC value zero.
+	ld	hl,0
+	call	$0A9A				; MAKINT: put HL into BASIC's accumulator
+_store_number:
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_TYPE)
+	call	$2819				; convert FAC to target variable type
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	hl,(BIO_VAR)
+	call	$09FF				; VMOVAF: select single/double FAC and copy
+_assigned:
+	; Restore the BASIC delimiter saved before reading/assigning this field.
+	pop	hl
+	ld	a,(hl)
+	or	a
+	ret	z
+	cp	':'
+	ret	z
+	PAGE_DATA	DPAGE_BIO_WORK
+	ld	a,(BIO_LINE)
+	or	a
+	jp	nz,$1997			; LINE INPUT has exactly one variable
+	rst	8
+	db	','
+	jp	_variable
+_bad_data:
+	ld	e,BERR_FILEDATA				; Bad file data
+	jp	BASIC_ERROR
+VIRTUAL_END
+
+	ORG	$41D6
+	jp	bio_input_engine
