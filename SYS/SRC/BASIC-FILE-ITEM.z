@@ -157,9 +157,7 @@ _append:
 _get:
 	BIO_ACTIVE
 	PAGE_CALL	PAGE_BIO_READ
-	push	af				; preserve the byte and EOF status across bank selection
-	PAGE_DATA	DPAGE_BIO_WORK
-	pop	af
+	PAGE_DATA	DPAGE_BIO_WORK	; preserves the byte and EOF status
 	ret
 _past_end:
 	ld	e,BERR_EOF

@@ -28,9 +28,7 @@ VIRTUAL_PAGE bio_print, PAGE_BIO_PRINT
 	rst	8
 	db	','
 	pop	af
-	ld	b,a
 	PAGE_DATA	DPAGE_BIO_WORK
-	ld	a,b
 	ld	(BIO_FILE),a
 	BIO_ACTIVE
 	cp	'O'

@@ -63,10 +63,10 @@ try {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot "SYS/$configName") -Destination (Join-Path $destination "SYS/$configName") -Force
     }
     # Ship checked-in tokenized BASIC programs; normal builds need no ROM/Python.
-    $testDestination = Join-Path $destination 'SYS/tests'
+    $testDestination = Join-Path $destination 'SYS/test'
     New-Item -ItemType Directory -Force -Path $testDestination | Out-Null
     foreach ($testName in @('IOCHECK.BAS','SIMPLEIO.BAS')) {
-        Copy-Item -LiteralPath (Join-Path $PSScriptRoot "SYS/Tests/$testName") -Destination (Join-Path $testDestination $testName) -Force
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot "SYS/test/$testName") -Destination (Join-Path $testDestination $testName) -Force
     }
 } finally { Pop-Location }
 Write-Output "Built $($targets.Count) targets. SD-card binaries: $destination"

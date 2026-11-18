@@ -627,11 +627,13 @@ VIRTUAL_DATA_END macro
 endm
 
 ; Change to a specified Data Page
-; NOTE: destroys the A register!
+; Preserve AF, including a byte result and its EOF/status flags.
 PAGE_DATA macro pagenum
 	assert pagenum>=0 && pagenum<$100	; Parameter validation
+	push	af
 	LD	a,pagenum
 	LD	(PICOPAGEDAT),a	; Write the page number to the Data Page Reg
+	pop	af
 endm
 
 ; Select a code page while preserving AF. Execute only from resident code:

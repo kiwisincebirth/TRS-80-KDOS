@@ -29,7 +29,8 @@ import	constants.z
 	jp	DOS_COMMAND_ABORT	; (4030) error exit owned by the resident DOS core
 ;
 	ORG	$4033		;
-	jp	CIODOS		; (4033) DOS Char I/O Driver for Disk Files
+	; ROM preserves BC/DE/HL/IX; B=1 GET, B=2 PUT, C=output byte.
+	SUPERV	S_BYTEIO	; DOS handles I/O not serviced by a ROM driver
 
 	; ORG	$403E
 	; todo we should put a reasonable value in this location
@@ -218,13 +219,6 @@ _DSPSTR9:
 ;
 ; ----------------------------------------------------------------------
 ;
-; CIO Routine for DOS Devices
-CIODOS:
-	; ROM preserves BC/DE/HL/IX and supplies B=1 GET, B=2 PUT, C=byte.
-	; Keep this resident entry small; the callable overlay restores banks.
-	SUPERV	S_BYTEIO
-;
-; ======================================================================
 ; File loader
 ; Input:
 ; - DE : pointer to filename

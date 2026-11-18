@@ -59,7 +59,7 @@ firmware compatibility and actual SD-card persistence still require testing.
 
 The suite executes tests/IOCHECK.txt and tests/SIMPLEIO.txt, checks their
 step-by-step results, and verifies they match the tokenized files in
-SYS/Tests and the build/SD-CARD/SYS/tests staging directory. The checked-in
+SYS/test and the build/SD-CARD/SYS/test staging directory. The checked-in
 .BAS files are copied by normal builds; no ROM or Python is needed to stage
 these programs. The .txt files are readable listings, not LOADable files.
 When changing a listing, regenerate its tokenized .BAS using a compatible

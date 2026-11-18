@@ -20,19 +20,17 @@
 import	basic-file-defs.z
 
 ; ----------------------------------------------------------------------
-; INPUT# and LINE INPUT# share this page. A=1 is LINE's explicit entry;
+; INPUT# and LINE INPUT# share this page. A=BIO_INPUT_LINE selects LINE;
 ; the ordinary INPUT hook supplies its current token and an inner return.
 VIRTUAL_PAGE bio_input_engine, PAGE_BIO_INPUT_ENGINE
-	cp	1
+	cp	BIO_INPUT_LINE
 	jr	z,_input_engine
 	cp	'#'
 	ret	nz				; ordinary keyboard INPUT stays in ROM
 	pop	af				; discard the inner EXUNKN hook return
-	xor	a				; INPUT fields, rather than a whole line
+	ld	a,BIO_INPUT_FIELDS		; INPUT fields, rather than a whole line
 _input_engine:
-	ld	b,a				; PAGE_DATA overwrites A, so preserve it in B
 	PAGE_DATA	DPAGE_BIO_WORK
-	ld	a,b
 	ld	(BIO_LINE),a
 	GETCHR
 	BIO_PARSE_NUMBER
@@ -40,9 +38,7 @@ _input_engine:
 	rst	8
 	db	','
 	pop	af
-	ld	b,a				; PAGE_DATA overwrites A, so preserve it in B
 	PAGE_DATA	DPAGE_BIO_WORK
-	ld	a,b
 	ld	(BIO_FILE),a
 _variable:
 	BIO_ROM	BIO_ROM_PTRGET	; resolve destination, including array subscript

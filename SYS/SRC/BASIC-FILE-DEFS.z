@@ -1,7 +1,7 @@
 ; ======================================================================
 ; Shared definitions for the sequential Disk BASIC implementation
 ;
-; Imported only by BASIC-FILE*.z. Defines file/workspace offsets and inline
+; Imported by BASIC-FILE*.z and the BASIC-LINE.z entry adapter. Defines file/workspace offsets and inline
 ; helpers used by OPEN, CLOSE, EOF, PRINT# and INPUT#. Code/data page numbers
 ; and common BASIC error codes remain in CONSTANTS.z for project-wide use.
 ;
@@ -29,9 +29,13 @@ BIO_SKIPLF		EQU	$3625
 BIO_TEXT		EQU	$3600		; work bank only, 256 bytes
 BIO_FILE		EQU	$3700
 BIO_LENGTH		EQU	$3701
-BIO_LINE		EQU	$3702		; 0=INPUT#, 1=LINE INPUT#
+BIO_LINE		EQU	$3702		; BIO_INPUT_FIELDS or BIO_INPUT_LINE
 BIO_TYPE		EQU	$3703
 BIO_VAR			EQU	$3704		; 2-byte variable address
+
+; Shared input-engine modes; LINE supplies its mode at the entry adapter.
+BIO_INPUT_FIELDS	EQU	0	; INPUT# comma-separated fields
+BIO_INPUT_LINE		EQU	1	; LINE INPUT# entire line
 
 ; Shared helper operations, used by both the callers and dispatcher.
 BIO_ROM_PARSE_NUMBER	EQU	0	; optional # followed by file number

@@ -11,7 +11,7 @@
 ;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
 ;
-import	constants.z
+import	basic-file-defs.z
 ;
 ; ======================================================================
 ;
@@ -34,7 +34,7 @@ VIRTUAL_PAGE basiclineinput, PAGE_LINEINP
 ; code for item fetching from sequential input files
 	cp	"#"
 	jr	nz,_keyboard_line
-	ld	a,1		; full-line mode in the shared file input engine
+	ld	a,BIO_INPUT_LINE	; full-line mode in the shared file input engine
 	jp	bio_input_engine
 _keyboard_line:
 

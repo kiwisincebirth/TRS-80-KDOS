@@ -303,8 +303,8 @@ def tests():
   end=int.from_bytes(r.mem[0x40f9:0x40fb],'little')
   program=b'\xff'+bytes(r.mem[start:end])
   assert program.endswith(b'\0\0\0')
-  assert (root/f'SYS/Tests/{name}.BAS').read_bytes()==program, f'Retokenize {name}.BAS after editing its listing'
-  assert (base.BUILD/f'SD-CARD/SYS/tests/{name}.BAS').read_bytes()==program
+  assert (root/f'SYS/test/{name}.BAS').read_bytes()==program, f'Retokenize {name}.BAS after editing its listing'
+  assert (base.BUILD/f'SD-CARD/SYS/test/{name}.BAS').read_bytes()==program
  return {'basic_file_io':'PASS: real ROM parsing/evaluation, typed variables, arrays/GC, three files, EOF lookahead, CR/LF, boundaries, error cases and close lifecycle',
  'scope':'Pico file API and ROM console are simulated; physical firmware timing still needs hardware testing.'}
 
@@ -355,6 +355,26 @@ def review_regressions():
  assert not r.m.f&0x40 and r.m.a==61 # buffering is explicitly unsupported
  r.mem[fcb+9]=1;r.m.de=fcb;r.call(0x4428)
 
+ # ROM forwarding is not proof of an open file. Reject closed/unknown
+ # control blocks even when their LRL/buffer fields resemble a valid FCB.
+ # Use flag bytes with GET/PUT driver bits clear so ROM forwards both calls.
+ for flags in (0,0x04,ord('D')):
+  for entry in (0x13,0x1b):
+   r=BasicRig();fcb=0x7000;buf=0x7100
+   r.mem[fcb:fcb+32]=bytes(32);r.mem[fcb]=flags
+   r.mem[fcb+3:fcb+5]=buf.to_bytes(2,'little');r.mem[fcb+9]=1
+   r.mem[buf]=0x5a;r.write(0x37f0,base.symbol('PAGE_BIO_PRINT'))
+   r.write(0x37f1,32)
+   def no_file_command(port,value):
+    raise AssertionError(('Unexpected device I/O for non-open FCB',port,value))
+   r.m.set_output_callback(no_file_command)
+   r.m.a=ord('X');r.m.de=fcb;r.m.hl=0x1234;r.m.bc=0x5678;r.m.ix=0x789a
+   r.call(entry)
+   assert not r.m.f&0x40 and r.m.a==61
+   assert r.mem[buf]==0x5a and not r.handles
+   assert (r.m.de,r.m.hl,r.m.bc,r.m.ix)==(fcb,0x1234,0x5678,0x789a)
+   assert r.page==base.symbol('PAGE_BIO_PRINT') and r.dpage==32 and not r.page_returns
+
  # A failed CLOSE must preserve the local open state for a later retry.
  r=BasicRig();r.statement('OPEN "O",1,"CLOSEERR"');original=r.outp
  def fail_close(port,value):
@@ -373,7 +393,7 @@ def review_regressions():
  r.statement('DIM A(2)');r.statement('INPUT#1,A(1+EOF(1))')
  assert r.statement('PRINT A(1)')==b' 12 \r'
  r.statement('CLOSE')
- return {'review_regressions':'PASS: 16 slots, slot bounds, page 0 intact, public DOS OPEN/INIT/CLOSE, ROM GET/PUT with RAM FCB, registers/banks, raw CR/LF, EOF, nested ROM evaluation'}
+ return {'review_regressions':'PASS: 16 slots, slot bounds, page 0 intact, public DOS OPEN/INIT/CLOSE, ROM GET/PUT with RAM FCB, registers/banks, raw CR/LF, EOF, non-open FCB rejection without device I/O, nested ROM evaluation'}
 
 def bank_restore_regression():
  # Trace actual ROM evaluation of EOF inside PRINT#. EOF uses a JP page:

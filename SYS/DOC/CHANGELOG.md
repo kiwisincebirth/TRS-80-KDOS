@@ -6,6 +6,9 @@
 New Features
 * [RS] DOS Command line Input History, with up to 20 items
 * [RS] Added Basic CMD "COMMAND" to execute DOS internal commands
+* [RS] Added sequential BASIC OPEN, CLOSE, PRINT#, INPUT#, LINE INPUT# and EOF, supporting up to 16 open files
+* [RS] Added DOS file-byte I/O through ROM GET/PUT for open FCBs with one-byte records (paged DOS)
+* [RS] Added IOCHECK.BAS and SIMPLEIO.BAS hardware tests under SYS/test in the SD-card build
 * [MP] Added Basic KILL "FILE/EXT" Command
 * [MP] Added @DATE and @TIME dos API support
 

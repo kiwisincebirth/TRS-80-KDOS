@@ -1,8 +1,10 @@
 ; ======================================================================
 ; DOS character I/O behind ROM _GET/$0013 and _PUT/$001B, vector $4033.
 ;
-; ROM distinguishes device DCBs from file FCBs before entering here. It
-; preserves BC/DE/HL/IX around the call and supplies DE/IX=FCB, B=operation
+; ROM enters here when its built-in drivers cannot service GET/PUT.
+; This does not by itself identify an open FCB: check byte 0 bit 7 before
+; reading file-specific fields. Other device types are unsupported here.
+; ROM preserves BC/DE/HL/IX and supplies DE/IX=control block, B=operation
 ; (1 GET, 2 PUT), C=output byte. Return A=byte on GET success, Z=success;
 ; NZ returns a DOS error code, including EOF, without BASIC error handling.
 ;
@@ -21,6 +23,8 @@ ifdef @D_PICOENHANCED
 	cp	S_BYTEIO
 	jr	nz,_unsupported
 	call	enh_VER
+	jr	z,_unsupported
+	bit	7,(ix+0)	; require the open-FCB flag before interpreting its fields
 	jr	z,_unsupported
 	ld	a,(ix+FCB_LRL)
 	cp	1
