@@ -1,6 +1,53 @@
 # User Guide
 
+## Introduction
+
+kDOS is an operating environment that runs on the Tandy TRS-80 Model 1
+providing a TRS-DOS (DOS) like features to Level 2 BASIC
+
+### Requirements
+
+To use this project you will require
+* A Tandy TRS-80 Model 1
+* A Floppy 80 (M1) with SD card
+* An Expansion Interface is not required
+
+## Installation
+
+Format the SD card using FAT32
+
+Copy the files provided to the SD card, ensuring that the /SYS folder is created
+
+If necessary change EnableHighRAM in `HARDWARE.cfg` if running on 16KB machine.
+
+Copy any other files you like utilising any directory structure you like.
+Ensure you name files accounting to 8.3 file naming. Longer file names are
+truncated to 8.3 but this is not recommended
+
+Install the RP2350 firmware (from /FIRMWARE) onto the (RP2350) Floppy-80 M1
+
 ## Startup
+
+Once started you should see the message "kDOS Loaded", and be dropped into a BASIC
+"READY>" Prompt. On a modern Enhanced L2 ROM
+
+```
+Enhanced Level II BASIC
+Release 1.4
+47,806 Free Bytes
+kDOS Loaded
+READY
+>_
+```
+
+or, on a traditional L2 ROM
+
+```
+MEM SIZE?
+KDOS LOADED
+READY
+>_
+```
 
 At startup holding the `CLEAR` key will :
 * Disable Virtual RAM and instead use Liner Overlay RAM.
@@ -26,6 +73,25 @@ The `:` prompt is the equivalent of the DOS prompt, where disk commands are ente
 
 ```shell
 :_
+```
+
+To get a summary of DOS commands type the command "HELP"
+
+```
+:HELP
+kDOS - (ver Beta.2)
+  Press <Enter> to switch from BASIC to DOS : prompt
+  Programs can be run by typing name of CMD file
+DOS Commands
+  DIR <filter> - show dir files  LOAD <file.cmd> - load binary
+  CD <path> - change directory   MD <path> - make directory
+  COPY <file1> <file2> - single  REN <file1> <file2> - rename
+  DEL <file> - delete a file     PWD - show current path
+  DI EI - disable/enable Clock
+BASIC Commands
+  LOAD - SAVE - RUN - KILL - MERGE "<file.bas>"
+  &Hxx &Oxxx CVI$ DEF FN USR INSTR$ MKI MID$ TIME$ LINE INPUT
+:_    
 ```
 
 ## DOS Input
@@ -131,22 +197,23 @@ the non-disk I/O statements and extensions. The following are supported
 | USRn(A)             | Invoke a Call address           |
 
 As well as this BASIC will display the descriptive error messages.
-### Sequential file I/O (Floppy80)
+
+### Sequential File I/O
 
 BASIC programs can read and write ordinary text files on the SD card. Up to sixteen
 files may be open at once, numbered **1 through 16**. Filenames use the current
 directory unless a path is specified; the maximum filename/path length for
 these commands is 31 characters. The existing 8.3 naming guidance applies.
 
-| Syntax | Purpose |
-|--------|---------|
-| `OPEN "I",1,"DATA.TXT"` | Open an existing file for sequential input. |
+| Syntax                  | Purpose                                                                          |
+|-------------------------|----------------------------------------------------------------------------------|
+| `OPEN "I",1,"DATA.TXT"` | Open an existing file for sequential input.                                      |
 | `OPEN "O",1,"DATA.TXT"` | Create a sequential output file; **replaces its contents if it already exists**. |
-| `CLOSE 1` | Close one file. `CLOSE 1,2` closes a list; `CLOSE` closes all. |
-| `PRINT#1,A$;",";N` | Write expressions to a file. |
-| `INPUT#1,A$,N` | Read text/numeric fields into variables or array elements. |
-| `LINE INPUT#1,A$` | Read a complete line into a string, preserving spaces and commas. |
-| `EOF(1)` | Return 0 when more input remains, or -1 at end of file. |
+| `CLOSE 1`               | Close one file. `CLOSE 1,2` closes a list; `CLOSE` closes all.                   |
+| `PRINT#1,A$;",";N`      | Write expressions to a file.                                                     |
+| `INPUT#1,A$,N`          | Read text/numeric fields into variables or array elements.                       |
+| `LINE INPUT#1,A$`       | Read a complete line into a string, preserving spaces and commas.                |
+| `EOF(1)`                | Return 0 when more input remains, or -1 at end of file.                          |
 
 `OPEN` and `CLOSE` also accept a `#` before the file number. Mode letters
 may be upper or lower case. `INPUT#` and `LINE INPUT#` must run inside a
@@ -179,14 +246,6 @@ be open for input to use `EOF`, `INPUT#`, or `LINE INPUT#`.
 
 Close files when finished. `END`, `NEW`, `CLEAR`, and a fresh `RUN` also close
 open files. Explicitly use `CLOSE` before removing the SD card or powering off.
-
-BASIC uses the shared DOS byte driver through ROM `_GET` and `_PUT`
-(vector `$4033`), with one-byte records for exact lengths and EOF handling. Large transfers may be slow. Append, random-access
-records (`FIELD`, `GET`, `PUT`, etc.), `PRINT# USING`, `TAB` and `SPC` in
-`PRINT#` are not included yet. These new commands target Floppy80's enhanced
-file API; they do not add FreHD support. The DOS byte driver also accepts
-machine-code callers with their own FCB and buffer; currently it requires
-LRL=1. Buffered byte access for other record lengths is future work.
 
 See `tests/IOCHECK.txt` for a complete test program and `BUILDING.txt` for
 deployment instructions.

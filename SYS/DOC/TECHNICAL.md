@@ -170,6 +170,34 @@ Each of the three values (00-99, binary) is turned into two decimal digits.
 Register Pair HL returns just past the text.
 This API write exactly eight characters and do not append a terminator
 
+## File IO
+
+### Sequential character I/O
+
+ROM `_GET` ($0013) and `_PUT` ($001B) dispatch file FCBs through $4033.
+Supply DE=FCB and A=byte for PUT. GET returns A=byte; both return Z on
+success or NZ with a DOS error in A (including 28 at EOF). The ROM preserves
+BC, DE, HL and IX. Device DCBs continue through the existing ROM handlers.
+The paged enhanced DOS driver in OVERLAYI currently requires LRL=1 and uses the
+buffer pointer recorded by @OPEN/@INIT. Other record lengths and control
+operations return Illegal DOS function; buffered byte access is future work.
+
+BASIC input opens through @OPEN and closes through @CLOSE. Output uses
+the additional OVERLAYF S_CREATEFILE service (same B/DE/HL contract as
+@INIT) with create/truncate semantics. @INIT retains its existing
+open-or-create behavior. No BASIC handler directly accesses Pico file ports.
+
+### Basic FILE I/O
+
+BASIC uses the shared DOS byte driver through ROM `_GET` and `_PUT`
+(vector `$4033`), with one-byte records for exact lengths and EOF handling.
+Large transfers may be slow. Append, random-access
+records (`FIELD`, `GET`, `PUT`, etc.), `PRINT# USING`, `TAB` and `SPC` in
+`PRINT#` are not included yet. These new commands target Floppy80's enhanced
+file API; they do not add FreHD support. The DOS byte driver also accepts
+machine-code callers with their own FCB and buffer; currently it requires
+LRL=1. Buffered byte access for other record lengths is future work.
+
 ## DOS Error Codes 
 
 | Error Number | Error Message           | TRS-DOS |
@@ -208,19 +236,6 @@ The following is provided by the RP2350 Pico Hardware
 | IO Port $C3 | Pico SIZE Register               |
 | IO Port $C4 | Pico COMMAND Register            |
 | IO Port $C5 | Pico ERROR Register              |
+| IO Port $C6 | Pico FILEID Register             |
 | IO Port $CF | Pico STATUS Register             |
 
-## Sequential character I/O
-
-ROM `_GET` ($0013) and `_PUT` ($001B) dispatch file FCBs through $4033.
-Supply DE=FCB and A=byte for PUT. GET returns A=byte; both return Z on
-success or NZ with a DOS error in A (including 28 at EOF). The ROM preserves
-BC, DE, HL and IX. Device DCBs continue through the existing ROM handlers.
-The paged enhanced DOS driver in OVERLAYI currently requires LRL=1 and uses the
-buffer pointer recorded by @OPEN/@INIT. Other record lengths and control
-operations return Illegal DOS function; buffered byte access is future work.
-
-BASIC input opens through @OPEN and closes through @CLOSE. Output uses
-the additional OVERLAYF S_CREATEFILE service (same B/DE/HL contract as
-@INIT) with create/truncate semantics. @INIT retains its existing
-open-or-create behavior. No BASIC handler directly accesses Pico file ports.
