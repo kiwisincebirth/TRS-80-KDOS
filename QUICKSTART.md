@@ -25,7 +25,7 @@ Copy any other files you like utilising any directory structure you like.
 Ensure you name files accounting to 8.3 file naming. Longer file names are
 truncated to 8.3 but this is not recommended
 
-Install the RP2350 firmware (from /SYS/FIRMWARE) onto the (RP2350) Floppy-80 M1
+Install the RP2350 firmware (from /FIRMWARE) onto the (RP2350) Floppy-80 M1
 
 ## Usage
 
@@ -35,7 +35,7 @@ Once started you should see the message "kDOS Loaded", and be dropped into a BAS
 ```
 Enhanced Level II BASIC
 Release 1.4
-47,294 Free Bytes
+47,806 Free Bytes
 kDOS Loaded
 READY
 >_

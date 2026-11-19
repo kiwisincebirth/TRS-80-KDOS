@@ -236,6 +236,7 @@ SUPERV 	macro	p1
 ;
 ; FCB Byte Offsets in the TRS-80 File Control Block
 ; ----------------------------------------------------------------------
+FCB_TYPE	EQU	0		; Byte 0 - Type Code and Open Status
 FCB_BUFFLSB	EQU	3		; Byte 3 - Buffer Address LSB
 FCB_BUFFMSB	EQU	4		; Byte 4 - Buffer Address MSB
 FCB_NEXTLSB	EQU	5		; Byte 5 - Next IO Data Addr LSB

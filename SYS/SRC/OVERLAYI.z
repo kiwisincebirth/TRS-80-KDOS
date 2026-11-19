@@ -24,7 +24,7 @@ ifdef @D_PICOENHANCED
 	jr	nz,_unsupported
 	call	enh_VER
 	jr	z,_unsupported
-	bit	7,(ix+0)	; require the open-FCB flag before interpreting its fields
+	bit	7,(ix+FCB_TYPE)	; require the open-FCB flag before interpreting its fields
 	jr	z,_unsupported
 	ld	a,(ix+FCB_LRL)
 	cp	1
