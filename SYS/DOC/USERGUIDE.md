@@ -136,23 +136,112 @@ copy. Build/Rebuild copies it to `build/SD-CARD/SYS/settings.cfg`.
 Below is a summary of the suppoerted DOS commands. Noting if running on a FreHD
 or under the FreHD TRS80GP emulation only the "FreHD" marked features are supported
 
-| Command         | Description                   |       |
-|-----------------|-------------------------------|-------|
-| {filename}      | Runs a CMD program            | FreHD |
-| CD {dirName}    | Set working directory         |       |
-| COPY {f1} {f2}  | Copy a File (todo)            |       |
-| DEL {filename}  | delete file or directory      |       |
-| DIR {wildcard}  | display directory contents    | FreHD |
-| DI              | Disable Interrupts / RTC      | FreHD |
-| EI              | Enable Interrupts / RTC       | FreHD |
-| HELP            | Display a summary of commands | FreHD |
-| LOAD {filename} | Load a CMD program            | FreHD |
-| MKDIR {dirname} | Make a directory              |       |
-| MOVE {f1} {f2}  | move file or directory        |       |
-| PWD             | display current directory     |       |
-| REN {f1} {f2}   | rename file or directory      |       |
+| Command            | Description                   | Alias         |
+|--------------------|-------------------------------|---------------|
+| {filename}         | Runs a CMD program            |               |
+| CD {dirName}       | Set working directory         |               |
+| COPY {file} {dest} | Copy one or more files        | CP            |
+| DELETE {file}, ... | Delete one or more files      | DEL, KILL, RM |
+| DIR {wildcard}     | display directory contents    | LS            |
+| DI                 | Disable Interrupts / RTC      |               |
+| EI                 | Enable Interrupts / RTC       |               |
+| HELP               | Display a summary of commands |               |
+| LOAD {filename}    | Load a CMD program            |               |
+| MKDIR {dirname}    | Make a directory              | MD            |
+| MOVE {f1} {f2}     | move file or directory        | MV            |
+| PWD                | display current directory     |               |
+| RENAME {f1} {f2}   | rename file or directory      | REN           |
+| RMDIR {directory}  | delete a directory (**TODO**) |               |
+
+### CD Command
+
+Changes the Current Working Directory
+
+#### Syntax
+
+```text
+CD {directory}
+```
+Where:
+* {directory} — A directory to change to. When specifying a directory
+
+#### Examples
+
+| Type of Copy                    | Example Command  |     |
+|---------------------------------|------------------|-----|
+| Change to Root Directory        | CD /             |     |
+| Change to Sub Directory of Root | CD /SUBDIR       |     |
+| Change to a Sub Directory       | CD SUBDIR        |     |
+| Change to a Sub Sub Directory   | CD SUBDIR/SUBSUB |     |
+| Change to Parent Directory      | CD ..            |     |
+| Change to Relative Directory    | CD ../OTHERDIR   |     |
+
+### COPY Command
+
+Copies a single file or a set of matching files non-interactively (existing
+destination files with the same name are overwritten without prompting).
+
+#### Syntax
+
+```text
+COPY {sourceFileSpec} {destFileSpec}
+```
+Where:
+* {sourceFileSpec} — A single filename, a path with a filename, or a pattern
+  containing * wildcards (case-insensitive).
+* {destFileSpec} — A destination filename, a directory path (ending with / or \,
+  or naming an existing directory), or a wildcard pattern such as *.BAK.
+
+#### Examples
+
+| Type of Copy               | Example Command              |
+|----------------------------|------------------------------|
+| Single file copy           | COPY README.TXT README.BAK   |
+| Copy into a directory      | COPY DATA.DAT BACKUP/        |
+| Copy with a path prefix    | COPY DOCS/NOTES.TXT ARCHIVE/ |
+| Wildcard copy to directory | COPY FILE.* BACKUP/          |
+|                            | COPY *.TXT BACKUP/           |
+| Wildcard copy with mapping | COPY *.DAT *.BAK             |
+
+### DELETE Command
+
+Deletes one or more files non-interactively (aliases: DEL, KILL, RM).
+Multiple space-separated filenames or wildcard patterns may be supplied in a
+single command. Subdirectories, hidden/system files, macOS ._* files, and
+read-only files are skipped.
+
+#### Syntax
+
+```text
+DELETE {fileSpec} [,{fileSpec} ...]
+```
+Where:{fileSpec} — A single filename, a path with a filename, or a pattern
+containing * wildcards (case-insensitive).
+
+#### Examples
+
+| Type of Delete        | Example Command         |
+|-----------------------|-------------------------|
+| Single file delete    | DELETE TEMP.TXT         | 
+| Multiple files        | DEL FILE1.BAS FILE2.BAS | 
+| Wildcard extension    | DEL *.BAK               | 
+| All matching entries  | DEL *                   | 
+| Wildcard path delete  | DEL TEMP/*.TMP          | 
+
+#### Output and Errors
+
+* Completed: Displays **N File(s) Deleted.** where N is the total number of
+files deleted across all tokens (including 0 if no files matched).
+* Partial delete: If an error occurs after one or more files have already
+been deleted, displays **N File(s) Deleted, with Error Code.**
+* Immediate failure: If no files are deleted and an error occurs (such as
+an invalid name or missing target), returns a DOS error status.
 
 ### DIR Command
+
+Get a directory listing. Supports Wildcards e.g `DIR *.BAS` Alias supported are `LS`
+
+**tbc**
 
 At a paused `DIR` listing, press **BREAK** to return to the DOS prompt while
 keeping the displayed filenames. Any other key continues the listing. The
