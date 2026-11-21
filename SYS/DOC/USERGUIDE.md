@@ -193,14 +193,16 @@ Where:
 
 #### Examples
 
-| Type of Copy               | Example Command              |
-|----------------------------|------------------------------|
-| Single file copy           | COPY README.TXT README.BAK   |
-| Copy into a directory      | COPY DATA.DAT BACKUP/        |
-| Copy with a path prefix    | COPY DOCS/NOTES.TXT ARCHIVE/ |
-| Wildcard copy to directory | COPY FILE.* BACKUP/          |
-|                            | COPY *.TXT BACKUP/           |
-| Wildcard copy with mapping | COPY *.DAT *.BAK             |
+| Type of Copy                       | Example Command             |
+|------------------------------------|-----------------------------|
+| Single file copy with rename       | COPY README.TXT README.BAK  |
+| Single file copy into a directory  | COPY DATA.DAT BACKUP        |
+| Single file copy using path prefix | COPY DOCS/NOTES.TXT ARCHIVE |
+| Copy qualified files to directory  | COPY FILE.* BACKUP          |
+|                                    | COPY *.TXT BACKUP           |
+| Copy files changeing the extension | COPY *.DAT *.BAK            |
+| Copy All files to directory        | COPY * BACKUP               |
+| Copy Files with extension to dir   | COPY *.* BACKUP             |
 
 ### DELETE Command
 
@@ -234,7 +236,7 @@ containing * wildcards (case-insensitive).
 | Delete all files                     | DEL *                          | 
 | Delete all files (with extension)    | DEL *.*                        | 
 | Delete a file in a directory         | DEL TEMP/FILE1.BAS             | 
-| Delet multiple files in a directory  | DEL TEMP/*.BAK                 | 
+| Delete multiple files in a directory | DEL TEMP/*.BAK                 | 
 
 #### Output and Errors
 
