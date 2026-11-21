@@ -206,8 +206,14 @@ Where:
 
 Deletes one or more files non-interactively (aliases: DEL, KILL, RM).
 Multiple space-separated filenames or wildcard patterns may be supplied in a
-single command. Subdirectories, hidden/system files, macOS ._* files, and
-read-only files are skipped.
+single command. 
+
+When using wildcards Subdirectories, hidden/system files, and
+read-only files are skipped. If these need to be deleted it will have to
+be done on a modern computer.
+
+To delete a directory you must type its exact name (no wildcards are supported)
+and the directory must be empty before it can be deleted.
 
 #### Syntax
 
@@ -219,13 +225,16 @@ containing * wildcards (case-insensitive).
 
 #### Examples
 
-| Type of Delete        | Example Command         |
-|-----------------------|-------------------------|
-| Single file delete    | DELETE TEMP.TXT         | 
-| Multiple files        | DEL FILE1.BAS FILE2.BAS | 
-| Wildcard extension    | DEL *.BAK               | 
-| All matching entries  | DEL *                   | 
-| Wildcard path delete  | DEL TEMP/*.TMP          | 
+| Type of Delete                       | Example Command                |
+|--------------------------------------|--------------------------------|
+| Single file delete                   | DELETE TEMP.TXT                | 
+| Single directory delete              | DELETE SUBDIR                  | 
+| Multiple files or directories        | DEL FILE1.BAS FILE2.BAS SUBDIR | 
+| Delete Files with extension          | DEL *.BAK                      | 
+| Delete all files                     | DEL *                          | 
+| Delete all files (with extension)    | DEL *.*                        | 
+| Delete a file in a directory         | DEL TEMP/FILE1.BAS             | 
+| Delet multiple files in a directory  | DEL TEMP/*.BAK                 | 
 
 #### Output and Errors
 
@@ -244,10 +253,9 @@ Get a directory listing. Supports Wildcards e.g `DIR *.BAS` Alias supported are 
 
 When viewing the listing
 * The listing just shows the names of the files, no file sizes are shown.
-* Sub directories are shown with a graphical vertical Bar (|) Prefix
-* The directory listing is paged, and will pause after a page, press a key to continue
-or press **BREAK** to return to the DOS prompt while
-keeping the displayed filenames. 
+* Subdirectories are shown with a graphical vertical Bar (|) Prefix
+* The directory listing is paged, and will pause after a page, press ANY Key to continue
+or press **BREAK** to return to the DOS prompt.
 
 ### MOVE Command
 
@@ -272,13 +280,14 @@ Where:
 
 #### Examples
 
-| Type of Rename / Move    | Example Command                 |
-|--------------------------|---------------------------------|
-| Single file rename       | REN OLDNAME.BAS NEWNAME.BAS     |
-| Directory rename         | REN TEMP WORK                   |
-| Move file to directory   | MOVE FILE1.BAK TEMP/FILE2.BAK   |
-| Wildcard extension swap  | REN *.BAK *.OLD                 |
-| Wildcard prefix mapping  | REN MYDB.* MYWORK.*             |
+| Type of Rename / Move       | Example Command               |
+|-----------------------------|-------------------------------|
+| Single file rename          | REN OLDNAME.BAS NEWNAME.BAS   |
+| Directory rename            | REN TEMP WORK                 |
+| Move and Rename a directory | MOVE GAMES /TEMP/GAMES        |
+| Move file to directory      | MOVE FILE1.BAK TEMP/FILE2.BAK |
+| Wildcard extension swap     | REN *.BAK *.OLD               |
+| Wildcard prefix mapping     | REN MYDB.* MYWORK.*           |
 
 #### Output and Errors
 
