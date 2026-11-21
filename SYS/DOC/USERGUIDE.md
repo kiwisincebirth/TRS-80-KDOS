@@ -148,9 +148,8 @@ or under the FreHD TRS80GP emulation only the "FreHD" marked features are suppor
 | HELP               | Display a summary of commands |               |
 | LOAD {filename}    | Load a CMD program            |               |
 | MKDIR {dirname}    | Make a directory              | MD            |
-| MOVE {f1} {f2}     | move file or directory        | MV            |
-| PWD                | display current directory     |               |
-| RENAME {f1} {f2}   | rename file or directory      | REN           |
+| PWD                | Display current directory     |               |
+| RENAME {f1} {f2}   | rename file or directory      | REN, MOVE, MV |
 | RMDIR {directory}  | delete a directory (**TODO**) |               |
 
 ### CD Command
@@ -243,9 +242,53 @@ Get a directory listing. Supports Wildcards e.g `DIR *.BAS` Alias supported are 
 
 **tbc**
 
-At a paused `DIR` listing, press **BREAK** to return to the DOS prompt while
-keeping the displayed filenames. Any other key continues the listing. The
-remaining Pico directory records are consumed silently before returning.
+When viewing the listing
+* The listing just shows the names of the files, no file sizes are shown.
+* Sub directories are shown with a graphical vertical Bar (|) Prefix
+* The directory listing is paged, and will pause after a page, press a key to continue
+or press **BREAK** to return to the DOS prompt while
+keeping the displayed filenames. 
+
+### MOVE Command
+
+See RENAME command
+
+### RENAME Command
+
+Renames a single file or directory, moves an item to another directory, 
+or batch-renames matching files using wildcards (aliases: `REN` `MOVE`, `MV`). 
+Wildcard matching applies to files only; subdirectories, hidden/system files, 
+are skipped during wildcard renames.
+
+#### Syntax
+
+```text
+RENAME {source} {dest}
+```
+
+Where:
+- {source} — A single file or directory name, a path, or a file wildcard pattern containing * (case-insensitive).
+- {dest} — A new name, a target directory path, or a wildcard pattern such as *.OLD or MYWORK.*.
+
+#### Examples
+
+| Type of Rename / Move    | Example Command                 |
+|--------------------------|---------------------------------|
+| Single file rename       | REN OLDNAME.BAS NEWNAME.BAS     |
+| Directory rename         | REN TEMP WORK                   |
+| Move file to directory   | MOVE FILE1.BAK TEMP/FILE2.BAK   |
+| Wildcard extension swap  | REN *.BAK *.OLD                 |
+| Wildcard prefix mapping  | REN MYDB.* MYWORK.*             |
+
+#### Output and Errors
+
+* **Completed:** Displays `N File(s) Renamed.` where `N` is the number of items 
+renamed (including `0` if no wildcard entries matched).
+* **Partial rename:** If an error occurs after one or more items have already 
+been renamed, displays `N File(s) Renamed, with Error <CODE>`.
+* **Immediate failure:** If no items are renamed and an error occurs 
+(such as an invalid name, missing source, or target conflict), 
+returns a DOS error status.
 
 ## BASIC Commands
 

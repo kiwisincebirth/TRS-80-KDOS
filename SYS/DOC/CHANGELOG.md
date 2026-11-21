@@ -16,6 +16,7 @@ New Features
 Improvements
 * [RS] DIR command supports BREAK to abort
 * [MP] DEL Command updated to support wildcards, requires Beta4 firmware
+* [MP] REN Command updated to support wildcards, requires Beta4 firmware
 * [MP] HELP command, added some missing commands
 * [MP] HELP command, non-paged version now excludes unsupported commands
 * [MP] Error message, when removing a directory that isnt empty
