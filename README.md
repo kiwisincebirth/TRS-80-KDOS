@@ -69,7 +69,7 @@ and the full [User Guide](SYS/DOC/USERGUIDE.md) for detailed operation
 
 This is a work in progress not all features are implemented at this time.
 Please use it at your own risk.
-See the separate ![Compatibility](./SYS/DOC/COMPATIBILITY.md) document 
+See the separate [Compatibility](./SYS/DOC/COMPATIBILITY.md) document 
 for what is and isn't supported.
 
 ## References
