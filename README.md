@@ -50,9 +50,11 @@ Core Features
 
 This solution requires:
 * Model 1 computer with 16K (or 48k) RAM
-* Floppy80 for Model 1 board for storage.
+* Floppy80 (RP2350) for Model 1 board for storage.
 * SD Card for OS and user file storage.
 * Expansion Interface is NOT required
+
+This project Requires a Pico 2 (RP2350), an original Pico (RP2040) is **NOT** Supported
 
 While the Floppy 80 is the primary hardware required by this solution,
 the FreHD is supported in a very basic form, mainly for emulation 
