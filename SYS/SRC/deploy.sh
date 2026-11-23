@@ -92,6 +92,8 @@ cp zout/overlayl.cim /Volumes/KDOS/SYS/overlayl.sys
 cp zout/overlayo.cim /Volumes/KDOS/SYS/overlayo.sys
 cp zout/overlayt.cim /Volumes/KDOS/SYS/overlayt.sys
 cp zout/keyboard.cmd /Volumes/KDOS/SYS/KEYBOARD.CMD
+cp ../DOC/*.* /Volumes/KDOS/SYS/DOC
+# TODO Add BASIC Test Programs to this List
 
 echo Unmounting KDOS
 

@@ -123,7 +123,7 @@ _ENHANCED
 
 lookupt:
 	; common errors (not all) are here
-;	defb	DEVNOTAVA$ , "Device Not Available"	,ETX	; 08
+	defb	DEVNOTAVA$ , "Device Not Available"	,ETX	; 08
 	defb	WRITEPROT$ , "Write Protected Disk"	,ETX	; 15
 	defb	ILLLOGFIL$ , "Illegal File Number"	,ETX	; 16
 	defb	ILLFILNAM$ , "Illegal Filename"		,ETX	; 19
@@ -135,17 +135,16 @@ lookupt:
 	defb	PRGNOTFND$ , "Program Not Found"	,ETX	; 31
 	defb	ILLDRINUM$ , "Illegal Drive Number"	,ETX	; 32
 	defb	LOAFILFMT$ , "Load File Format Error"	,ETX	; 34
+;	defb	LOAFILFMT$ , "File Not Open"		,ETX	; 38
 	;
-	defb	DENNOTEMP$ , "Denied, Not Empty"	,ETX	; 58 - Access Denied, Dir Not Empty
+	defb	DENFILOPN$ , "Denied, Already Open"     ,ETX	; 57 - Access Denied, File Already Open
+	defb	DENNOTEMP$ , "Denied, Not Empty"	,ETX	; 58 - Access Denied, Directory Not Empty
 	defb	FILEXISTS$ , "File Exists"		,ETX	; 59 - File or directory Exists
 	defb	PATNOTFOU$ , "Path Not Found"		,ETX	; 60 - Path not found, like File not found
 	defb	ILLDOSFUN$ , "Illegal DOS Function"	,ETX	; 61 - ND/80 for disabled functions
 	defb	INTDOSERR$ , "Internal DOS Error"	,ETX	; 62 - Something that should never happen
 	defb	UNKNOWN$   , "Unknown Error"		,ETX	; 63
 	defb	$0
-
-;	; TRS-80 Error messages - uncommented as necessary
-;	defb	26 ,"Full or Write Protected",ETX
 ;
 _FF_MSG:
 	defb 'FatFs '		; FF Error merges into next Error

@@ -226,6 +226,9 @@ SAVBUFF
 LOOKUPTAB
 	; internal command lookup table, with three byte instruction
 	; Ordering is important! Longer names "DIR" should appear before shorter "DI"
+	DB	'ASSIGN',0
+	SUPERV	S_ASSIGNCMD
+
 	DB	'CD',0
 	SUPERV	S_CDCMD
 	;

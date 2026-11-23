@@ -217,6 +217,7 @@ S_LOADFILE	EQU	'L' - SUP_OFF + $20	; (4430) @LOAD DOS Function
 S_RUNFILE	EQU	'L' - SUP_OFF + $40	; (4433) @RUN  DOS Function
 S_LOADCMD	EQU	'L' - SUP_OFF + $A0	; #LOAD command
 ;
+S_ASSIGNCMD	EQU	'O' - SUP_OFF + $00	; #ASSIGN command
 S_CDCMD		EQU	'O' - SUP_OFF + $20	; #CD command
 S_COPYCMD	EQU	'O' - SUP_OFF + $40	; #COPY #CP command
 S_DELCMD	EQU	'O' - SUP_OFF + $60	; #DEL #DELETE #KILL #RM command
@@ -278,15 +279,18 @@ ENDOFFILE$	EQU	28	; End of File Encountered
 PRGNOTFND$	EQU	31	; Program not found
 ILLDRINUM$	EQU	32	; Illegal Drive Number
 LOAFILFMT$	EQU	34 	; Load file format error
+FILNOTOPN$	EQU	38	; File Not Open
 ;
 ; Error Codes 39-62 are Undefined By TrsDOS
 ; but valid for the TRS-80
 ;
+TOOMANFIL$	EQU	56	; Too Many (16 Max) Files Open
+DENFILOPN$	EQU	57	; Access Denied,  File Already Open
 DENNOTEMP$	EQU	58	; Access Denied,  Not Empty
 FILEXISTS$	EQU	59	; File Exists, cant create new file
 PATNOTFOU$	EQU	60	; Path Not Found, (like File Not Found)
 ILLDOSFUN$	EQU	61 	; Illegal (Unsupported) DOS Functon.
-INTDOSERR$	EQU	62	; Internal DOS Error - Super call id issue - overlay not found - Unexpected
+INTDOSERR$	EQU	62	; Internal (Unexpected) DOS Error.
 UNKNOWN$	EQU	63
 ;
 ; ----------------------------------------------------------------------
