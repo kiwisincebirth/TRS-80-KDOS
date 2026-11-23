@@ -94,6 +94,8 @@ BASIC Commands
 :_    
 ```
 
+Programs (CMD Files) can be executed by typing the name of the program. 
+
 ## DOS Input
 
 ### Input History
@@ -133,24 +135,56 @@ copy. Build/Rebuild copies it to `build/SD-CARD/SYS/settings.cfg`.
 
 ## DOS Commands
 
-Below is a summary of the suppoerted DOS commands. Noting if running on a FreHD
-or under the FreHD TRS80GP emulation only the "FreHD" marked features are supported
+Below is a summary of the suppoerted DOS commands. 
 
-| Command            | Description                   | Alias         |
-|--------------------|-------------------------------|---------------|
-| {filename}         | Runs a CMD program            |               |
-| CD {dirName}       | Set working directory         |               |
-| COPY {file} {dest} | Copy one or more files        | CP            |
-| DELETE {file}, ... | Delete one or more files      | DEL, KILL, RM |
-| DIR {wildcard}     | display directory contents    | LS            |
-| DI                 | Disable Interrupts / RTC      |               |
-| EI                 | Enable Interrupts / RTC       |               |
-| HELP               | Display a summary of commands |               |
-| LOAD {filename}    | Load a CMD program            |               |
-| MKDIR {dirname}    | Make a directory              | MD            |
-| PWD                | Display current directory     |               |
-| RENAME {f1} {f2}   | rename file or directory      | REN, MOVE, MV |
-| RMDIR {directory}  | delete a directory (**TODO**) |               |
+| Command            | Description                    | Alias        |
+|--------------------|--------------------------------|--------------|
+| ASSIGN {d}:{Path}  | Map virtual drive to directory |              |
+| CD {dirName}       | Set working directory          |              |
+| COPY {file} {dest} | Copy one or more files         | CP           |
+| DELETE {file}, ... | Delete one or more files       | DEL, KILL, RM |
+| DIR {wildcard}     | display directory contents     | LS           |
+| DI                 | Disable Interrupts / RTC       |              |
+| EI                 | Enable Interrupts / RTC        |              |
+| HELP               | Display a summary of commands  |              |
+| LOAD {filename}    | Load a CMD program             |              |
+| MKDIR {dirname}    | Make a directory               | MD           |
+| PWD                | Display current directory      |              |
+| RENAME {f1} {f2}   | rename file or directory       | REN, MOVE, MV |
+
+### ASSIGN
+
+The `ASSIGN` command maps virtual drive numbers `1` through `9` to directories 
+on the underlying storage volume. Once assigned, commands and file operations 
+that reference `:1`–`:9` resolve relative to that mapped directory 
+instead of requiring a full path every time.
+
+Drive `:0` remains the default/current directory and cannot be reassigned via `ASSIGN`.
+
+#### Syntax
+
+```text
+ASSIGN
+ASSIGN <D>:<PATH>
+ASSIGN <D>:
+```
+
+Usage:
+* Run ASSIGN with no arguments to display all currently configured mappings:
+* Run ASSIGN Specifying a drive digit (1–9), a colon (:), and a directory path to create or overwrite a mapping
+* Run ASSIGN Specifying a drive digit (1-9), and a colon (with no path) to clear that virtual drive mapping
+
+Where:
+* <D>: Virtual drive digit from 1 to 9.
+* <PATH>: Target directory path (for example, /DOCS or DOCS). 
+
+#### EXAMPLES
+
+| Assign Command                          | Example Command |
+|-----------------------------------------|-----------------|
+| List current assigments                 | ASSIGN          |
+| Map the :1 drive to the /DOCS directory | ASSIGN 1:/DOCS  |
+| Remove the drive :1 mapping             | ASSIGN 1:       |
 
 ### CD Command
 
@@ -166,14 +200,14 @@ Where:
 
 #### Examples
 
-| Type of Copy                    | Example Command  |     |
-|---------------------------------|------------------|-----|
-| Change to Root Directory        | CD /             |     |
-| Change to Sub Directory of Root | CD /SUBDIR       |     |
-| Change to a Sub Directory       | CD SUBDIR        |     |
-| Change to a Sub Sub Directory   | CD SUBDIR/SUBSUB |     |
-| Change to Parent Directory      | CD ..            |     |
-| Change to Relative Directory    | CD ../OTHERDIR   |     |
+| Type of Copy                    | Example Command  |
+|---------------------------------|------------------|
+| Change to Root Directory        | CD /             |
+| Change to Sub Directory of Root | CD /SUBDIR       |
+| Change to a Sub Directory       | CD SUBDIR        |
+| Change to a Sub Sub Directory   | CD SUBDIR/SUBSUB |
+| Change to Parent Directory      | CD ..            |
+| Change to Relative Directory    | CD ../OTHERDIR   |
 
 ### COPY Command
 
@@ -259,9 +293,15 @@ When viewing the listing
 * The directory listing is paged, and will pause after a page, press ANY Key to continue
 or press **BREAK** to return to the DOS prompt.
 
+### DI EI Commands
+
+
+
 ### MOVE Command
 
 See RENAME command
+
+### PWD Command
 
 ### RENAME Command
 
