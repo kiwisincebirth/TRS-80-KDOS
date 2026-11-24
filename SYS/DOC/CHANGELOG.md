@@ -25,6 +25,7 @@ Improvements
 
 Bug Fixes
 * [MP] Bug with DOS LOAD command failure in emulation
+* [MP] Fix Issues with nesting &H &O INSTR TIME$ BASIC functions.
 
 ## Version - Beta 1
 

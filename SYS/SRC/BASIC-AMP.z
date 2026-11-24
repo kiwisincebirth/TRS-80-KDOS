@@ -15,10 +15,10 @@ import	constants.z
 ;
 ; ======================================================================
 ;
-; Set as Jump, we do NOT have a RET Semantic happening.
-; there are quite a few escapes to OV err, etc
+; This routines normal execution is to RETURN
+; with JUMP's OUT for different errors.
 ;
-VIRTUAL_PAGE ampersand, PAGE_AMPERSAND
+VIRTUAL_ROUTINE ampersand, PAGE_AMPERSAND
 ;
 ; ======================================================================
 ;
@@ -57,7 +57,7 @@ _593a
    or	l                ; 593d:
    ld	l,a              ; 593e:
    dec	b                ; 593f:
-   jp	z,$07b2          ; 5940:
+   jp	z,$07b2          ; 5940: Overflow ERROR
    ex	de,hl            ; 5943:
    jr	_5921            ; 5944:
 _5946
@@ -67,7 +67,7 @@ _5947
    ex	de,hl            ; 5948:
    jr	nc,_5964         ; 5949:
    cp	$38              ; 594b:
-   jp	nc,$1997         ; 594d:
+   jp	nc,$1997         ; 594d: Syntax ERROR
    ld	bc,$07b2         ; 5950: Return address OV ERR
    push	bc               ; 5953: pushed for rets below
    add	hl,hl            ; 5954:

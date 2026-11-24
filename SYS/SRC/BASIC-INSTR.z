@@ -15,9 +15,9 @@ import	constants.z
 ;
 ; ======================================================================
 ;
-; There are no RETS in this Code
+; This has RET primarily with a JUMP out if Error Condition
 ;
-VIRTUAL_PAGE instrfunc, PAGE_INSTRFUNC
+VIRTUAL_ROUTINE instrfunc, PAGE_INSTRFUNC
 ;
 ; ======================================================================
 ;
@@ -33,7 +33,7 @@ VIRTUAL_PAGE instrfunc, PAGE_INSTRFUNC
    pop	af           ; 5895:
    call	$2b1f        ; 5896:
    or	a            ; 5899:
-   jp	z,$1e4a      ; 589a:
+   jp	z,$1e4a      ; 589a: ILLEGAL Function Call
    push	af           ; 589d:
    rst	$0008        ; 589e:
    inc	l            ; 589f:

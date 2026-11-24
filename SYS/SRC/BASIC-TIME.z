@@ -15,7 +15,10 @@ import	constants.z
 ;
 ; ======================================================================
 ;
-VIRTUAL_PAGE timedollar, PAGE_TIMEDOLL
+; This is a routine that Returns via a JUMP to PUTNEW
+; Any Jumps are to BASIC Error handlers
+;
+VIRTUAL_ROUTINE timedollar, PAGE_TIMEDOLL
 ;
 ; ======================================================================
 ;
@@ -51,7 +54,10 @@ VIRTUAL_PAGE timedollar, PAGE_TIMEDOLL
 	;
 	EIREST		      ; POP and restore interrupt state
 	;
-	jp	PUTNEW                ; 5773:
+	jp	PUTNEW          ; 5773: This is a Call and return (2884H)
+				; makes the descriptor at 40D3H a temporary string in the accumulator,
+				; takes the text pointer off the stack into Register Pair HL
+				; and returns to the expression evaluator
 	;
 _5776:
 	ld	a,(de)                ; 5776:
