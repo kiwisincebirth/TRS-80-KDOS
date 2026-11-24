@@ -295,13 +295,63 @@ or press **BREAK** to return to the DOS prompt.
 
 ### DI EI Commands
 
+Enable and Disable Interrupt Service Routines. 
+This currently will enable or disable the Real Time Clock
 
+#### Syntax
 
-### MOVE Command
+```text
+EI
+DI
+```
 
-See RENAME command
+Where:
+- EI - enable interrupts
+- DI - disables interrupts
+
+### HELP Command
+
+Displays a brief summary of available commands
+
+#### Syntax
+
+```text
+HELP
+```
+
+### LOAD Command
+
+Allows an executable file (CMD) to be loaded into memory, but not executed.
+
+#### Syntax
+
+```text
+LOAD {fileSpec}
+```
+Where:{fileSpec} — A CMD filename to load
+
+CAUTION: This could conflict with a BASIC program resident in memory
+
+### MKDIR Command
+
+Create a new directory
+
+#### Syntax
+
+```text
+MKDIR {directory}
+```
+Where:{directory} — The name of he directory to create
 
 ### PWD Command
+
+Display the current directory
+
+#### Syntax
+
+```text
+PWD
+```
 
 ### RENAME Command
 

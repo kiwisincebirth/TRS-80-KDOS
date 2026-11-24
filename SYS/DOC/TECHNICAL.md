@@ -217,25 +217,3 @@ LRL=1. Buffered byte access for other record lengths is future work.
 | 61           | Illegal DOS Function    |         |
 | 62           | Internal DOS Error      |         |
 | 63           | Unknown Error           |         |
-
-## Hardware Address Map
-
-The following is provided by the RP2350 Pico Hardware
-
-| Address     |                                  |
-|-------------|----------------------------------|
-| 3000 - 3400 | Banked Memory Entry Points       |
-| 3400 - 3600 | Banked Code Memory (swappable)   |
-| 3600 - 37E0 | Banked Data Memory (swappable)   |
-| 37E0        | Read and Reset RTC Interrupt     |
-| 37EC        | FDC Command Status               |
-| 37EF        | FDC Data Register                |
-| 37F0        | Banked Code Memory Page Register |
-| 37F1        | Banked Data Memory Page Register |
-| IO Port $C2 | Pico DATA IO Port                |
-| IO Port $C3 | Pico SIZE Register               |
-| IO Port $C4 | Pico COMMAND Register            |
-| IO Port $C5 | Pico ERROR Register              |
-| IO Port $C6 | Pico FILEID Register             |
-| IO Port $CF | Pico STATUS Register             |
-
