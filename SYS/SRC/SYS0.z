@@ -74,58 +74,58 @@ import	constants.z
 ; ----------------------------------------------------------------------
 	ORG	$4152
 ;
-	jp	L3ERR		; CVI - $4152 - Done
-	jp	L3ERR		; FN  - $4155 - Done
-	jp	L3ERR		; CVS - $4158 - Done
-	jp	L3ERR		; DEF - $415B - Done
-	jp	L3ERR		; CVD - $415E - Done
-	jp	L3ERR		; EOF - $4161
+	jp	L3ERR		; CVI - $4152 - Done - BASIC-CVI.Z
+	jp	L3ERR		; FN  - $4155 - Done - BASIC-DEFFN.Z
+	jp	L3ERR		; CVS - $4158 - Done - BASIC-CVI.Z
+	jp	L3ERR		; DEF - $415B - Done - BASIC-DEFINE.Z
+	jp	L3ERR		; CVD - $415E - Done - BASIC-CVI.Z
+	jp	L3ERR		; EOF - $4161 - Done - BASIC-FILE.Z
 	jp	L3ERR		; LOC - $4164
 	jp	L3ERR		; LOF - $4167
-	jp	L3ERR		; MKI - $416A - Done
-	jp	L3ERR		; MKS - $416D - Done
-	jp	L3ERR		; MKD - $4170 - Done
-	SUPERV	S_BASICCMD	; CMD - $4173
-	jp	L3ERR		; TIME$ $4176 - Done
-	jp	L3ERR		; OPEN  $4179
+	jp	L3ERR		; MKI - $416A - Done - BASIC-MKI.Z
+	jp	L3ERR		; MKS - $416D - Done - BASIC-MKI.Z
+	jp	L3ERR		; MKD - $4170 - Done - BASIC-MKI.Z
+	SUPERV	S_BASICCMD	; CMD - $4173 - Done
+	jp	L3ERR		; TIME$ $4176 - Done - BASIC-TIME.Z
+	jp	L3ERR		; OPEN  $4179 - Done - BASIC-FILE.Z
 	jp	L3ERR		; FIELD $417C
 	jp	L3ERR		; GET - $417F
 	jp	L3ERR		; PUT - $4182
-	jp	L3ERR		; CLOSE $4185
-	SUPERV	S_BASICLOAD	; LOAD  $4188
-	SUPERV	S_BASICMERGE	; MERGE $418B
+	jp	L3ERR		; CLOSE $4185 - Done - BASIC-FILE.Z
+	SUPERV	S_BASICLOAD	; LOAD  $4188 - Done
+	SUPERV	S_BASICMERGE	; MERGE $418B - TODO
 	jp	L3ERR		; NAME  $418E
-	SUPERV	S_BASICKILL	; KILL  $4191
-	jp	L3ERR		; &   - $4194 - Done
+	SUPERV	S_BASICKILL	; KILL  $4191 - Done
+	jp	L3ERR		; &   - $4194 - Done - BASIC-AMP.Z
 	jp	L3ERR		; LSET  $4197
 	jp	L3ERR		; RSET  $419A
-	jp	L3ERR		; INSTR $419D - Done
-	SUPERV	S_BASICSAVE	; SAVE  $41A0
-	jp	L3ERR		; LINE  $41A3 - Done
+	jp	L3ERR		; INSTR $419D - Done - BASIC-INSTR.Z
+	SUPERV	S_BASICSAVE	; SAVE  $41A0 - Done
+	jp	L3ERR		; LINE  $41A3 - Done - BASIC-LINE.Z
 ;
 ; ----------------------------------------------------------------------
 ; (41A6-41E2) DOS Exit links
 ; ----------------------------------------------------------------------
 	ORG	$41A6
 ;
-	RET3		; 41A6 - Done - Extended Disk Basic Errors
-	RET3		; 41A9 - Done - USR N extended processing
+	RET3		; 41A6 - Done - BASIC-ERROR.Z - Extended Disk Basic Errors
+	RET3		; 41A9 - Done - BASIC-USR.Z - USR N extended processing
 	jp	READY1  ; 41AC - Command Processor. Just before READY>
 	RET3		; 41AF
 	RET3		; 41B2
 	RET3		; 41B5
 	RET3		; 41B8
-	RET3		; 41BB
+	RET3		; 41BB - Done - BASIC-FILE.Z - NEW routine, close all files
 	RET3		; 41BE
 	RET3		; 41C1
 	RET3		; 41C4
 	jp	RUNCMD	; 41C7 - RUN NNN processing to handle RUN "x.BAS"
-	RET3		; 41CA
+	RET3		; 41CA - Done - BASIC-FILE-PRINT.Z - Beginning of PRINT processing
 	RET3		; 41CD
 	RET3		; 41D0
 	RET3		; 41D3
-	RET3		; 41D6
-	RET3		; 41D9 - Done - MID$() Does exit for extended use
+	RET3		; 41D6 - Done - BASIC-FILE-INPUT.Z - Beginning of INPUT processing
+	RET3		; 41D9 - Done - BASIC-MID.Z - MID$() Does exit for extended use
 	RET3		; 41DC
 	RET3		; 41DF
 	RET3		; 41E2 - SYSTEM command (potentially use this)
