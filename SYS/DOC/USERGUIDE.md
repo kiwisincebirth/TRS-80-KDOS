@@ -283,15 +283,50 @@ an invalid name or missing target), returns a DOS error status.
 
 ### DIR Command
 
-Get a directory listing. Supports Wildcards e.g `DIR *.BAS` Alias supported are `LS`
+### DIR Command
 
-**tbc**
+List files and subdirectories on the storage volume. Alias supported: `LS`.
 
-When viewing the listing
-* The listing just shows the names of the files, no file sizes are shown.
-* Subdirectories are shown with a graphical vertical Bar (|) Prefix
-* The directory listing is paged, and will pause after a page, press ANY Key to continue
-or press **BREAK** to return to the DOS prompt.
+#### Syntax
+
+```text
+DIR
+DIR <PATTERN>
+DIR :<D>
+DIR <PATTERN>:<D>
+DIR /<PATH>[/<PATTERN>]
+DIR ./<PATH>[/<PATTERN>]
+DIR ../<PATH>[/<PATTERN>]
+```
+
+Where
+* PATTERN - Optional filename or wildcard filter (* and ?). Defaults to * (all entries).
+* :D - Optional postfixed logical drive number (1–9), targets the directory mapped via ASSIGN
+* /PATH: Explicit path anchored at the root directory (for example, DIR /SYS or DIR /SYS/*.SYS).
+* ./PATH: Explicit path relative to the current working directory (for example, DIR ./GAMES).
+* ../PATH: Explicit path relative to the parent of the current working directory (for example, DIR ../TEMP).
+* :D Cannot be combined with path prefixes (/, ./, ../).
+
+#### Examples
+
+| Example Command |
+|-----------------|
+| DIR             |
+| DIR *.BAS       |
+| DIR :2          |
+| DIR *.BAS:2     |
+| DIR /SYS        |
+| DIR /SYS/*.SYS  |
+| DIR ./GAMES     |
+| DIR ../GAMES    |
+
+#### Viewing Behavior
+
+* File names only: The listing shows entry names without file sizes.
+* Subdirectories: Subdirectory entries are prefixed with a graphical vertical bar (|).
+* Paged output: Long listings pause after each page—press any key to continue to the next page, or press BREAK to abort and return to the DOS prompt.
+* Invalid combinations: Mixing explicit path prefixes with a logical drive suffix (such as DIR /TEMP:4) or 
+  referencing an unmapped drive (:1–:9) returns a device/parameter error.
 
 ### DI EI Commands
 
