@@ -9,4 +9,4 @@ The design manages bank-switching automatically.
 
 This documentation has moved to the Floppy90 Project
 
-See [Virtual Memeory Design](https://github.com/kiwisincebirth/Floppy90/blob/main/VIRTUAL.md)
+See [Virtual Memory Design](https://github.com/kiwisincebirth/Floppy90/blob/main/VIRTUAL.md)

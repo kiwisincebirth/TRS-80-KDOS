@@ -12,7 +12,10 @@
 ;     NOTE: this code has been formatted with 8 spaces per tab
 ; ----------------------------------------------------------------------
 ;
-; We are compiling the Pico Enhanced ROM File
+; We are compiling the Pico Enhanced SYS0 File, that Runs from
+; fully from Shared Memory. This flag determines if we are running
+; The Paged SYSP or the Overlay driven SYS0
+;
 @D_PICOENHANCED	EQU	1
 ;
 ; Constants

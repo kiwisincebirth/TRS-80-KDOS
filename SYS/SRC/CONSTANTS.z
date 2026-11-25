@@ -111,7 +111,7 @@ DOSPRMPT	EQU	$447F ; holds CMD prompt state dos/basic (OverlayC)
 ; must be consistent with code located at $4480
 ; which is a jump table to these internal routines
 ;
-enh_VER   	EQU	(0*3) + CORE2
+enh_VER   	EQU	(0*3) + CORE2	; Determines if we are running Enhanced Pico API
 ;
 api_OPEN   	EQU	(1*3) + CORE2	; These routines are for the Legacy File
 api_CLOSE 	EQU	(2*3) + CORE2

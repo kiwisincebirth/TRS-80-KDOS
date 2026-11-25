@@ -669,8 +669,9 @@ endif
 ;
 ; ----------------------------------------------------------------------
 ;
-; Signal if we have an Enhanced Version of DOS
-; a  modified by this routine
+; Signal if we have an Enhanced PICO Version of DOS,
+; Noting that @D_PICOENHANCED determines if we booted the Paged Memory OS.
+; A - modified by this routine
 ; Z  - if a standard FreHD with "traditional" firmware
 ; NZ - if an enhanced version with Advanced Pico firmware (A=1)
 enhance_VER:
@@ -680,6 +681,7 @@ ifdef @D_PICOENHANCED
 	ld	a,1		; FLAG TO INDICATE ON ENHANCED
 else
 	; otherwise we default to NO, and let the startup - modify this code
+	; STARTUP.z will detect if running On Pico (even if unpaged), and set this to 1.
 	ld	a,0		; load the A register (SELF MODIFY CODE)
 endif
 	or	a		; 0 -> is set to 1 during INIT if enhanced firmware

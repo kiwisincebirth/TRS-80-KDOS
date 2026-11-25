@@ -34,7 +34,7 @@ import	constants.z
 	xor	a
 	ld	(DIRABORT),a	; cancellation belongs only to this DIR invocation
 	;
-	; test if enhance rom	; todo this should be conditional compile
+	; test if enhance PICO API, or fallback to FreHD API
 	call	enh_VER		; call the Enhanced Pico check
 	jr	nz,NEWDIR	; Enhanced Fre Hd / Advanced Pico handling
 ;
