@@ -137,19 +137,19 @@ copy. Build/Rebuild copies it to `build/SD-CARD/SYS/settings.cfg`.
 
 Below is a summary of the suppoerted DOS commands. 
 
-| Command            | Description                    | Alias        |
-|--------------------|--------------------------------|--------------|
-| ASSIGN {d}:{Path}  | Map virtual drive to directory |              |
-| CD {dirName}       | Set working directory          |              |
-| COPY {file} {dest} | Copy one or more files         | CP           |
+| Command            | Description                    | Alias         |
+|--------------------|--------------------------------|---------------|
+| ASSIGN {d}:{Path}  | Map virtual drive to directory |               |
+| CD {dirName}       | Set working directory          |               |
+| COPY {file} {dest} | Copy one or more files         | CP            |
+| CWD                | Display current directory      | PWD           |
 | DELETE {file}, ... | Delete one or more files       | DEL, KILL, RM |
-| DIR {wildcard}     | display directory contents     | LS           |
-| DI                 | Disable Interrupts / RTC       |              |
-| EI                 | Enable Interrupts / RTC        |              |
-| HELP               | Display a summary of commands  |              |
-| LOAD {filename}    | Load a CMD program             |              |
-| MKDIR {dirname}    | Make a directory               | MD           |
-| PWD                | Display current directory      |              |
+| DIR {wildcard}     | display directory contents     | LS            |
+| DI                 | Disable Interrupts / RTC       |               |
+| EI                 | Enable Interrupts / RTC        |               |
+| HELP               | Display a summary of commands  |               |
+| LOAD {filename}    | Load a CMD program             |               |
+| MKDIR {dirname}    | Make a directory               | MD            |
 | RENAME {f1} {f2}   | rename file or directory       | REN, MOVE, MV |
 
 ### ASSIGN
@@ -238,6 +238,17 @@ Where:
 | Copy All files to directory        | COPY * BACKUP               |
 | Copy Files with extension to dir   | COPY *.* BACKUP             |
 
+### CWD Command
+
+Display the current working directory. PWD is an alias for this command.
+
+#### Syntax
+
+```text
+CWD
+PWD
+```
+
 ### DELETE Command
 
 Deletes one or more files non-interactively (aliases: DEL, KILL, RM).
@@ -280,8 +291,6 @@ files deleted across all tokens (including 0 if no files matched).
 been deleted, displays **N File(s) Deleted, with Error Code.**
 * Immediate failure: If no files are deleted and an error occurs (such as
 an invalid name or missing target), returns a DOS error status.
-
-### DIR Command
 
 ### DIR Command
 
@@ -377,16 +386,6 @@ Create a new directory
 MKDIR {directory}
 ```
 Where:{directory} — The name of he directory to create
-
-### PWD Command
-
-Display the current directory
-
-#### Syntax
-
-```text
-PWD
-```
 
 ### RENAME Command
 

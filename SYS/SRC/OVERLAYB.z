@@ -151,7 +151,7 @@ _LOADER:
 	jp	z,_LOADER2	; Got $FF basic program - so skip down
 	;
 	ld	a,LOAFILFMT$	; load file format error
-	jp	@ERROR		; goto the erro handler
+	jp	@ERROR		; goto the error handler
 	;
 _LOADER2:
 	call	SCRTCH		; basic NEW, initialize system vars

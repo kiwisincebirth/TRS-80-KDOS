@@ -9,14 +9,16 @@ New Features
 * [RS] Sequential BASIC OPEN, CLOSE, PRINT#, INPUT#, LINE INPUT# and EOF, with up to 16 files
 * [RS] DOS file-byte I/O through ROM GET/PUT for open FCBs with one-byte records (paged DOS)
 * [RS] IOCHECK.BAS and SIMPLEIO.BAS hardware tests under SYS/test in the SD-card build
-* [MP] COPY Command with support for wildcards, requires Beta4 firmware
+* [MP] COPY Command with support for wildcards
+* [MP] DIR Command fully supports Paths and Logical Drives 
+* [MP] DEL Command with support for wildcards
+* [MP] REN Command with support for wildcards
 * [MP] Basic KILL "FILE/EXT" Command
 * [MP] @DATE and @TIME DOS API support
 
 Improvements
 * [RS] DIR command supports BREAK to abort
-* [MP] DEL Command updated to support wildcards, requires Beta4 firmware
-* [MP] REN Command updated to support wildcards, requires Beta4 firmware
+* [MP] CWD Command added as an alias to PWD
 * [MP] HELP command, added some missing commands
 * [MP] HELP command, non-paged version now excludes unsupported commands
 * [MP] Error message, when removing a directory that isnt empty
