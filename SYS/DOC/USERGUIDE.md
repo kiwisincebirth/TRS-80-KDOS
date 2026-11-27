@@ -287,11 +287,11 @@ Where:
 
 #### EXAMPLES
 
-| Assign Command                          | Example Command |
-|-----------------------------------------|-----------------|
-| List current assigments                 | ASSIGN          |
-| Map the :1 drive to the /DOCS directory | ASSIGN 1:/DOCS  |
-| Remove the drive :1 mapping             | ASSIGN 1:       |
+| Command        | Description                             |
+|----------------|-----------------------------------------|
+| ASSIGN         | List current assigments                 |
+| ASSIGN 1:/DOCS | Map the :1 drive to the /DOCS directory |
+| ASSIGN 1:      | Remove the drive :1 mapping             |
 
 ### CD Command
 
@@ -307,14 +307,14 @@ Where:
 
 #### Examples
 
-| Type of Copy                    | Example Command  |
-|---------------------------------|------------------|
-| Change to Root Directory        | CD /             |
-| Change to Sub Directory of Root | CD /SUBDIR       |
-| Change to a Sub Directory       | CD SUBDIR        |
-| Change to a Sub Sub Directory   | CD SUBDIR/SUBSUB |
-| Change to Parent Directory      | CD ..            |
-| Change to Relative Directory    | CD ../OTHERDIR   |
+| Command          | Description                     |
+|------------------|---------------------------------|
+| CD /             | Change to Root Directory        |
+| CD /SUBDIR       | Change to Sub Directory of Root |
+| CD SUBDIR        | Change to a Sub Directory       |
+| CD SUBDIR/SUBSUB | Change to a Sub Sub Directory   |
+| CD ..            | Change to Parent Directory      |
+| CD ../OTHERDIR   | Change to Relative Directory    |
 
 ### COPY Command
 
@@ -334,16 +334,16 @@ Where:
 
 #### Examples
 
-| Type of Copy                       | Example Command             |
-|------------------------------------|-----------------------------|
-| Single file copy with rename       | COPY README.TXT README.BAK  |
-| Single file copy into a directory  | COPY DATA.DAT BACKUP        |
-| Single file copy using path prefix | COPY DOCS/NOTES.TXT ARCHIVE |
-| Copy qualified files to directory  | COPY FILE.* BACKUP          |
-|                                    | COPY *.TXT BACKUP           |
-| Copy files changeing the extension | COPY *.DAT *.BAK            |
-| Copy All files to directory        | COPY * BACKUP               |
-| Copy Files with extension to dir   | COPY *.* BACKUP             |
+| Command                     | Description                        |
+|-----------------------------|------------------------------------|
+| COPY README.TXT README.BAK  | Single file copy with rename       |
+| COPY DATA.DAT BACKUP        | Single file copy into a directory  |
+| COPY DOCS/NOTES.TXT ARCHIVE | Single file copy using path prefix |
+| COPY FILE.* BACKUP          | Copy qualified files to directory  |
+| COPY *.TXT BACKUP           |                                    |
+| COPY *.DAT *.BAK            | Copy files changeing the extension |
+| COPY * BACKUP               | Copy All files to directory        |
+| COPY *.* BACKUP             | Copy Files with extension to dir   |
 
 ### CWD Command
 
@@ -390,16 +390,16 @@ containing * wildcards (case-insensitive).
 
 #### Examples
 
-| Type of Delete                       | Example Command                |
-|--------------------------------------|--------------------------------|
-| Single directory delete              | RMDIR SUBDIR                   | 
-| Single file delete                   | DEL TEMP.TXT                   | 
-| Multiple files or directories        | DEL FILE1.BAS FILE2.BAS SUBDIR | 
-| Delete Files with extension          | DEL *.BAK                      | 
-| Delete all files                     | DEL *                          | 
-| Delete all files (with extension)    | DEL *.*                        | 
-| Delete a file in a directory         | DEL TEMP/FILE1.BAS             | 
-| Delete multiple files in a directory | DEL TEMP/*.BAK                 | 
+| Command               | Description                          |
+|-----------------------|--------------------------------------|
+| RMDIR SUBDIR          | Single directory delete              | 
+| DEL TEMP.TXT          | Single file delete                   | 
+| DEL FILE1.BAS SUBDIR  | Multiple files or directories        | 
+| DEL *.BAK             | Delete Files with extension          | 
+| DEL *                 | Delete all files                     | 
+| DEL *.*               | Delete all files (with extension)    | 
+| DEL TEMP/FILE1.BAS    | Delete a file in a directory         | 
+| DEL TEMP/*.BAK        | Delete multiple files in a directory | 
 
 #### Output and Errors
 
@@ -436,16 +436,16 @@ Where
 
 #### Examples
 
-| Example Command |
-|-----------------|
-| DIR             |
-| DIR *.BAS       |
-| DIR :2          |
-| DIR *.BAS:2     |
-| DIR /SYS        |
-| DIR /SYS/*.SYS  |
-| DIR ./GAMES     |
-| DIR ../GAMES    |
+| Command        | Description                                  |
+|----------------|----------------------------------------------|
+| DIR            | List all files in current directory          |
+| DIR *.BAS      | List all BAS files in current directory      |
+| DIR :2         | List all files in logical drive :2           |
+| DIR *.BAS:2    | List all BAS files in logical drive :2       |
+| DIR /SYS       | List all files in /SYS directory             |
+| DIR /SYS/*.SYS | List all SYS files in /SYS directory         |
+| DIR ./GAMES    | List all files in GAMES sub-directory        |
+| DIR ../GAMES   | List all files in GAMES parent sub-directory |
 
 #### Viewing Behavior
 
@@ -516,7 +516,7 @@ are skipped during wildcard renames.
 #### Syntax
 
 ```text
-RENAME {source} {dest}
+REN {source} {dest}
 ```
 
 Where:
@@ -525,14 +525,14 @@ Where:
 
 #### Examples
 
-| Type of Rename / Move       | Example Command               |
-|-----------------------------|-------------------------------|
-| Single file rename          | REN OLDNAME.BAS NEWNAME.BAS   |
-| Directory rename            | REN TEMP WORK                 |
-| Move and Rename a directory | MOVE GAMES /TEMP/GAMES        |
-| Move file to directory      | MOVE FILE1.BAK TEMP/FILE2.BAK |
-| Wildcard extension swap     | REN *.BAK *.OLD               |
-| Wildcard prefix mapping     | REN MYDB.* MYWORK.*           |
+| Command                       | Description                 |
+|-------------------------------|-----------------------------|
+| REN OLDNAME.BAS NEWNAME.BAS   | Single file rename          |
+| REN TEMP WORK                 | Directory rename            |
+| MOVE GAMES /TEMP/GAMES        | Move and Rename a directory |
+| MOVE FILE1.BAK TEMP/FILE2.BAK | Move file to directory      |
+| REN *.BAK *.OLD               | Wildcard extension swap     |
+| REN MYDB.* MYWORK.*           | Wildcard prefix mapping     |
 
 #### Output and Errors
 
