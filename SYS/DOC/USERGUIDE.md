@@ -5,6 +5,15 @@
 kDOS is an operating environment that runs on the Tandy TRS-80 Model 1
 providing a TRS-DOS (DOS) like features to Level 2 BASIC
 
+The DOS runs alongside Level 2 BASIC, rather than supplanting it.
+Typing a DOS command and a BASIC statement are done in the
+same shell.
+
+Programs that run on TRS-DOS "should" run under kDOS so long
+as they use standard DOS API calls. Programs that directly
+access FDC hardware or undocumented (non-standard) API calls will
+probably not function, unless patched.
+
 ### Requirements
 
 To use this project you will require
@@ -96,6 +105,104 @@ BASIC Commands
 
 Programs (CMD Files) can be executed by typing the name of the program. 
 
+## Concepts
+
+### Filesystem
+
+Files are stored and accessed from SD card in a standard FAT filesystem.
+There is no emulation of TRS-80 floppy disk or hard disk drives,
+nor any TRS-DOS (like) file-system.
+
+There are no imposed file size limits, or limits on the number of files 
+that can be stored. Files copied to the SD card by modern computer, are
+directly readable on the TRS-80.
+
+### Filenames
+
+Files names (including directories) should follow the 8.3 naming convention.
+Longer file names will be truncated to 8.3 format. While this is supported
+it is not recommended as the '~' character is not consistently displayed
+or available on the keyboard.
+
+When entering filenames the preference is to use a modern format.
+e.g. FILENAME.EXT , but the traditional format of FILENAME/EXT
+is generally supported within constrains e.g. PATH/FILENAME/EXT
+will be interpreted as PATH/FILENAME.EXT
+
+kDOS has a filename and path sanitiser that supports both modern and
+traditional (TRS-DOS) naming conventions. Traditional filenames in the
+classic `FILENAME/EXT` syntax are translated modern `FILENAME.EXT` format.
+
+The table below shows some more examples of these conversions, and how
+they could be misinterpreted.
+
+| Input Pattern      | Resulting Path    | Resulting Behavior                                 |
+|:-------------------|:------------------|:---------------------------------------------------|
+| `README.TXT`       | `README.TXT`      | Legal no conversion                                |
+| `readme.txt`       | `README.TXT`      | upper case conversion                              |
+| `README.TEXT`      | `README`          | TEXT (4 chars) interpreted as password and dropped |
+| `README/TXT`       | `README.TXT`      | Treated as Traditional Format and converted        |
+| `README/TEXT`      | `README/TEXT`     | TEXT (4 chars) interpreted as part of the path.    |
+| `README/TXT.PAS`   | `README/TXT.PAS`  | PAS is treated as a valid extension                |
+| `README/TXT.PASS`  | `README.TXT`      | PASS (4 chars) interpreted as password and dropped |
+| `README/TEXT.PAS`  | `README/TEXT.PAS` | PAS is treated as a valid extension                |
+| `README/TEXT.PASS` | `README/TEXT`     | PASS (4 chars) interpreted as password and dropped |
+
+### Directories
+
+Directories are fully supported, you can nest directories in a hierarchical
+structure with and arbitrary depth, limited only by 128 character path length.
+
+For a program perspective you will only have access to files in the current directory,
+unless you use a path specification to locate the file.
+
+The following are legal user of directory names
+
+| Input Pattern        | Resulting Behavior                        |
+|:---------------------|:------------------------------------------|
+| `/BASIC/FILE.BAS`    | Absolute path from the root directory     |
+| `SUBDIR/FILE.BAS`    | SubDirectory from the current directory   |
+| `./SUBDIR/FILE.BAS`  | SubDirectory from the current directory   |
+| `../DIR/FILE.BAS`    | Relative Path from the parent directory   |
+| `../../DIR/FILE.BAS` | Relative Path traversing multiple levels  |
+
+Standard commands such as CD, PWD, MKDIR, etc. exist to manipulate directories
+
+#### /SYS Directory
+
+The `/SYS` directory holds the system files, be careful about deleting 
+or replacing these as they used to boot the system
+
+#### /USR Directory
+
+The `/USR` directory is used as a secondary search location for opening a 
+user program of file. It acts like a PATH in MS-DOS, and files will be
+searched for here when cannot be found normally. 
+
+You are free to place any programs of files here that you would commonly 
+use, however by convention these should be READ-ONLY
+
+If you specify a path as part of the filename (e.g. `/PENCIL/OVERLAY1.OVL`) 
+the file will **NOT** be searched in `/USR` 
+
+### Logical Drives
+
+Use the `:D` suffix (1-9) to quickly access different Logical Drives 
+or directories configured on your SD card. e.g.
+
+```text
+> LOAD "MYGAME.BAS:9"
+```
+
+will load the MYGAME basic file from the 9'th logical drive.
+
+However, specifying a path and a logic drive is illegal
+(e.g. `/BASIC/MYGAME.BAS:9`) because there are now 2 mechanisms
+being used to specify the target directory.
+
+The `ASSIGN` command is used to map logical drives, and this mapping
+is persisted during reboots. See the command reference below for more info.
+
 ## DOS Input
 
 ### Input History
@@ -119,19 +226,17 @@ DIR cancellation still works. BASIC input and mid-line editing are unchanged.
 
 ### History Capacity
 
-Add or edit `HistorySize=8` in `/SYS/settings.cfg` on the SD card. Valid values
+Add or edit `HistorySize=8` in `/SYS/SETTINGS.CFG` on the SD card. Valid values
 are 1-20. Missing or invalid settings use 8; larger values are capped at 20.
 kDOS reads this setting once, when you first enter the DOS prompt after boot.
-Reboot to apply a later change. Normal BASIC/kDOS startup does not read it.
+Reboot to apply a later change.
 
 Keys are case-insensitive; spaces around `=` and `#`/`;` comments are allowed.
 If repeated, the last matching assignment wins. Use a text file smaller than
 16 KiB. Read errors, a stuck BUSY response, or an oversized file fall back to
-the default. Hardware options remain in `HARDWARE.cfg`; history no longer reads that file.
-Remove any old `HistorySize` entry there to avoid confusion.
+the default. 
 
-Edit the repository's `SYS/settings.cfg` to change the build's configuration
-copy. Build/Rebuild copies it to `build/SD-CARD/SYS/settings.cfg`.
+Edit the repository's `SYS/SETTINGS.CFG` to change the build's configuration copy. 
 
 ## DOS Commands
 
@@ -139,7 +244,7 @@ Below is a summary of the suppoerted DOS commands.
 
 | Command            | Description                    | Alias         |
 |--------------------|--------------------------------|---------------|
-| ASSIGN {d}:{Path}  | Map virtual drive to directory |               |
+| ASSIGN {d}:{path}  | Map virtual drive to directory |               |
 | CD {dirName}       | Set working directory          |               |
 | COPY {file} {dest} | Copy one or more files         | CP            |
 | CWD                | Display current directory      | PWD           |
@@ -149,7 +254,7 @@ Below is a summary of the suppoerted DOS commands.
 | EI                 | Enable Interrupts / RTC        |               |
 | HELP               | Display a summary of commands  |               |
 | LOAD {filename}    | Load a CMD program             |               |
-| MKDIR {dirname}    | Make a directory               | MD            |
+| MKDIR {path}       | Make a directory               | MD            |
 | RENAME {f1} {f2}   | rename file or directory       | REN, MOVE, MV |
 
 ### ASSIGN
@@ -160,6 +265,8 @@ that reference `:1`–`:9` resolve relative to that mapped directory
 instead of requiring a full path every time.
 
 Drive `:0` remains the default/current directory and cannot be reassigned via `ASSIGN`.
+
+The current assignments are persisted in the file `/SYS/ASSIGN.CFG`
 
 #### Syntax
 
@@ -249,6 +356,14 @@ CWD
 PWD
 ```
 
+#### Example
+
+```text
+:CWD
+/GAMES
+:
+```
+
 ### DELETE Command
 
 Deletes one or more files non-interactively (aliases: DEL, KILL, RM).
@@ -262,10 +377,13 @@ be done on a modern computer.
 To delete a directory you must type its exact name (no wildcards are supported)
 and the directory must be empty before it can be deleted.
 
+Using a wildcard delete such as `DEL *` is non recursive, it only deletes files,
+not directories, or files in sub-directories
+
 #### Syntax
 
 ```text
-DELETE {fileSpec} [,{fileSpec} ...]
+DEL {fileSpec} [,{fileSpec} ...]
 ```
 Where:{fileSpec} — A single filename, a path with a filename, or a pattern
 containing * wildcards (case-insensitive).
@@ -274,8 +392,8 @@ containing * wildcards (case-insensitive).
 
 | Type of Delete                       | Example Command                |
 |--------------------------------------|--------------------------------|
-| Single file delete                   | DELETE TEMP.TXT                | 
-| Single directory delete              | DELETE SUBDIR                  | 
+| Single directory delete              | DEL SUBDIR                     | 
+| Single file delete                   | DEL TEMP.TXT                   | 
 | Multiple files or directories        | DEL FILE1.BAS FILE2.BAS SUBDIR | 
 | Delete Files with extension          | DEL *.BAK                      | 
 | Delete all files                     | DEL *                          | 
@@ -385,7 +503,8 @@ Create a new directory
 ```text
 MKDIR {directory}
 ```
-Where:{directory} — The name of he directory to create
+
+Where:{directory} — The name of the directory to create
 
 ### RENAME Command
 
@@ -440,7 +559,7 @@ The following are supported
 | KILL "filename.EXT"  | Delete a file                   |
 | MERGE "filename.BAS" | Merge a file (todo)             |
 
-Note: Ony Tokenised BAS files are supported. ASCII files will not work.
+Note: Ony Tokenized BAS files are supported. ASCII files will not work.
 
 ## BASIC Statements
 
@@ -463,7 +582,47 @@ the non-disk I/O statements and extensions. The following are supported
 | TIME$               | RTC Current DateTime            |
 | USRn(A)             | Invoke a Call address           |
 
-As well as this BASIC will display the descriptive error messages.
+All of these functions work exactly as do the documented TRS-DOS
+BASIC extensions, please refer to the official documentation,
+or in sections below for more information.
+
+### Descriptive Error Messages
+
+BASIC will display the descriptive error messages.
+
+### CMD - Calling DOS commands.
+
+`CMD` accepts a string expression containing an internal DOS
+command. It works at the BASIC prompt and inside a program. A successful
+command returns to the next BASIC statement; it does not change to the DOS
+prompt or discard BASIC variables.
+
+This API does not implement all historical TRSDOS CMD subcommands.
+
+```basic
+10 CMD "PWD"
+20 CMD "DIR *.BAS"
+30 PRINT "BACK IN BASIC"
+```
+
+The existing internal commands and aliases are available. A command string may
+contain at most 127 characters. For example, `CMD "CD GAMES"` changes the
+current directory for later BASIC and DOS file operations.
+
+Directory paging behaves as it does at the DOS prompt. BREAK at a paused
+listing stops the listing and resumes BASIC without clearing the screen.
+
+Unknown commands and external program names such as `CMD "GALAXY"` produce
+`Illegal function call`. 
+
+The DOS LOAD command such as `CMD "LOAD TEST.CMD"` loads binary records without
+executing the transfer address, then continues BASIC. The binary must target
+memory or banks reserved by your application; loading over BASIC or DOS can
+corrupt the running system. Use BASIC's `LOAD` for BASIC programs.
+
+BASIC translates DOS error numbers into BASIC errors. 
+
+## BASIC Disk I/O
 
 ### Sequential File I/O
 
@@ -517,46 +676,38 @@ open files. Explicitly use `CLOSE` before removing the SD card or powering off.
 See `tests/IOCHECK.txt` for a complete test program and `BUILDING.txt` for
 deployment instructions.
 
-### CMD - Calling DOS commands.
-
-`CMD` accepts a string expression containing an internal DOS
-command. It works at the BASIC prompt and inside a program. A successful
-command returns to the next BASIC statement; it does not change to the DOS
-prompt or discard BASIC variables.
-
-```basic
-10 CMD "PWD"
-20 CMD "DIR *.BAS"
-30 PRINT "BACK IN BASIC"
-```
-
-The existing internal commands and aliases are available: `DIR`/`LS`, `CD`,
-`PWD`, `COPY`/`CP`, `DEL`/`DELETE`/`KILL`/`RM`, `MD`/`MKDIR`,
-`REN`/`RENAME`/`MOVE`/`MV`, `LOAD`, `HELP`, `DI`, and `EI`. A command string may
-contain at most 127 characters. For example, `CMD "CD GAMES"` changes the
-current directory for later BASIC and DOS file operations.
-
-Directory paging behaves as it does at the DOS prompt. BREAK at a paused
-listing stops the listing and resumes BASIC without clearing the screen.
-Unknown commands and external program names such as `CMD "GALAXY"` produce
-`Illegal function call`. `CMD "LOAD TEST.CMD"` loads binary records without
-executing the transfer address, then continues BASIC. The binary must target
-memory or banks reserved by your application; loading over BASIC or DOS can
-corrupt the running system. Use BASIC's `LOAD` for BASIC programs.
-
-BASIC translates DOS error numbers into BASIC errors. This API does not implement
-all historical TRSDOS CMD subcommands.
-
 ## Appendix
 
-### Filenames
+### DOS Error Codes
 
-Files names (including directories) should follow the 8.3 naming convention.
-Longer file names will be truncated to 8.3 format. While this is supported
-it is not recommended as the '~' character is not consistently displayed
-or available on the standard keyboard.
+Error's are aligned to TRS-DOS errors where possible. 
+The following is a list of TRS-DOS alligned errors handled by kDOS
 
-When entering filenames the preference is to use a modern format.
-e.g. FILENAME.EXT , but the tradition format of FILENAME/EXT
-is generally supported within constrains e.g. PATH/FILENAME/EXT
-will be interpreted as PATH/FILENAME.EXT
+| Error Number | Error Message             |
+|--------------|---------------------------|
+| 0            | No Error                  |
+| 15           | Write Protected Disk      |
+| 16           | Illegal File Number       |
+| 19           | Illegal Filename          |
+| 24           | File Not Found            |
+| 28           | End of File Encountered   |
+| 31           | Program Not Found         |
+| 32           | Illegal Drive Number      |
+| 34           | Load File Format Error    |
+
+The following errors have been introduced by kDOS
+
+| Error Number | Error Message             | TRS-DOS                                         |
+|--------------|---------------------------|-------------------------------------------------|
+| 56           | Too Many Files Open       | Exceeds maximum of 16 files                     |
+| 57           | Denied, File Already Open | Try to open a File that is already open         |
+| 58           | Denied, Dir Not Empty     | Try to delete a directory that is not empty     |
+| 59           | File Exists               | Try to rename to, or overwrite an existing file |
+| 60           | Path Not Found            | Path Not Found                                  |
+| 61           | Illegal DOS Function      | A DOS feature or function that is not available |
+| 62           | Internal DOS Error        | Exceptional Error that shouldn't occur.         |
+| 63           | Unknown Error             | Unknown Error                                   |
+
+## References
+
+TRS-DOS & Disk Basic Reference v2.3

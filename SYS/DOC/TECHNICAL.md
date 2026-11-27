@@ -34,39 +34,6 @@
 | SYS0.SYS   | SYSP Starts at $5400    | <-                     | SYS0 Starts at $5400        |
 | Overlays   | -included in SYSP-      | <-                     | Loads /SYS/SYS(A-Z).SYS     |
 
-## Enhanced Filename & Path Handling
-
-The DOS features a filename and path sanitiser that allows the TRS-80 to interact with a modern SD card.
-This system supports both legacy TRS-DOS naming conventions and modern hierarchical FAT subdirectories.
-
-### Core Features
-* **Legacy Support:** Automatically translates the classic `FILENAME/EXT` syntax into modern `FILENAME.EXT` format.
-* **Modern Pathing:** Supports standard FAT subdirectories (e.g., `GAMES/ACTION/ZAXON`).
-* **Automatic Sanitization:** All filenames are automatically converted to uppercase and stripped of non-compatible characters.
-* **Drive Mapping:** Use the `:D` suffix (0-9) to quickly access different "Mount Points" or directories configured on your SD card.
-* **Password Stripping:** Automatically ignores the `.PASSWORD` suffix used in some legacy software, ensuring compatibility without manual file renaming.
-
-### Some Examples
-
-| Input Pattern       | Logic Applied        | Resulting Behavior                                          |
-|:--------------------|:---------------------|:------------------------------------------------------------|
-| `name.bas`          | **Case Insensitive** | File names are converted to uppercase e.g. `NAME.BAS`       |
-| `NAME/BAS`          | **Legacy Ext**       | Single slash with 1-3 chars are converted `NAME.BAS`        |
-| `/SYS/SYS0.SYS`     | **Absolute Path**    | Direct path from SD root.                                   |
-| `../DIR/FILE.BAS`   | **Relative Path**    | Leading dots are preserved; slashes treated as directories. |
-| `EDIT/ASM/CMD`      | **Hybrid File**      | Handles the Path and legacy extension `EDIT/ASM.CMD`        |
-| `FILE.TXT:1`        | **Drive Map**        | `:1` is extracted as Drive ID 1 and removed from path.      |
-| `F.PASS` (4+ chars) | **Password**         | Treated as legacy password; string is truncated.            |
-| `F.PAS` (1-3 chars) | **Modern Ext**       | Treated as valid modern extension; extension is preserved.  |
-
-### Filenames
-
-The following inputs all result in the same FAT filename CONFIG.SYS:
-* CONFIG.SYS (Modern FAT style)
-* config.sys (User typing in lowercase)
-* CONFIG/SYS (Legacy TRS-DOS style)
-* CONFIG/SYS.PASSWORD (Legacy with password ignored)
-
 ## DOS Memory Map
 
 The high level Memory map
@@ -198,22 +165,47 @@ file API; they do not add FreHD support. The DOS byte driver also accepts
 machine-code callers with their own FCB and buffer; currently it requires
 LRL=1. Buffered byte access for other record lengths is future work.
 
-## DOS Error Codes 
 
-| Error Number | Error Message           | TRS-DOS |
-|--------------|-------------------------|---------|
-| 0            | No Error                | Yes     |
-| 15           | Write Protected Disk    | Yes     |
-| 16           | Illegal File Number     | Yes     |
-| 19           | Illegal Filename        | Yes     |
-| 24           | File Not Found          | Yes     |
-| 28           | End of File Encountered | Yes     |
-| 31           | Program Not Found       | Yes     |
-| 32           | Illegal Drive Number    | Yes     |
-| 34           | Load File Format Error  | Yes     |
-| 58           | Denied, Not Empty       |         |
-| 59           | File Exists             |         |
-| 60           | Path Not Found          |         |
-| 61           | Illegal DOS Function    |         |
-| 62           | Internal DOS Error      |         |
-| 63           | Unknown Error           |         |
+
+### Detection of /USR secondary directory during Open
+
+#### Discussion 
+
+Calling API Open, when loading an DOS Overlay
+ld c,FA_OPEN_EXIST|FA_READ
+
+loading a BASIC program
+ld c,FA_OPEN_EXIST|FA_READ
+
+Saving a BASIC Program
+ld c,FA_CREATE_ALWAYS|FA_WRITE
+
+Loading a User Binary File CMD into RAM
+ld c,FA_OPEN_EXIST|FA_READ
+
+Default to Open Existing file @OPEN
+ld a,FA_OPEN_EXIST|FA_RW ; 
+
+Open Existing or Create a new @INIT
+ld a,FA_OPEN_ALWAYS|FA_RW ; 
+
+Should perform secondary /USR lookup
+* Loading a User Binary File CMD into RAM => ld c,FA_OPEN_EXIST|FA_READ
+* @OPEN DOS Application API - Typically used for Loading => ld a,FA_OPEN_EXIST|FA_RW 
+
+Will be Excluded because filename will ALWAYS contain explicit SLASH
+* Calling API Open, when loading an /SYS/Overlay.SYS file => ld c,FA_OPEN_EXIST|FA_READ () -
+
+NO Secondary ( /USR) should be appended
+* loading a BASIC program => ld c,FA_OPEN_EXIST|FA_READ
+* Saving a BASIC Program => ld c,FA_CREATE_ALWAYS|FA_WRITE
+* @INIT DOS Application API - Typically used for Saving => ld a,FA_OPEN_ALWAYS|FA_RW
+
+So the division is not clear easily definable the Code at a minimum 
+should check for FA_OPEN_EXIST - before applying the Secondary /USR path. 
+This only leaves the Loading a Basic Program which will find it in secondary. 
+which is a bit of an edge case
+* LOAD "PROG.BAS" - loads from /USR
+* SAVE "PROG.BAS" will save in current directory
+
+Its an edge case, but acceptable. But think code needs updating for FA_OPEN_EXIST.
