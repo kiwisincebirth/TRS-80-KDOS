@@ -1,4 +1,4 @@
-# User Guide
+# kDOS - User Guide
 
 ## Introduction
 
@@ -242,20 +242,20 @@ Edit the repository's `SYS/SETTINGS.CFG` to change the build's configuration cop
 
 Below is a summary of the suppoerted DOS commands. 
 
-| Command            | Description                    | Alias         |
-|--------------------|--------------------------------|---------------|
-| ASSIGN {d}:{path}  | Map virtual drive to directory |               |
-| CD {dirName}       | Set working directory          |               |
-| COPY {file} {dest} | Copy one or more files         | CP            |
-| CWD                | Display current directory      | PWD           |
-| DELETE {file}, ... | Delete one or more files       | DEL, KILL, RM |
-| DIR {wildcard}     | display directory contents     | LS            |
-| DI                 | Disable Interrupts / RTC       |               |
-| EI                 | Enable Interrupts / RTC        |               |
-| HELP               | Display a summary of commands  |               |
-| LOAD {filename}    | Load a CMD program             |               |
-| MKDIR {path}       | Make a directory               | MD            |
-| RENAME {f1} {f2}   | rename file or directory       | REN, MOVE, MV |
+| Command            | Description                    | Alias                |
+|--------------------|--------------------------------|----------------------|
+| ASSIGN {d}:{path}  | Map virtual drive to directory |                      |
+| CD {dirName}       | Set working directory          |                      |
+| COPY {file} {dest} | Copy one or more files         | CP                   |
+| CWD                | Display current directory      | PWD                  |
+| DELETE {file}, ... | Delete one or more files       | DEL, KILL, RM, RMDIR |
+| DIR {wildcard}     | display directory contents     | LS                   |
+| DI                 | Disable Interrupts / RTC       |                      |
+| EI                 | Enable Interrupts / RTC        |                      |
+| HELP               | Display a summary of commands  |                      |
+| LOAD {filename}    | Load a CMD program             |                      |
+| MKDIR {path}       | Make a directory               | MD                   |
+| RENAME {f1} {f2}   | rename file or directory       | REN, MOVE, MV        |
 
 ### ASSIGN
 
@@ -366,7 +366,7 @@ PWD
 
 ### DELETE Command
 
-Deletes one or more files non-interactively (aliases: DEL, KILL, RM).
+Deletes one or more files non-interactively (aliases: DEL, KILL, RM, RMDIR).
 Multiple space-separated filenames or wildcard patterns may be supplied in a
 single command. 
 
@@ -392,7 +392,7 @@ containing * wildcards (case-insensitive).
 
 | Type of Delete                       | Example Command                |
 |--------------------------------------|--------------------------------|
-| Single directory delete              | DEL SUBDIR                     | 
+| Single directory delete              | RMDIR SUBDIR                   | 
 | Single file delete                   | DEL TEMP.TXT                   | 
 | Multiple files or directories        | DEL FILE1.BAS FILE2.BAS SUBDIR | 
 | Delete Files with extension          | DEL *.BAK                      | 

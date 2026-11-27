@@ -292,6 +292,9 @@ LOOKUPTAB
 	DB	'RM',0
 	SUPERV	S_DELCMD
 	;
+	DB	'RMDIR',0
+	SUPERV	S_DELCMD
+	;
 	; table terminator
 	DB	0
 ;

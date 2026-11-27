@@ -20,7 +20,9 @@ New Features
 
 Improvements
 * [RS] DIR command supports BREAK to abort
+* [MP] Vastly improved User Guide
 * [MP] CWD Command added as an alias to PWD
+* [MP] RMDIR Command added as an alias to DELETE
 * [MP] HELP command, added some missing commands
 * [MP] HELP command, non-paged version now excludes unsupported commands
 * [MP] Error message, when removing a directory that isnt empty
