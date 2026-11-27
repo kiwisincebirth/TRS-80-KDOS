@@ -27,9 +27,9 @@ Format the SD card using FAT32
 
 Copy the files provided to the SD card, ensuring that the /SYS folder is created
 
-If necessary change EnableHighRAM in `HARDWARE.cfg` if running on 16KB machine.
+If necessary change EnableHighRAM in `HARDWARE.CFG` if running on 16KB machine.
 
-Copy any other files you like utilising any directory structure you like.
+Copy any other files you want, to any directory structure you like.
 Ensure you name files accounting to 8.3 file naming. Longer file names are
 truncated to 8.3 but this is not recommended
 
@@ -245,6 +245,7 @@ Below is a summary of the suppoerted DOS commands.
 | Command            | Description                    | Alias                |
 |--------------------|--------------------------------|----------------------|
 | ASSIGN {d}:{path}  | Map virtual drive to directory |                      |
+| AUTO               | Process a command at bootup    |                      |
 | CD {dirName}       | Set working directory          |                      |
 | COPY {file} {dest} | Copy one or more files         | CP                   |
 | CWD                | Display current directory      | PWD                  |
@@ -253,6 +254,7 @@ Below is a summary of the suppoerted DOS commands.
 | DI                 | Disable Interrupts / RTC       |                      |
 | EI                 | Enable Interrupts / RTC        |                      |
 | HELP               | Display a summary of commands  |                      |
+| LIST {filename}    | List File (text) to the screen | TYPE                 |
 | LOAD {filename}    | Load a CMD program             |                      |
 | MKDIR {path}       | Make a directory               | MD                   |
 | RENAME {f1} {f2}   | rename file or directory       | REN, MOVE, MV        |
@@ -292,6 +294,12 @@ Where:
 | ASSIGN         | List current assigments                 |
 | ASSIGN 1:/DOCS | Map the :1 drive to the /DOCS directory |
 | ASSIGN 1:      | Remove the drive :1 mapping             |
+
+### AUTO Command
+
+This command is not yet implemented.
+
+Command is saved in `/SYS/AUTO.CFG`
 
 ### CD Command
 
@@ -480,6 +488,12 @@ Displays a brief summary of available commands
 ```text
 HELP
 ```
+
+### LIST Command
+
+List File (text) to the screen
+
+This command is not yet implemented.
 
 ### LOAD Command
 
