@@ -124,13 +124,14 @@ _ENHANCED
 lookupt:
 	; common errors (not all) are here
 	defb	DEVNOTAVA$ , "Device Not Available"	,ETX	; 08
+	defb	DISKIOERR$ , "Disk IO Error"		,ETX	; 14 (Formally Write Fault)
 	defb	WRITEPROT$ , "Write Protected Disk"	,ETX	; 15
 	defb	ILLLOGFIL$ , "Illegal File Number"	,ETX	; 16
 	defb	ILLFILNAM$ , "Illegal Filename"		,ETX	; 19
 	defb	FILNOTFND$ , "File Not Found"		,ETX	; 24
-;	defb	ACCESSDEN$ , "Access Denied"		,ETX	; 25
+	defb	ACCESSDEN$ , "Access Denied"		,ETX	; 25
 ;	defb	DIRSPCFUL$ , "Directory Space Full"	,ETX	; 26
-;	defb	DSCSPCFUL$ , "Disk Space Full"		,ETX	; 27
+	defb	DSCSPCFUL$ , "Disk Space Full"		,ETX	; 27
 	defb	ENDOFFILE$ , "End of File Encountered"	,ETX	; 28
 	defb	PRGNOTFND$ , "Program Not Found"	,ETX	; 31
 	defb	ILLDRINUM$ , "Illegal Drive Number"	,ETX	; 32

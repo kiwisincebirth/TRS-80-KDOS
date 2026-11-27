@@ -342,16 +342,21 @@ Where:
 
 #### Examples
 
-| Command                     | Description                        |
-|-----------------------------|------------------------------------|
-| COPY README.TXT README.BAK  | Single file copy with rename       |
-| COPY DATA.DAT BACKUP        | Single file copy into a directory  |
-| COPY DOCS/NOTES.TXT ARCHIVE | Single file copy using path prefix |
-| COPY FILE.* BACKUP          | Copy qualified files to directory  |
-| COPY *.TXT BACKUP           |                                    |
-| COPY *.DAT *.BAK            | Copy files changeing the extension |
-| COPY * BACKUP               | Copy All files to directory        |
-| COPY *.* BACKUP             | Copy Files with extension to dir   |
+| Command                     | Description                                    |
+|-----------------------------|------------------------------------------------|
+| COPY README.TXT README.BAK  | Single file copy with rename                   |
+| COPY DATA.DAT BACKUP        | Single file copy into a directory              |
+| COPY DOCS/NOTES.TXT ARCHIVE | Single file copy using path prefix             |
+| COPY FILE.* BACKUP          | Copy qualified files to directory              |
+| COPY *.TXT BACKUP           |                                                |
+| COPY *.DAT *.BAK            | Copy files changing the extension              |
+| COPY * BACKUP               | Copy All files to directory                    |
+| COPY *.* BACKUP             | Copy Files with extension to dir               |
+| COPY README.TXT:2 BACKUP    | Copy file from drive :2 mapped directory       |
+| COPY DATA.DAT NEWNAME.DAT:3 | Copy file to drive :3 mapped directory renamed |
+| COPY *.TXT:2 BACKUP         | Copy matching files from drive :2 to directory |
+| COPY *.DAT:2 *.BAK:3        | Copy files from drive :2 to :3 changing ext    |
+| COPY *:2 BACKUP             | Copy all files from drive :2 to directory      |
 
 ### CWD Command
 
@@ -398,16 +403,20 @@ containing * wildcards (case-insensitive).
 
 #### Examples
 
-| Command               | Description                          |
-|-----------------------|--------------------------------------|
-| RMDIR SUBDIR          | Single directory delete              | 
-| DEL TEMP.TXT          | Single file delete                   | 
-| DEL FILE1.BAS SUBDIR  | Multiple files or directories        | 
-| DEL *.BAK             | Delete Files with extension          | 
-| DEL *                 | Delete all files                     | 
-| DEL *.*               | Delete all files (with extension)    | 
-| DEL TEMP/FILE1.BAS    | Delete a file in a directory         | 
-| DEL TEMP/*.BAK        | Delete multiple files in a directory | 
+| Command                 | Description                                    |
+|-------------------------|------------------------------------------------|
+| RMDIR SUBDIR            | Single directory delete                        | 
+| DEL TEMP.TXT            | Single file delete                             | 
+| DEL FILE1.BAS SUBDIR    | Multiple files or directories                  | 
+| DEL *.BAK               | Delete Files with extension                    | 
+| DEL *                   | Delete all files                               | 
+| DEL *.*                 | Delete all files (with extension)              | 
+| DEL TEMP/FILE1.BAS      | Delete a file in a directory                   | 
+| DEL TEMP/*.BAK          | Delete multiple files in a directory           | 
+| DEL TEMP.TXT:2          | Delete single file from drive :2 mapped dir    |
+| DEL *.BAK:2             | Delete matching files from drive :2 mapped dir |
+| DEL *:3                 | Delete all files in drive :3 mapped dir        |
+| DEL FILE1.BAS:2 *.TMP:3 | Delete items across :2 and :3 mapped dirs      |
 
 #### Output and Errors
 
@@ -697,17 +706,20 @@ deployment instructions.
 Error's are aligned to TRS-DOS errors where possible. 
 The following is a list of TRS-DOS alligned errors handled by kDOS
 
-| Error Number | Error Message             |
-|--------------|---------------------------|
-| 0            | No Error                  |
-| 15           | Write Protected Disk      |
-| 16           | Illegal File Number       |
-| 19           | Illegal Filename          |
-| 24           | File Not Found            |
-| 28           | End of File Encountered   |
-| 31           | Program Not Found         |
-| 32           | Illegal Drive Number      |
-| 34           | Load File Format Error    |
+| Error Number | Error Message           |
+|--------------|-------------------------|
+| 0            | No Error                |
+| 14           | Disk IO Error           |
+| 15           | Write Protected Disk    |
+| 16           | Illegal File Number     |
+| 19           | Illegal Filename        |
+| 24           | File Not Found          |
+| 25           | Access Denied           |
+| 27           | Disk Space Full         |
+| 28           | End of File Encountered |
+| 31           | Program Not Found       |
+| 32           | Illegal Drive Number    |
+| 34           | Load File Format Error  |
 
 The following errors have been introduced by kDOS
 

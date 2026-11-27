@@ -268,6 +268,7 @@ BERR_DISK_END	EQU	BERR_ACCESS+2 ; exclusive upper bound
 ; DOS ERROR CODES
 ; ----------------------------------------------------------------------
 DEVNOTAVA$	EQU	08	; Device Not Available
+DISKIOERR$	EQU	14	; Disk IO Error (Formally Write Fault)
 WRITEPROT$	EQU	15	; Write Protected Disk
 ILLLOGFIL$	EQU	16	; Illegal Logical File Number
 ILLFILNAM$	EQU	19	; Illegal Filename
@@ -279,7 +280,7 @@ ENDOFFILE$	EQU	28	; End of File Encountered
 PRGNOTFND$	EQU	31	; Program not found
 ILLDRINUM$	EQU	32	; Illegal Drive Number
 LOAFILFMT$	EQU	34 	; Load file format error
-FILNOTOPN$	EQU	38	; File Not Open
+;FILNOTOPN$	EQU	38	; File Not Open
 ;
 ; Error Codes 39-62 are Undefined By TrsDOS
 ; but valid for the TRS-80
