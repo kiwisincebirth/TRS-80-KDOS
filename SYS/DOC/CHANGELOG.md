@@ -9,12 +9,12 @@ New Features
 * [RS] Sequential BASIC OPEN, CLOSE, PRINT#, INPUT#, LINE INPUT# and EOF, with up to 16 files
 * [RS] DOS file-byte I/O through ROM GET/PUT for open FCBs with one-byte records (paged DOS)
 * [RS] IOCHECK.BAS and SIMPLEIO.BAS hardware tests under SYS/test in the SD-card build
-* [MP] Added "/USR" directory for comon files (poor mans PATH)
+* [MP] Added "/USR" directory for common files (poor man's PATH)
 * [MP] ASSIGN command to map Logical Drives :1 thru :9
-* [MP] COPY command with support for wildcards
-* [MP] DIR command fully supports Paths and Logical Drives 
-* [MP] DEL command with support for wildcards
-* [MP] REN command with support for wildcards
+* [MP] COPY command with supports Paths, Logical Drives and Wildcards
+* [MP] DIR command fully supports Paths, Logical Drives and Wildcards 
+* [MP] DEL command with supports Paths, Logical Drives and Wildcards
+* [MP] REN command with support for Paths, and Wildcards
 * [MP] Basic KILL "FILE/EXT" command
 * [MP] @DATE and @TIME DOS API support
 
