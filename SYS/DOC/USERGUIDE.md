@@ -148,6 +148,35 @@ they could be misinterpreted.
 | `README/TEXT.PAS`  | `README/TEXT.PAS` | PAS is treated as a valid extension                |
 | `README/TEXT.PASS` | `README/TEXT`     | PASS (4 chars) interpreted as password and dropped |
 
+### Wildcards
+
+Wildcard patterns can be used in filename arguments to match multiple entries at once.
+* `*` (Asterisk) : Matches zero or more characters in any position within a name or extension. 
+* `*` (Lone Asterisk) : A lone `*` matches all entries, whether or not they have an extension.
+* `?` (Question Mark) : Matches any single character in that position.
+* `.` (Full Stop) : A literal match on `.` Separates the filename from its extension.
+* `.` (Trailing Full Stop): A pattern ending in a dot with nothing after it 
+  matches only names that have no extension, ignores names that have an extension.
+
+When a destination uses wildcards, the matching parts are filled in from the source 
+filename, keeping the original extension if the destination doesn't specify one, 
+or using the new extension if it does.
+
+The table below gives example of a Wildcard "Pattern", and if each file would be included
+
+| Pattern    | HELLO1.BAS | HELLO2 | ZEBRA.BAS | ZEBRA | Behavior / Notes                                           |
+|------------|------------|--------|-----------|-------|------------------------------------------------------------|
+| *          | Yes        | Yes    | Yes       | Yes   | Matches any name regardless of extension                   |
+| *.         | No         | Yes    | No        | Yes   | Matches files without an extension (no `.` in name)        |
+| *.*        | Yes        | No     | Yes       | No    | Matches files with an extension (`.` in the name)          |
+| *.BAS      | Yes        | No     | Yes       | No    | Matches `.BAS` extension only                              |
+| H*.BAS     | Yes        | No     | No        | No    | Prefix match `H` with `.BAS` extension                     |
+| HELLO?.BAS | Yes        | No     | No        | No    | Prefix match `HELLO` + one character with `.BAS` extension |
+| HELLO?     | No         | Yes    | No        | No    | Prefix match `HELLO` + one character regardless of ext     |
+| HELLO*     | Yes        | Yes    | No        | No    | Prefix match `HELLO` regardless of extension               |
+| H*.*       | Yes        | No     | No        | No    | Prefix match `H` with an extension (requires a dot)        |
+| H*.        | No         | Yes    | No        | No    | Prefix match `H` without extension                         |
+| H*         | Yes        | Yes    | No        | No    | Prefix match `H` regardless of extension                   |
 ### Directories
 
 Directories are fully supported, you can nest directories in a hierarchical
