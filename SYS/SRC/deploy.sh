@@ -93,7 +93,7 @@ cp zout/overlayo.cim /Volumes/KDOS/SYS/overlayo.sys
 cp zout/overlayt.cim /Volumes/KDOS/SYS/overlayt.sys
 cp zout/keyboard.cmd /Volumes/KDOS/SYS/KEYBOARD.CMD
 cp ../DOC/*.md /Volumes/KDOS/SYS/DOC
-cp ../TEST/*.BAS /Volumes/KDOS/SYS/DOC
+cp ../TEST/*.BAS /Volumes/KDOS/SYS/TEST
 
 echo Unmounting KDOS
 
