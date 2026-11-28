@@ -50,9 +50,10 @@ _DOCMD1:
 				; Wait happens latter, or not at all
 	;
 	; determine if need to send command arguments
-	ld	a,c		; the original super ID passed if
-	cp	$C0		; Commands >= $C0 dont have parameters
-	jr	nc,_read_result ; so skip arguments
+; SKIP this check _STR_LEN >=1, so always send terminator byte
+;	ld	a,c		; the original super ID passed if
+;	cp	$C0		; Commands >= $C0 dont have parameters
+;	jr	nc,_read_result ; so skip arguments
 	;
 	; get length of argument string
 	EX	DE, HL		; DE -> pointer to cmd buffer
@@ -64,7 +65,7 @@ _DOCMD1:
 	;
 	; send the arguments
 	EX	DE, HL		; string pointer back into HL
-	ld	c,APIDATA		; data port
+	ld	c,APIDATA	; data port
 	otir			; write bytes from (HL) cmd buffer
 	;
 _read_result

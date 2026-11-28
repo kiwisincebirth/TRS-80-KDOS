@@ -222,8 +222,9 @@ S_CDCMD		EQU	'O' - SUP_OFF + $20	; #CD command
 S_COPYCMD	EQU	'O' - SUP_OFF + $40	; #COPY #CP command
 S_DELCMD	EQU	'O' - SUP_OFF + $60	; #DEL #DELETE #KILL #RM command
 S_MDCMD		EQU	'O' - SUP_OFF + $80	; #MKDIR command
-S_RENCMD	EQU	'O' - SUP_OFF + $A0	; #REN #RENAME #MV #MOVE command
+S_RENCMD	EQU	'O' - SUP_OFF + $A0	; #REN #RENAME command
 S_PWDCMD	EQU	'O' - SUP_OFF + $C0	; #PWD (NO ARGS) command
+S_MOVCMD	EQU	'O' - SUP_OFF + $E0	; #MV #MOVE command
 ;
 S_TIME		EQU	'T' - SUP_OFF + $20	; (446D) @TIME
 S_DATE		EQU	'T' - SUP_OFF + $40	; (4470) @DATE
