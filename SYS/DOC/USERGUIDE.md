@@ -257,7 +257,8 @@ Below is a summary of the suppoerted DOS commands.
 | LIST {filename}    | List File (text) to the screen | TYPE                 |
 | LOAD {filename}    | Load a CMD program             |                      |
 | MKDIR {path}       | Make a directory               | MD                   |
-| RENAME {f1} {f2}   | rename file or directory       | REN, MOVE, MV        |
+| MOVE {f1} {f2}     | Move a file or directory       | MV                   |
+| RENAME {f1} {f2}   | Rename a file or directory     | REN                  |
 
 ### ASSIGN
 
@@ -529,11 +530,50 @@ MKDIR {directory}
 
 Where:{directory} — The name of the directory to create
 
+### MOVE Command
+
+Moves a single file or directory, or batch-moves matching files 
+using wildcards (aliases: `MV`).
+Wildcard matching applies to files only; subdirectories, hidden/system files,
+are skipped during wildcard moves.
+
+#### Syntax
+
+```text
+MOVE {source} {dest}
+```
+
+Where:
+- {source} — A single file or directory name, a path, or a file wildcard pattern containing * (case-insensitive).
+- {dest} — A new name, a target directory path, or a wildcard pattern such as *.OLD or MYWORK.*.
+
+#### Examples
+
+| Command                          | Description                             |
+|----------------------------------|-----------------------------------------|
+| MOVE GAMES /TEMP/GAMES           | Move and Rename a directory             |
+| MOVE FILE1.BAK TEMP/FILE2.BAK    | Move file to directory                  |
+| MOVE OLDNAME.BAS NEWNAME.BAS:3   | Cross-drive move from CWD to :3         |
+| MOVE OLDNAME.BAS:2 NEWNAME.BAS:3 | Cross-drive move from :2 to :3          |
+| MOVE *.BAK *.OLD:3               | Wildcard Move and Rename from CWD to :3 |
+| MOVE *.BAK:2 *.OLD:3             | Wildcard Move and Rename from :2 to :3  |
+| MOVE FILE1.BAK:2 TEMP/FILE2.BAK  | Move file from :2 to TEMP directory     |
+
+#### Output and Errors
+
+* **Completed:** Displays `N File(s) Moved.` where `N` is the number of items
+  moved (including `0` if no wildcard entries matched).
+* **Partial Move:** If an error occurs after one or more items have already
+  been moved, displays `N File(s) Moved, with Error <CODE>`.
+* **Immediate Failure:** If no items are moved and an error occurs
+  (such as an invalid name, missing source, or target conflict),
+  returns a DOS error status.
+
 ### RENAME Command
 
-Renames a single file or directory, moves an item to another directory, 
-or batch-renames matching files using wildcards (aliases: `REN` `MOVE`, `MV`). 
-Wildcard matching applies to files only; subdirectories, hidden/system files, 
+Renames a single file or directory, or batch renames matching files
+using wildcards (aliases: `REN`).
+Wildcard matching applies to files only; subdirectories, hidden/system files,
 are skipped during wildcard renames.
 
 #### Syntax
@@ -544,7 +584,7 @@ REN {source} {dest}
 
 Where:
 - {source} — A single file or directory name, a path, or a file wildcard pattern containing * (case-insensitive).
-- {dest} — A new name, a target directory path, or a wildcard pattern such as *.OLD or MYWORK.*.
+- {dest} — A new name, or a wildcard pattern such as *.OLD or MYWORK.*.
 
 #### Examples
 
@@ -552,18 +592,18 @@ Where:
 |-------------------------------|-----------------------------|
 | REN OLDNAME.BAS NEWNAME.BAS   | Single file rename          |
 | REN TEMP WORK                 | Directory rename            |
-| MOVE GAMES /TEMP/GAMES        | Move and Rename a directory |
-| MOVE FILE1.BAK TEMP/FILE2.BAK | Move file to directory      |
 | REN *.BAK *.OLD               | Wildcard extension swap     |
 | REN MYDB.* MYWORK.*           | Wildcard prefix mapping     |
+| REN OLDNAME.BAS:2 NEWNAME.BAS | In-place rename on drive :2 |
+| REN *.BAK:2 *.OLD             | Wildcard Rename             |
 
 #### Output and Errors
 
 * **Completed:** Displays `N File(s) Renamed.` where `N` is the number of items 
 renamed (including `0` if no wildcard entries matched).
-* **Partial rename:** If an error occurs after one or more items have already 
+* **Partial Rename:** If an error occurs after one or more items have already 
 been renamed, displays `N File(s) Renamed, with Error <CODE>`.
-* **Immediate failure:** If no items are renamed and an error occurs 
+* **Immediate Failure:** If no items are renamed and an error occurs 
 (such as an invalid name, missing source, or target conflict), 
 returns a DOS error status.
 

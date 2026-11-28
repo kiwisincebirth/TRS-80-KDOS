@@ -14,7 +14,8 @@ New Features
 * [MP] COPY command with supports Paths, Logical Drives and Wildcards
 * [MP] DIR command fully supports Paths, Logical Drives and Wildcards 
 * [MP] DEL command with supports Paths, Logical Drives and Wildcards
-* [MP] REN command with support for Paths, and Wildcards
+* [MP] REN command with support for Paths, Logical Drives and Wildcards
+* [MP] MOVE command with support for Paths, Logical Drives and Wildcards
 * [MP] Basic KILL "FILE/EXT" command
 * [MP] @DATE and @TIME DOS API support
 
