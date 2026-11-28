@@ -534,8 +534,7 @@ Where:{directory} — The name of the directory to create
 
 Moves a single file or directory, or batch-moves matching files 
 using wildcards (aliases: `MV`).
-Wildcard matching applies to files only; subdirectories, hidden/system files,
-are skipped during wildcard moves.
+Wildcard matching applies to files only; subdirectories and hidden/system files are skipped.
 
 #### Syntax
 
@@ -547,17 +546,21 @@ Where:
 - {source} — A single file or directory name, a path, or a file wildcard pattern containing * (case-insensitive).
 - {dest} — A new name, a target directory path, or a wildcard pattern such as *.OLD or MYWORK.*.
 
+Note: The use of logical drive numbers (:1-:9) on {source} and {dest}
+is resolved independently of one another. 
+Unlike RENAME, {source} and {dest} do not inherit each other's directory.
+
 #### Examples
 
-| Command                          | Description                             |
-|----------------------------------|-----------------------------------------|
-| MOVE GAMES /TEMP/GAMES           | Move and Rename a directory             |
-| MOVE FILE1.BAK TEMP/FILE2.BAK    | Move file to directory                  |
-| MOVE OLDNAME.BAS NEWNAME.BAS:3   | Cross-drive move from CWD to :3         |
-| MOVE OLDNAME.BAS:2 NEWNAME.BAS:3 | Cross-drive move from :2 to :3          |
-| MOVE *.BAK *.OLD:3               | Wildcard Move and Rename from CWD to :3 |
-| MOVE *.BAK:2 *.OLD:3             | Wildcard Move and Rename from :2 to :3  |
-| MOVE FILE1.BAK:2 TEMP/FILE2.BAK  | Move file from :2 to TEMP directory     |
+| Command                          | Description                                    |
+|----------------------------------|------------------------------------------------|
+| MOVE GAMES /TEMP/GAMES           | Move and Rename a directory                    |
+| MOVE FILE1.BAK TEMP/FILE2.BAK    | Move file to directory                         |
+| MOVE OLDNAME.BAS NEWNAME.BAS:3   | Cross-drive move from CWD to :3                |
+| MOVE OLDNAME.BAS:2 NEWNAME.BAS:3 | Cross-drive move from :2 to :3                 |
+| MOVE *.BAK *.OLD:3               | Wildcard Move and Rename from CWD to :3        |
+| MOVE *.BAK:2 *.OLD:3             | Wildcard Move and Rename from :2 to :3         |
+| MOVE FILE1.BAK:2 TEMP/FILE2.BAK  | Move and rename file from :2 to TEMP directory |
 
 #### Output and Errors
 
@@ -575,6 +578,8 @@ Renames a single file or directory, or batch renames matching files
 using wildcards (aliases: `REN`).
 Wildcard matching applies to files only; subdirectories, hidden/system files,
 are skipped during wildcard renames.
+Renamed items must stay in the source directory. 
+Cross-path or cross-drive renames are not supported. Use MOVE for this.
 
 #### Syntax
 
@@ -584,18 +589,21 @@ REN {source} {dest}
 
 Where:
 - {source} — A single file or directory name, a path, or a file wildcard pattern containing * (case-insensitive).
-- {dest} — A new name, or a wildcard pattern such as *.OLD or MYWORK.*.
+- {dest} — A new name, or a wildcard pattern such as *.OLD or MYWORK.*; cannot specify a different directory
+
+Note: REN keeps the renamed item in {source}'s directory (unlike how MOVE works). 
+This means that {dest} cannot specify a different directory or logical drive
 
 #### Examples
 
-| Command                       | Description                 |
-|-------------------------------|-----------------------------|
-| REN OLDNAME.BAS NEWNAME.BAS   | Single file rename          |
-| REN TEMP WORK                 | Directory rename            |
-| REN *.BAK *.OLD               | Wildcard extension swap     |
-| REN MYDB.* MYWORK.*           | Wildcard prefix mapping     |
-| REN OLDNAME.BAS:2 NEWNAME.BAS | In-place rename on drive :2 |
-| REN *.BAK:2 *.OLD             | Wildcard Rename             |
+| Command                       | Description                          |
+|-------------------------------|--------------------------------------|
+| REN OLDNAME.BAS NEWNAME.BAS   | Single file rename                   |
+| REN TEMP WORK                 | Directory rename                     |
+| REN *.BAK *.OLD               | Wildcard extension swap              |
+| REN MYDB.* MYWORK.*           | Wildcard prefix mapping              |
+| REN OLDNAME.BAS:2 NEWNAME.BAS | In-place rename on drive :2          |
+| REN *.BAK:2 *.OLD             | in-place wildcard rename on drive :2 |
 
 #### Output and Errors
 
